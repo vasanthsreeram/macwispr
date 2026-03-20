@@ -27,11 +27,6 @@ struct MainWindowView: View {
                 .help(appState.isRecording ? "Stop recording" : "Start recording")
             }
         }
-        .task {
-            if !appState.isModelLoaded && !appState.isModelLoading {
-                await appState.loadModel()
-            }
-        }
     }
 
     private var sidebar: some View {
@@ -84,27 +79,18 @@ struct MainWindowView: View {
 
     private var modelLoadingView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "arrow.down.circle")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+            ProgressView()
+                .scaleEffect(1.5)
 
-            if appState.isModelLoading {
-                ProgressView(value: appState.modelLoadProgress) {
-                    Text(appState.modelLoadStatus)
-                        .font(.callout)
-                }
-                .frame(maxWidth: 300)
-            } else {
-                Text("Qwen3-ASR 0.6B Model")
-                    .font(.title2)
-                Text("On-device speech recognition via MLX (Metal GPU)")
+            Text("Loading Qwen3-ASR 0.6B")
+                .font(.title3)
+
+            ProgressView(value: appState.modelLoadProgress) {
+                Text(appState.modelLoadStatus)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
-                Button("Download & Load Model") {
-                    Task { await appState.loadModel() }
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
             }
+            .frame(maxWidth: 300)
         }
     }
 

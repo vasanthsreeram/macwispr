@@ -23,6 +23,8 @@ final class AppState: ObservableObject {
 
     init() {
         setupHotkey()
+        // Auto-download model on launch
+        Task { await loadModel() }
     }
 
     func loadModel() async {
@@ -31,14 +33,17 @@ final class AppState: ObservableObject {
         modelLoadStatus = "Downloading model..."
 
         do {
-            try await transcriptionEngine.loadModel { [weak self] progress, status in
-                DispatchQueue.main.async {
-                    self?.modelLoadProgress = progress
-                    self?.modelLoadStatus = status.isEmpty
-                        ? "Downloading... \(Int(progress * 100))%"
-                        : "\(status) (\(Int(progress * 100))%)"
+            let engine = transcriptionEngine
+            try await Task.detached {
+                try await engine.loadModel { progress, status in
+                    DispatchQueue.main.async { [weak self] in
+                        self?.modelLoadProgress = progress
+                        self?.modelLoadStatus = status.isEmpty
+                            ? "Downloading... \(Int(progress * 100))%"
+                            : "\(status) (\(Int(progress * 100))%)"
+                    }
                 }
-            }
+            }.value
             isModelLoaded = true
             modelLoadStatus = "Ready"
         } catch {

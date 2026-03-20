@@ -75,10 +75,12 @@ struct SettingsView: View {
                     if appState.isModelLoaded {
                         Label("Loaded", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
+                    } else if appState.isModelLoading {
+                        ProgressView()
+                            .controlSize(.small)
                     } else {
-                        Button("Load") {
-                            Task { await appState.loadModel() }
-                        }
+                        Label("Downloading...", systemImage: "arrow.down.circle")
+                            .foregroundStyle(.orange)
                     }
                 }
                 Text("300MB, on-device, Metal GPU accelerated")

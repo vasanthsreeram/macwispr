@@ -82,21 +82,11 @@ struct MenuBarView: View {
 
     private var modelLoadSection: some View {
         VStack(spacing: 8) {
-            if appState.isModelLoading {
-                ProgressView(value: appState.modelLoadProgress) {
-                    Text(appState.modelLoadStatus)
-                        .font(.caption)
-                }
-                .padding(.horizontal)
-            } else {
-                Button("Load Model (Qwen3-ASR 0.6B)") {
-                    Task { await appState.loadModel() }
-                }
-                .buttonStyle(.borderedProminent)
-                Text("~300 MB download, runs on-device via MLX")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            ProgressView(value: appState.modelLoadProgress) {
+                Text(appState.modelLoadStatus)
+                    .font(.caption)
             }
+            .padding(.horizontal)
         }
         .padding(.horizontal)
     }
