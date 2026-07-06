@@ -19,6 +19,14 @@ let package = Package(
                 .product(name: "AudioCommon", package: "speech-swift"),
             ],
             path: "Sources"
-        )
+        ),
+        .executableTarget(
+            name: "BenchLatency",
+            dependencies: [
+                .product(name: "Qwen3ASR", package: "speech-swift"),
+                .product(name: "AudioCommon", package: "speech-swift"),
+            ],
+            path: "BenchLatency"
+        ),
     ]
 )
