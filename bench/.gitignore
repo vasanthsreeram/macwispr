@@ -1,0 +1,11 @@
+*.log
+*.txt
+!README.md
+clips/batch_in/
+clips/batch_out/
+sample.wav
+sample_10min.wav
+sample_30s.wav
+sample_10s.wav
+benchmark_run.log
+benchmark_results_*.txt
