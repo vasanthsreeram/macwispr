@@ -203,6 +203,16 @@ brew install ffmpeg
 xattr -dr com.apple.quarantine /Applications/MacWispr.app
 ```
 
+**App quits immediately with `Failed to load the default metallib`?**  
+The MLX GPU shader library (`mlx.metallib`) is missing from the app bundle. Rebuild with the fixed packaging script (requires the Xcode Metal Toolchain):
+
+```bash
+xcodebuild -downloadComponent MetalToolchain   # once, if metal compiler is missing
+./scripts/install.sh
+```
+
+`scripts/build-app.sh` compiles the metal kernels and places `mlx.metallib` next to the binary inside `MacWispr.app`.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
