@@ -64,20 +64,6 @@ struct SettingsView: View {
             Section("Post-Processing") {
                 Toggle("Remove filler words (uh, um, like...)", isOn: $appState.removeFillerWords)
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
-                Toggle("Stream words while transcribing", isOn: $appState.isStreamingEnabled)
-                Text("Shows tokens live on the floating indicator as the model decodes — feels faster than waiting for the full sentence.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("Floating Indicator") {
-                Toggle("Show floating indicator at top of screen", isOn: Binding(
-                    get: { appState.floatingIndicatorEnabled },
-                    set: { appState.setFloatingIndicatorEnabled($0) }
-                ))
-                Text("A Superwhisper-style pill under the menu bar (never over the notch). Drag to move · double-click or right-click → Reset Position if it ever feels stuck. Click opens the dashboard.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
