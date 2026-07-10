@@ -8,25 +8,18 @@ final class AppState: ObservableObject {
     static private(set) var shared: AppState?
 
     @Published var isRecording = false
-    /// True while the model is converting audio → text after release.
-    @Published var isTranscribing = false
     @Published var isModelLoaded = false
     @Published var isModelLoading = false
     @Published var modelLoadProgress: Double = 0
     @Published var modelLoadStatus: String = ""
     @Published var currentTranscription: String = ""
-    /// Short ephemeral message on the floating pill (e.g. hotkey while loading).
-    @Published var statusBanner: String = ""
     @Published var transcriptionHistory: [TranscriptionEntry] = []
     @Published var selectedLanguage: String? = nil // nil = auto-detect
     @Published var insertionMode: InsertionMode = .clipboard
-    @Published var isStreamingEnabled = true
     @Published var removeFillerWords = true
     @Published var autoCapitalize = true
     /// Soft chime when hold-to-dictate starts / stops.
     @Published var soundFeedbackEnabled = true
-    /// Superwhisper-style floating pill at the top of the screen.
-    @Published var floatingIndicatorEnabled = true
     /// Baseline typing speed used for "time saved" estimates.
     @Published var typingWPM: Double = UsageStats.defaultTypingWPM
 
@@ -47,18 +40,9 @@ final class AppState: ObservableObject {
         if UserDefaults.standard.object(forKey: "soundFeedbackEnabled") != nil {
             soundFeedbackEnabled = UserDefaults.standard.bool(forKey: "soundFeedbackEnabled")
         }
-        if UserDefaults.standard.object(forKey: "floatingIndicatorEnabled") != nil {
-            floatingIndicatorEnabled = UserDefaults.standard.bool(forKey: "floatingIndicatorEnabled")
-        }
         setupHotkey()
         // Auto-download model on launch
         Task { await loadModel() }
-        // Floating pill (after a tick so AppDelegate.shared exists).
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 200_000_000)
-            FloatingIndicatorController.shared.attach(appState: self)
-            AppDelegate.shared?.appState = self
-        }
     }
 
     func loadModel() async {
@@ -87,29 +71,9 @@ final class AppState: ObservableObject {
     }
 
     func startRecording() {
-        guard !isRecording else { return }
-
-        // Hotkey can fire before the model is ready — show why, don't fail silently.
-        guard isModelLoaded else {
-            let message: String
-            if isModelLoading {
-                message = "Model still loading…"
-            } else if modelLoadStatus.hasPrefix("Error") {
-                message = "Model failed to load"
-            } else {
-                message = "Model not ready"
-            }
-            flashStatusBanner(message)
-            if soundFeedbackEnabled {
-                // Soft "not ready" cue (system Tink is the start sound; use Pop lightly).
-                FeedbackSounds.playListeningStopped()
-            }
-            return
-        }
-
+        guard isModelLoaded, !isRecording else { return }
         isRecording = true
         currentTranscription = ""
-        statusBanner = ""
         recordingSession += 1
         let session = recordingSession
 
@@ -128,17 +92,6 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func flashStatusBanner(_ message: String, seconds: Double = 2.0) {
-        statusBanner = message
-        let token = message
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            if statusBanner == token {
-                statusBanner = ""
-            }
-        }
-    }
-
     func stopRecordingAndTranscribe() async {
         guard isRecording else { return }
         isRecording = false
@@ -152,29 +105,11 @@ final class AppState: ObservableObject {
 
         guard !samples.isEmpty else { return }
 
-        isTranscribing = true
-        currentTranscription = ""
-        defer { isTranscribing = false }
-
         do {
-            let engine = transcriptionEngine
-            let language = selectedLanguage
-            let streamUI = isStreamingEnabled
-
-            // Stream tokens as they decode so the floating pill shows words live
-            // (feels much faster than a silent wait until the full string returns).
-            let text = try await engine.transcribeStreaming(
+            let text = try await transcriptionEngine.transcribe(
                 samples: samples,
-                language: language,
-                onPartial: { [weak self] partial in
-                    guard streamUI else { return }
-                    Task { @MainActor in
-                        // Light live polish so the stream still looks intentional.
-                        self?.currentTranscription = Self.livePreview(partial)
-                    }
-                }
+                language: selectedLanguage
             )
-
             let processed = postProcess(text)
             currentTranscription = processed
 
@@ -188,20 +123,11 @@ final class AppState: ObservableObject {
             transcriptionHistory.insert(entry, at: 0)
             HistoryStore.save(transcriptionHistory)
 
-            // Final insert once (stable, post-processed text).
+            // Insert text based on mode
             textInserter.insert(text: processed, mode: insertionMode)
         } catch {
             currentTranscription = "Error: \(error.localizedDescription)"
         }
-    }
-
-    /// Minimal live formatting while tokens stream (full post-process runs at the end).
-    private static func livePreview(_ text: String) -> String {
-        var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !result.isEmpty {
-            result = result.prefix(1).uppercased() + result.dropFirst()
-        }
-        return result
     }
 
     func setTypingWPM(_ value: Double) {
@@ -212,12 +138,6 @@ final class AppState: ObservableObject {
     func setSoundFeedbackEnabled(_ enabled: Bool) {
         soundFeedbackEnabled = enabled
         UserDefaults.standard.set(enabled, forKey: "soundFeedbackEnabled")
-    }
-
-    func setFloatingIndicatorEnabled(_ enabled: Bool) {
-        floatingIndicatorEnabled = enabled
-        UserDefaults.standard.set(enabled, forKey: "floatingIndicatorEnabled")
-        FloatingIndicatorController.shared.setVisible(enabled)
     }
 
     func clearHistory() {
