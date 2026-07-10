@@ -7,6 +7,7 @@ struct MainWindowView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
+                .navigationSplitViewColumnWidth(min: 200, ideal: 230, max: 300)
         } detail: {
             detailView
         }
@@ -56,7 +57,6 @@ struct MainWindowView: View {
             }
         }
         .listStyle(.sidebar)
-        .frame(minWidth: 220)
     }
 
     private var detailView: some View {

@@ -1,7 +1,9 @@
 import SwiftUI
+import AppKit
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.openWindow) private var openWindow
 
     private var week: UsageStats.Snapshot {
         UsageStats(typingWPM: appState.typingWPM).weeklySnapshot(entries: appState.transcriptionHistory)
@@ -79,10 +81,13 @@ struct MenuBarView: View {
                     Label("Open Dashboard", systemImage: "chart.bar.fill")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("open-dashboard")
+                .help("Open the Time Saved dashboard")
 
                 Button {
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                    NSApp.activate(ignoringOtherApps: true)
                 } label: {
                     Label("Settings...", systemImage: "gear")
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -103,18 +108,26 @@ struct MenuBarView: View {
         }
         .padding(.vertical, 12)
         .frame(width: 300)
+        .onAppear {
+            // Wire the shared AppState into AppDelegate for reliable window opens.
+            AppDelegate.shared?.appState = appState
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .macWisprOpenMainWindow)) { _ in
+            openMainWindow()
+        }
     }
 
+    /// Prefer AppKit-hosted window (reliable from MenuBarExtra). SwiftUI
+    /// `openWindow` is kept as a secondary path for Window-scene consumers.
     private func openMainWindow() {
-        if let window = NSApp.windows.first(where: { $0.title == "MacWispr" }) {
-            window.makeKeyAndOrderFront(nil)
-        } else {
-            // Fallback: activate app so Window scene can present
-            for window in NSApp.windows where window.canBecomeKey {
-                window.makeKeyAndOrderFront(nil)
-                break
-            }
+        AppDelegate.shared?.appState = appState
+        if let delegate = AppDelegate.shared {
+            delegate.showDashboard()
+            return
         }
+        // Fallback if AppDelegate is not ready.
+        NSApp.setActivationPolicy(.regular)
+        openWindow(id: "main")
         NSApp.activate(ignoringOtherApps: true)
     }
 
