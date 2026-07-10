@@ -65,6 +65,16 @@ struct SettingsView: View {
                 Toggle("Remove filler words (uh, um, like...)", isOn: $appState.removeFillerWords)
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
             }
+
+            Section("Floating Indicator") {
+                Toggle("Show floating indicator at top of screen", isOn: Binding(
+                    get: { appState.floatingIndicatorEnabled },
+                    set: { appState.setFloatingIndicatorEnabled($0) }
+                ))
+                Text("A Superwhisper-style pill. Turns red while listening, shows “Transcribing…”, and opens the dashboard when clicked. Drag to reposition; right-click for more options.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
         .padding()
