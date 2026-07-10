@@ -83,20 +83,24 @@ else
   cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
 fi
 
-# App icon (.icns from PNG if available)
+# App icon + bundled logo for About / UI (.icns from PNG)
 ICON_SRC="$ROOT/docs/assets/logo.png"
-if [[ -f "$ICON_SRC" ]] && command -v sips >/dev/null 2>&1 && command -v iconutil >/dev/null 2>&1; then
-  ICONSET="$(mktemp -d)/AppIcon.iconset"
-  mkdir -p "$ICONSET"
-  for s in 16 32 64 128 256 512; do
-    sips -z "$s" "$s" "$ICON_SRC" --out "$ICONSET/icon_${s}x${s}.png" >/dev/null
-    double=$((s * 2))
-    sips -z "$double" "$double" "$ICON_SRC" --out "$ICONSET/icon_${s}x${s}@2x.png" >/dev/null
-  done
-  iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
-  rm -rf "$(dirname "$ICONSET")"
-elif [[ -f "$ICON_SRC" ]]; then
-  cp "$ICON_SRC" "$APP/Contents/Resources/AppIcon.png"
+if [[ -f "$ICON_SRC" ]]; then
+  # PNG used by About screen and any runtime UI.
+  cp "$ICON_SRC" "$APP/Contents/Resources/AppLogo.png"
+  if command -v sips >/dev/null 2>&1 && command -v iconutil >/dev/null 2>&1; then
+    ICONSET="$(mktemp -d)/AppIcon.iconset"
+    mkdir -p "$ICONSET"
+    for s in 16 32 64 128 256 512; do
+      sips -z "$s" "$s" "$ICON_SRC" --out "$ICONSET/icon_${s}x${s}.png" >/dev/null
+      double=$((s * 2))
+      sips -z "$double" "$double" "$ICON_SRC" --out "$ICONSET/icon_${s}x${s}@2x.png" >/dev/null
+    done
+    iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+    rm -rf "$(dirname "$ICONSET")"
+  else
+    cp "$ICON_SRC" "$APP/Contents/Resources/AppIcon.png"
+  fi
 fi
 
 # Ad-hoc sign so macOS Gatekeeper is slightly happier on local builds

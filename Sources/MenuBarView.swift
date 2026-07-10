@@ -74,35 +74,20 @@ struct MenuBarView: View {
             }
 
             // Quick actions
-            VStack(spacing: 4) {
-                Button {
+            VStack(spacing: 2) {
+                menuRow(title: "Open Dashboard", systemImage: "chart.bar.fill") {
                     openMainWindow()
-                } label: {
-                    Label("Open Dashboard", systemImage: "chart.bar.fill")
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.borderless)
-                .accessibilityIdentifier("open-dashboard")
-                .help("Open the Time Saved dashboard")
-
-                Button {
+                menuRow(title: "Settings...", systemImage: "gear") {
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                     NSApp.activate(ignoringOtherApps: true)
-                } label: {
-                    Label("Settings...", systemImage: "gear")
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
 
-                Divider()
+                Divider().padding(.vertical, 4)
 
-                Button {
+                menuRow(title: "Quit MacWispr", systemImage: "power") {
                     NSApplication.shared.terminate(nil)
-                } label: {
-                    Label("Quit MacWispr", systemImage: "power")
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal)
         }
@@ -117,15 +102,34 @@ struct MenuBarView: View {
         }
     }
 
-    /// Prefer AppKit-hosted window (reliable from MenuBarExtra). SwiftUI
-    /// `openWindow` is kept as a secondary path for Window-scene consumers.
+    /// Large hit target — plain SwiftUI Buttons inside MenuBarExtra(.window)
+    /// often drop the action when the panel dismisses.
+    private func menuRow(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .padding(.vertical, 6)
+                .padding(.horizontal, 4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(title)
+    }
+
+    /// Prefer AppKit-hosted window (reliable from MenuBarExtra).
     private func openMainWindow() {
         AppDelegate.shared?.appState = appState
+        // Close the menu-bar panel first, then open — avoids the click being
+        // eaten when the popover tears down.
+        if let panel = NSApp.windows.first(where: {
+            $0.className.contains("MenuBar") || $0.className.contains("StatusBar")
+        }) {
+            panel.orderOut(nil)
+        }
         if let delegate = AppDelegate.shared {
             delegate.showDashboard()
             return
         }
-        // Fallback if AppDelegate is not ready.
         NSApp.setActivationPolicy(.regular)
         openWindow(id: "main")
         NSApp.activate(ignoringOtherApps: true)

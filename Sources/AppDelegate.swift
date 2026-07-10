@@ -17,7 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu-bar agent (LSUIElement) — stay out of the Dock until a window opens.
         NSApp.setActivationPolicy(.accessory)
 
-        // Request accessibility permissions for system-wide text insertion
+        // Accessibility is required to *suppress* ⌥Space (event tap) and insert text.
+        // Without it, Space still types into the focused app.
         let trusted = AXIsProcessTrusted()
         if !trusted {
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
@@ -26,18 +27,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Allow: open -a MacWispr --args --open-dashboard
         if CommandLine.arguments.contains("--open-dashboard") {
-            openDashboardWhenReady(attempts: 20)
+            openDashboardWhenReady(attempts: 30)
         }
     }
 
-    /// Retries until SwiftUI has wired `appState` (MenuBarExtra onAppear).
+    /// Retries until AppState is available.
     private func openDashboardWhenReady(attempts: Int) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self else { return }
-            if self.appState != nil {
+            if (self.appState ?? AppState.shared) != nil {
                 self.showDashboard()
             } else if attempts > 0 {
                 self.openDashboardWhenReady(attempts: attempts - 1)
+            } else {
+                NSLog("MacWispr: timed out waiting for AppState to open dashboard")
             }
         }
     }
@@ -47,58 +50,86 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag {
-            showDashboard()
-        }
+        // Dock icon click / reopen → show dashboard.
+        showDashboard()
         return true
     }
 
     /// Opens (or focuses) the Time Saved dashboard. Safe to call from the menu bar.
-    @MainActor
+    /// Always hops to the main queue after a short delay so MenuBarExtra can dismiss first.
     func showDashboard() {
-        guard let appState else {
-            // AppState not wired yet — ask MenuBarView to open via openWindow.
-            NotificationCenter.default.post(name: .macWisprOpenMainWindow, object: nil)
+        // Defer: if we open while the menu-bar panel is still animating closed,
+        // the new window often fails to key / appears blank / vanishes.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+            self?.presentDashboard()
+        }
+    }
+
+    @MainActor
+    private func presentDashboard() {
+        guard let appState = appState ?? AppState.shared else {
+            NSLog("MacWispr: showDashboard called before AppState is ready")
             return
         }
+        self.appState = appState
 
-        NSApp.setActivationPolicy(.regular)
+        // Become a normal app so the window can take focus and appear on-screen.
+        if NSApp.activationPolicy() != .regular {
+            NSApp.setActivationPolicy(.regular)
+        }
 
-        if let window = dashboardWindow {
+        if dashboardWindow == nil {
+            let root = MainWindowView()
+                .environmentObject(appState)
+                .frame(minWidth: 680, minHeight: 480)
+
+            let hosting = NSHostingController(rootView: root)
+            let window = NSWindow(contentViewController: hosting)
+            window.identifier = NSUserInterfaceItemIdentifier("main")
+            window.title = "MacWispr"
+            window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            window.setContentSize(NSSize(width: 720, height: 640))
+            window.isReleasedWhenClosed = false
+            window.center()
+            window.setFrameAutosaveName("MacWisprMain")
+            window.collectionBehavior.insert(.moveToActiveSpace)
+
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                DispatchQueue.main.async {
+                    // Keep the window instance for fast reopen; drop Dock presence.
+                    guard let self else { return }
+                    let otherVisible = NSApp.windows.contains {
+                        $0 !== window && $0.isVisible && $0.styleMask.contains(.titled)
+                    }
+                    if !otherVisible {
+                        NSApp.setActivationPolicy(.accessory)
+                    }
+                }
+            }
+
+            dashboardWindow = window
+        }
+
+        guard let window = dashboardWindow else { return }
+
+        // If the user closed it, it's hidden but retained — show again.
+        if !window.isVisible {
+            window.setIsVisible(true)
+        }
+        window.collectionBehavior.insert(.moveToActiveSpace)
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+
+        // One more kick after layout — fixes rare blank first frame.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
-            return
         }
-
-        let root = MainWindowView()
-            .environmentObject(appState)
-            .frame(minWidth: 680, minHeight: 480)
-
-        let hosting = NSHostingController(rootView: root)
-        let window = NSWindow(contentViewController: hosting)
-        window.identifier = NSUserInterfaceItemIdentifier("main")
-        window.title = "MacWispr"
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        window.setContentSize(NSSize(width: 720, height: 640))
-        window.isReleasedWhenClosed = false
-        window.center()
-        window.setFrameAutosaveName("MacWisprMain")
-
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: window,
-            queue: .main
-        ) { [weak self] _ in
-            // Keep the window instance for fast reopen; just drop Dock presence.
-            DispatchQueue.main.async {
-                self?.dashboardWindow = window
-                NSApp.setActivationPolicy(.accessory)
-            }
-        }
-
-        dashboardWindow = window
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
 }
 

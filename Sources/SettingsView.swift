@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
@@ -159,6 +160,27 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Sound Feedback") {
+                Toggle("Play sounds when listening starts and stops", isOn: Binding(
+                    get: { appState.soundFeedbackEnabled },
+                    set: { appState.setSoundFeedbackEnabled($0) }
+                ))
+                Text("Soft chime on hold (listening) and release (stopped). The mic opens after the start sound so it is not recorded.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if appState.soundFeedbackEnabled {
+                    HStack(spacing: 12) {
+                        Button("Preview start") {
+                            FeedbackSounds.playListeningStarted()
+                        }
+                        Button("Preview stop") {
+                            FeedbackSounds.playListeningStopped()
+                        }
+                    }
+                }
+            }
+
             Section("Permissions") {
                 HStack {
                     Text("Accessibility")
@@ -173,7 +195,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                Text("Required for global hotkeys and text insertion into other apps.")
+                Text("Required so ⌥Space is swallowed (won’t type spaces), and for pasting into other apps. After granting, quit and reopen MacWispr.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -184,9 +206,18 @@ struct SettingsView: View {
 
     private var aboutView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "waveform.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(Color.accentColor)
+            if let logo = NSImage.appLogo {
+                Image(nsImage: logo)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 96, height: 96)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+            } else {
+                Image(systemName: "waveform.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(Color.accentColor)
+            }
 
             Text("MacWispr")
                 .font(.title)
@@ -210,5 +241,23 @@ struct SettingsView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
+    }
+}
+
+extension NSImage {
+    /// Bundled app logo (`AppLogo.png` in Resources), or nil if missing.
+    static var appLogo: NSImage? {
+        if let url = Bundle.main.url(forResource: "AppLogo", withExtension: "png"),
+           let image = NSImage(contentsOf: url)
+        {
+            return image
+        }
+        // Fallback: same file as the app icon if present.
+        if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let image = NSImage(contentsOf: url)
+        {
+            return image
+        }
+        return nil
     }
 }

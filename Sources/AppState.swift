@@ -3,6 +3,10 @@ import Combine
 
 @MainActor
 final class AppState: ObservableObject {
+    /// Process-wide instance so AppDelegate can open the dashboard without
+    /// waiting on MenuBarExtra's onAppear (which only runs after first click).
+    static private(set) var shared: AppState?
+
     @Published var isRecording = false
     @Published var isModelLoaded = false
     @Published var isModelLoading = false
@@ -15,6 +19,8 @@ final class AppState: ObservableObject {
     @Published var isStreamingEnabled = true
     @Published var removeFillerWords = true
     @Published var autoCapitalize = true
+    /// Soft chime when hold-to-dictate starts / stops.
+    @Published var soundFeedbackEnabled = true
     /// Baseline typing speed used for "time saved" estimates.
     @Published var typingWPM: Double = UsageStats.defaultTypingWPM
 
@@ -23,10 +29,17 @@ final class AppState: ObservableObject {
     let hotkeyManager = HotkeyManager()
     let textInserter = TextInserter()
 
+    /// Bumps when recording is cancelled so a delayed mic-start is ignored.
+    private var recordingSession = 0
+
     init() {
+        AppState.shared = self
         transcriptionHistory = HistoryStore.load()
         if let savedWPM = UserDefaults.standard.object(forKey: "typingWPM") as? Double, savedWPM > 0 {
             typingWPM = savedWPM
+        }
+        if UserDefaults.standard.object(forKey: "soundFeedbackEnabled") != nil {
+            soundFeedbackEnabled = UserDefaults.standard.bool(forKey: "soundFeedbackEnabled")
         }
         setupHotkey()
         // Auto-download model on launch
@@ -59,16 +72,37 @@ final class AppState: ObservableObject {
     }
 
     func startRecording() {
-        guard isModelLoaded else { return }
+        guard isModelLoaded, !isRecording else { return }
         isRecording = true
         currentTranscription = ""
-        audioRecorder.startRecording()
+        recordingSession += 1
+        let session = recordingSession
+
+        // Chime first, then open the mic after a short beat so the start
+        // sound is not captured into the dictation audio.
+        if soundFeedbackEnabled {
+            FeedbackSounds.playListeningStarted()
+        }
+
+        Task { @MainActor in
+            if soundFeedbackEnabled {
+                try? await Task.sleep(nanoseconds: 90_000_000) // 90ms
+            }
+            guard isRecording, recordingSession == session else { return }
+            audioRecorder.startRecording()
+        }
     }
 
     func stopRecordingAndTranscribe() async {
         guard isRecording else { return }
         isRecording = false
+        recordingSession += 1
         let samples = audioRecorder.stopRecording()
+
+        // Play after mic stops so the chime is not part of the transcript.
+        if soundFeedbackEnabled {
+            FeedbackSounds.playListeningStopped()
+        }
 
         guard !samples.isEmpty else { return }
 
@@ -100,6 +134,11 @@ final class AppState: ObservableObject {
     func setTypingWPM(_ value: Double) {
         typingWPM = max(10, min(120, value))
         UserDefaults.standard.set(typingWPM, forKey: "typingWPM")
+    }
+
+    func setSoundFeedbackEnabled(_ enabled: Bool) {
+        soundFeedbackEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: "soundFeedbackEnabled")
     }
 
     func clearHistory() {
@@ -144,6 +183,16 @@ final class AppState: ObservableObject {
             }
         }
         hotkeyManager.register()
+
+        // Accessibility may be granted after launch — re-create the event tap
+        // so Space starts being swallowed without a full restart.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.hotkeyManager.ensureRegistered()
+        }
     }
 }
 
