@@ -64,6 +64,10 @@ struct SettingsView: View {
             Section("Post-Processing") {
                 Toggle("Remove filler words (uh, um, like...)", isOn: $appState.removeFillerWords)
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
+                Toggle("Stream words while transcribing", isOn: $appState.isStreamingEnabled)
+                Text("Shows tokens live on the floating indicator as the model decodes — feels faster than waiting for the full sentence.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Floating Indicator") {

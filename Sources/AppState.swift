@@ -120,13 +120,28 @@ final class AppState: ObservableObject {
         guard !samples.isEmpty else { return }
 
         isTranscribing = true
+        currentTranscription = ""
         defer { isTranscribing = false }
 
         do {
-            let text = try await transcriptionEngine.transcribe(
+            let engine = transcriptionEngine
+            let language = selectedLanguage
+            let streamUI = isStreamingEnabled
+
+            // Stream tokens as they decode so the floating pill shows words live
+            // (feels much faster than a silent wait until the full string returns).
+            let text = try await engine.transcribeStreaming(
                 samples: samples,
-                language: selectedLanguage
+                language: language,
+                onPartial: { [weak self] partial in
+                    guard streamUI else { return }
+                    Task { @MainActor in
+                        // Light live polish so the stream still looks intentional.
+                        self?.currentTranscription = Self.livePreview(partial)
+                    }
+                }
             )
+
             let processed = postProcess(text)
             currentTranscription = processed
 
@@ -140,11 +155,20 @@ final class AppState: ObservableObject {
             transcriptionHistory.insert(entry, at: 0)
             HistoryStore.save(transcriptionHistory)
 
-            // Insert text based on mode
+            // Final insert once (stable, post-processed text).
             textInserter.insert(text: processed, mode: insertionMode)
         } catch {
             currentTranscription = "Error: \(error.localizedDescription)"
         }
+    }
+
+    /// Minimal live formatting while tokens stream (full post-process runs at the end).
+    private static func livePreview(_ text: String) -> String {
+        var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !result.isEmpty {
+            result = result.prefix(1).uppercased() + result.dropFirst()
+        }
+        return result
     }
 
     func setTypingWPM(_ value: Double) {

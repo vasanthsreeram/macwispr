@@ -24,9 +24,15 @@ final class FloatingIndicatorController {
         cancellables.removeAll()
 
         appState.$isRecording
-            .combineLatest(appState.$isTranscribing, appState.$isModelLoading, appState.$floatingIndicatorEnabled)
+            .combineLatest(
+                appState.$isTranscribing,
+                appState.$isModelLoading,
+                appState.$floatingIndicatorEnabled
+            )
+            .combineLatest(appState.$currentTranscription)
             .receive(on: RunLoop.main)
-            .sink { [weak self] _, _, _, enabled in
+            .sink { [weak self] combined, _ in
+                let (_, _, _, enabled) = combined
                 self?.refreshVisibility(enabled: enabled)
                 self?.relayout()
             }

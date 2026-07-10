@@ -14,7 +14,15 @@ struct FloatingIndicatorView: View {
                 statusGlyph
                     .frame(width: 26, height: 26)
 
-                if showsLabel {
+                if showsStreamingText {
+                    Text(appState.currentTranscription)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                        .frame(maxWidth: 280, alignment: .leading)
+                        .transition(.opacity)
+                } else if showsLabel {
                     Text(statusLabel)
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundStyle(.primary)
@@ -23,7 +31,7 @@ struct FloatingIndicatorView: View {
                 }
             }
             .padding(.leading, 6)
-            .padding(.trailing, showsLabel ? 12 : 6)
+            .padding(.trailing, (showsLabel || showsStreamingText) ? 12 : 6)
             .padding(.vertical, 6)
             .background {
                 Capsule(style: .continuous)
@@ -37,6 +45,7 @@ struct FloatingIndicatorView: View {
             .scaleEffect(appState.isRecording && pulse ? 1.04 : 1.0)
             .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulse)
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showsLabel)
+            .animation(.easeOut(duration: 0.12), value: appState.currentTranscription)
         }
         .buttonStyle(.plain)
         .help(helpText)
@@ -64,8 +73,13 @@ struct FloatingIndicatorView: View {
         }
     }
 
+    private var showsStreamingText: Bool {
+        appState.isTranscribing && !appState.currentTranscription.isEmpty
+    }
+
     private var showsLabel: Bool {
-        appState.isRecording || appState.isTranscribing || appState.isModelLoading
+        if showsStreamingText { return false }
+        return appState.isRecording || appState.isTranscribing || appState.isModelLoading
     }
 
     private var statusLabel: String {
@@ -77,6 +91,7 @@ struct FloatingIndicatorView: View {
 
     private var helpText: String {
         if appState.isRecording { return "Listening — release ⌥Space to stop. Click for dashboard." }
+        if showsStreamingText { return appState.currentTranscription }
         if appState.isTranscribing { return "Transcribing… Click for dashboard." }
         if !appState.isModelLoaded { return "Loading model… Click for dashboard." }
         return "MacWispr ready — hold ⌥Space to dictate. Click for dashboard."
@@ -84,7 +99,7 @@ struct FloatingIndicatorView: View {
 
     private var statusColor: Color {
         if appState.isRecording { return .red }
-        if appState.isTranscribing { return .orange }
+        if appState.isTranscribing { return .purple }
         if appState.isModelLoaded { return Color(red: 0.15, green: 0.55, blue: 1.0) }
         if appState.isModelLoading { return .orange }
         return .secondary
