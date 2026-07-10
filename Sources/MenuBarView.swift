@@ -21,6 +21,27 @@ struct MenuBarView: View {
             }
             .padding(.horizontal)
 
+            // Hotkey health (so we can see if ⌥Space is armed)
+            HStack(spacing: 6) {
+                Image(systemName: hotkeyArmed ? "keyboard" : "keyboard.badge.ellipsis")
+                    .foregroundStyle(hotkeyArmed ? .green : .orange)
+                Text(hotkeyArmed
+                     ? "⌥Space armed (\(appState.dictationMode.rawValue.lowercased()))"
+                     : "⌥Space needs Accessibility")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if !hotkeyArmed {
+                    Button("Fix") {
+                        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
+                        AXIsProcessTrustedWithOptions(options)
+                        appState.hotkeyManager.ensureRegistered()
+                    }
+                    .font(.caption)
+                }
+            }
+            .padding(.horizontal)
+
             Divider()
 
             if !appState.isModelLoaded {
@@ -188,6 +209,10 @@ struct MenuBarView: View {
         if appState.isModelLoaded { return "Ready" }
         if appState.isModelLoading { return "Loading..." }
         return "Model Not Loaded"
+    }
+
+    private var hotkeyArmed: Bool {
+        appState.hotkeyManager.tapInstalled || appState.hotkeyManager.monitorsInstalled
     }
 }
 
