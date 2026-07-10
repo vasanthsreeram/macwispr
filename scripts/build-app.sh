@@ -25,12 +25,54 @@ if [[ -z "${BIN:-}" || ! -x "$BIN" ]]; then
   exit 1
 fi
 
+# MLX loads GPU shaders from mlx.metallib next to the executable (or via a
+# SwiftPM resource bundle). The GitHub release crash was:
+#   MLX error: Failed to load the default metallib. library not found
+# Build it from the mlx-swift metal kernels and ship it inside the .app.
+echo "==> Building MLX Metal library (mlx.metallib)..."
+MLX_SWIFT_DIR="$BUILD_DIR/checkouts/mlx-swift"
+if [[ -d "$MLX_SWIFT_DIR/.git" || -f "$MLX_SWIFT_DIR/.git" ]]; then
+  # mlx-swift vendors mlx via git submodules; SPM may leave them empty.
+  git -C "$MLX_SWIFT_DIR" submodule update --init --recursive
+fi
+METALLIB_SCRIPT="$BUILD_DIR/checkouts/speech-swift/scripts/build_mlx_metallib.sh"
+if [[ ! -x "$METALLIB_SCRIPT" && ! -f "$METALLIB_SCRIPT" ]]; then
+  echo "error: missing $METALLIB_SCRIPT (run swift build first)" >&2
+  exit 1
+fi
+BUILD_DIR="$BUILD_DIR" bash "$METALLIB_SCRIPT" "$CONFIG"
+
+METALLIB=""
+for candidate in \
+  "$BUILD_DIR/$CONFIG/mlx.metallib" \
+  "$(dirname "$BIN")/mlx.metallib"
+do
+  if [[ -f "$candidate" ]]; then
+    METALLIB="$candidate"
+    break
+  fi
+done
+# Fallback: search under .build (SPM layout varies)
+if [[ -z "$METALLIB" ]]; then
+  METALLIB="$(find "$BUILD_DIR" -type f -name 'mlx.metallib' 2>/dev/null | head -n1 || true)"
+fi
+if [[ -z "$METALLIB" || ! -f "$METALLIB" ]]; then
+  echo "error: mlx.metallib not found after metal build" >&2
+  echo "hint: install Metal Toolchain: xcodebuild -downloadComponent MetalToolchain" >&2
+  exit 1
+fi
+
 echo "==> Assembling $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp "$BIN" "$APP/Contents/MacOS/MacWispr"
 chmod +x "$APP/Contents/MacOS/MacWispr"
+# Colocated with the binary — first path MLX searches at runtime.
+cp "$METALLIB" "$APP/Contents/MacOS/mlx.metallib"
+# Also ship as default.metallib for loaders that use METAL_PATH.
+cp "$METALLIB" "$APP/Contents/MacOS/default.metallib"
+cp "$METALLIB" "$APP/Contents/Resources/default.metallib"
 
 # Info.plist (inject version if present)
 if command -v /usr/libexec/PlistBuddy >/dev/null 2>&1; then
