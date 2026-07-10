@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct OpenWhisprApp: App {
+struct MacWisprApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState()
 
@@ -19,10 +19,10 @@ struct OpenWhisprApp: App {
                 .environmentObject(appState)
         }
 
-        Window("OpenWhispr", id: "main") {
+        Window("MacWispr", id: "main") {
             MainWindowView()
                 .environmentObject(appState)
         }
-        .defaultSize(width: 480, height: 600)
+        .defaultSize(width: 720, height: 640)
     }
 }

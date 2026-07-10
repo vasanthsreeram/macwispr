@@ -1,19 +1,53 @@
-# OpenWhispr
+# MacWispr
 
-On-device voice dictation for macOS, powered by [Qwen3-ASR-0.6B](https://huggingface.co/aufklarer/Qwen3-ASR-0.6B-MLX-4bit) via Apple Metal (MLX). A free, open-source alternative to Wispr Flow — runs entirely on your Mac, no cloud, no API keys.
+<p align="center">
+  <img src="docs/assets/logo.png" alt="MacWispr logo" width="160" />
+</p>
+
+<p align="center">
+  <strong>On-device voice dictation for macOS</strong><br/>
+  Powered by <a href="https://huggingface.co/aufklarer/Qwen3-ASR-0.6B-MLX-4bit">Qwen3-ASR-0.6B</a> via Apple Metal (MLX).<br/>
+  A free, open-source alternative to Wispr Flow — runs entirely on your Mac. No cloud. No API keys.
+</p>
+
+<p align="center">
+  <img src="docs/assets/hero.png" alt="MacWispr hero" width="720" />
+</p>
 
 Hold a hotkey, speak, release — text appears in whatever app you're typing in.
 
-## Quick start
+## Easy install (release)
+
+1. Grab the latest **`.app` zip** from [Releases](https://github.com/vasanthsreeram/macwispr/releases)
+2. Unzip and drag **MacWispr.app** into Applications
+3. Open it (right-click → **Open** the first time if macOS warns about an unsigned app)
+4. Grant **Microphone** + **Accessibility**
+5. Hold **⌥Space**, speak, release
+
+### One-command build & install (from source)
 
 ```bash
-git clone https://github.com/vasanthsreeram/openwhispr.git
-cd openwhispr
-swift build -c release
-.build/release/OpenWhispr
+git clone https://github.com/vasanthsreeram/macwispr.git
+cd macwispr
+./scripts/install.sh
+open -a MacWispr
 ```
 
-Benchmark model latency on your machine:
+Build the app bundle only:
+
+```bash
+./scripts/build-app.sh
+open dist/MacWispr.app
+```
+
+Developer quick run (no `.app` bundle):
+
+```bash
+swift build -c release
+.build/release/MacWispr
+```
+
+Benchmark model latency:
 
 ```bash
 ./bench.sh
@@ -23,13 +57,37 @@ Benchmark model latency on your machine:
 
 - **Hold-to-dictate** — Hold `Option+Space`, speak, release to transcribe and insert
 - **System-wide insertion** — Pastes into Slack, VS Code, browser, terminal, anywhere
-- **On-device MLX inference** — Qwen3-ASR 0.6B on Apple Silicon GPU, no internet after download
+- **On-device MLX inference** — Qwen3-ASR 0.6B on Apple Silicon GPU
 - **Menu bar app** — Always ready from the waveform icon
-- **Filler word removal** — Strips "uh", "um", "like", "you know", etc.
+- **Weekly Time Saved dashboard** — Word count + estimated typing time saved
+- **Filler word removal** — Strips “uh”, “um”, “like”, “you know”, etc.
 - **Auto-capitalize** — First letter capitalized automatically
 - **52 languages** — Auto-detect or pin a language
-- **Transcription history** — Browse and copy past results
+- **Transcription history** — Browse and copy past results (persisted locally)
 - **Multiple insertion modes** — Clipboard paste, simulated typing, or both
+
+## Weekly Time Saved dashboard
+
+MacWispr tracks every dictation and shows how much typing time you avoided.
+
+<p align="center">
+  <img src="docs/assets/dashboard.png" alt="MacWispr weekly dashboard" width="780" />
+</p>
+
+| Metric | What it means |
+|--------|----------------|
+| **Words** | Word count for the last 7 days |
+| **Time saved** | Estimated typing time at your baseline WPM minus time spent speaking |
+| **Spoken** | Total audio captured |
+| **Words/day chart** | Daily breakdown for the current week |
+
+Default typing baseline is **40 WPM** (adjust in Settings → Dashboard). History lives only on your Mac under Application Support.
+
+Menu bar also shows this week’s words + time saved at a glance:
+
+<p align="center">
+  <img src="docs/assets/menubar.png" alt="MacWispr menu bar" width="420" />
+</p>
 
 ## Requirements
 
@@ -45,10 +103,11 @@ Benchmark model latency on your machine:
 1. Launch the app — the model auto-downloads on first run (~300 MB, cached in `~/Library/Caches/qwen3-speech/`)
 2. Grant **Microphone** and **Accessibility** when prompted
 3. Hold `Option+Space`, speak, release — text appears in the focused field
+4. Open the main window for the **Dashboard**, history, and controls
 
 ## Benchmark
 
-OpenWhispr ships an in-process latency benchmark that loads each model once, warms up Metal kernels, and times inference at 16 kHz (same as the app).
+MacWispr ships an in-process latency benchmark that loads each model once, warms up Metal kernels, and times inference at 16 kHz (same as the app).
 
 ```bash
 ./bench.sh
@@ -68,7 +127,7 @@ xychart-beta
 
 | Model | Latency (10s audio) | RTF | Speed vs realtime | Verdict |
 |-------|--------------------:|----:|------------------:|---------|
-| **0.6B MLX-4bit** (default) | **0.60s** | **0.060** | **16.7×** | Fastest — used by OpenWhispr |
+| **0.6B MLX-4bit** (default) | **0.60s** | **0.060** | **16.7×** | Fastest — used by MacWispr |
 | 0.6B MLX-8bit | ~0.65s | 0.065 | 15.4× | Slightly better accuracy |
 | 1.7B MLX-4bit | ~1.20s | 0.120 | 8.3× | Higher accuracy, 2× slower |
 | 1.7B MLX-8bit | 1.78s | 0.178 | 5.6× | Best accuracy, 3× slower |
@@ -76,8 +135,6 @@ xychart-beta
 | HF PyTorch 1.7B (MPS) | 20s | 0.68 | 1.5× | Wrong runtime stack |
 
 RTF (real-time factor) = inference time ÷ audio duration. **RTF < 1.0 means faster than realtime.**
-
-Visual comparison (10s audio):
 
 ```
 0.6B MLX-4bit  ████                          0.60s  ← fastest
@@ -89,7 +146,7 @@ HF 0.6B (MPS)  █████████████████████�
 
 Run `./bench.sh` on your own Mac to get numbers for your chip. See [bench/README.md](bench/README.md) for details.
 
-### Optimizations in OpenWhispr
+### Optimizations in MacWispr
 
 - **16 kHz capture** — matches model input, no wasted resampling
 - **Metal warmup on load** — first dictation isn't a cold-start penalty
@@ -100,18 +157,24 @@ Run `./bench.sh` on your own Mac to get numbers for your chip. See [bench/README
 
 ```
 Sources/
-  OpenWhisprApp.swift        App entry (menu bar + window)
+  MacWisprApp.swift          App entry (menu bar + window)
   AppState.swift             State, hotkey wiring, post-processing
+  UsageStats.swift           Word count + time-saved math, history store
+  DashboardView.swift        Weekly time-saved dashboard
   TranscriptionEngine.swift  Qwen3ASR load, warmup, inference
   AudioRecorder.swift        Mic capture, resample to 16 kHz
   HotkeyManager.swift        Global Option+Space via NSEvent
   TextInserter.swift         Clipboard paste or simulated typing
-  MenuBarView.swift          Menu bar dropdown
-  MainWindowView.swift       History and controls
-  SettingsView.swift         Language, insertion mode, permissions
+  MenuBarView.swift          Menu bar dropdown + weekly strip
+  MainWindowView.swift       Dashboard / dictate / history
+  SettingsView.swift         Language, insertion mode, WPM baseline
 
-BenchLatency/
-  main.swift                 In-process benchmark tool
+scripts/
+  build-app.sh               Package MacWispr.app + release zip
+  install.sh                 Build and install to /Applications
+  release.sh                 Tag + publish GitHub Release
+
+docs/assets/                 Logo + README images
 ```
 
 ## Dependencies
@@ -134,6 +197,16 @@ curl -L -o /tmp/SpeechCore.xcframework.zip \
 brew install ffmpeg
 ```
 
+**Gatekeeper blocks the app?** Right-click MacWispr.app → **Open**, or:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/MacWispr.app
+```
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+Formerly **OpenWhispr** — renamed to MacWispr to better reflect the macOS-first product.

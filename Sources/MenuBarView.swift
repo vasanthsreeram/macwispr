@@ -3,6 +3,10 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
 
+    private var week: UsageStats.Snapshot {
+        UsageStats(typingWPM: appState.typingWPM).weeklySnapshot(entries: appState.transcriptionHistory)
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             // Status Header
@@ -22,6 +26,30 @@ struct MenuBarView: View {
                 modelLoadSection
             } else {
                 recordingSection
+            }
+
+            // Weekly stats strip
+            if week.words > 0 || week.dictations > 0 {
+                Divider()
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("This week")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("\(week.words.formatted()) words")
+                            .font(.callout.weight(.semibold))
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Time saved")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(week.formattedTimeSaved)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(.green)
+                    }
+                }
+                .padding(.horizontal)
             }
 
             Divider()
@@ -46,20 +74,17 @@ struct MenuBarView: View {
             // Quick actions
             VStack(spacing: 4) {
                 Button {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                    openMainWindow()
                 } label: {
-                    Label("Settings...", systemImage: "gear")
+                    Label("Open Dashboard", systemImage: "chart.bar.fill")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
 
                 Button {
-                    if let window = NSApp.windows.first(where: { $0.title == "OpenWhispr" }) {
-                        window.makeKeyAndOrderFront(nil)
-                    }
-                    NSApp.activate(ignoringOtherApps: true)
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 } label: {
-                    Label("Open Window", systemImage: "macwindow")
+                    Label("Settings...", systemImage: "gear")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
@@ -69,7 +94,7 @@ struct MenuBarView: View {
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    Label("Quit OpenWhispr", systemImage: "power")
+                    Label("Quit MacWispr", systemImage: "power")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
@@ -78,6 +103,19 @@ struct MenuBarView: View {
         }
         .padding(.vertical, 12)
         .frame(width: 300)
+    }
+
+    private func openMainWindow() {
+        if let window = NSApp.windows.first(where: { $0.title == "MacWispr" }) {
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            // Fallback: activate app so Window scene can present
+            for window in NSApp.windows where window.canBecomeKey {
+                window.makeKeyAndOrderFront(nil)
+                break
+            }
+        }
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private var modelLoadSection: some View {
@@ -105,7 +143,6 @@ struct MenuBarView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Manual record button
             Button {
                 if appState.isRecording {
                     Task { await appState.stopRecordingAndTranscribe() }

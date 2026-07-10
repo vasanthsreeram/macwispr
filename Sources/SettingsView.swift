@@ -34,13 +34,16 @@ struct SettingsView: View {
             transcriptionSettings
                 .tabItem { Label("Transcription", systemImage: "text.bubble") }
 
+            dashboardSettings
+                .tabItem { Label("Dashboard", systemImage: "chart.bar") }
+
             hotkeySettings
                 .tabItem { Label("Hotkeys", systemImage: "keyboard") }
 
             aboutView
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 450, height: 350)
+        .frame(width: 470, height: 380)
     }
 
     private var generalSettings: some View {
@@ -103,6 +106,42 @@ struct SettingsView: View {
         .padding()
     }
 
+    private var dashboardSettings: some View {
+        Form {
+            Section("Time Saved") {
+                HStack {
+                    Text("Typing speed baseline")
+                    Spacer()
+                    Text("\(Int(appState.typingWPM)) WPM")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                Slider(
+                    value: Binding(
+                        get: { appState.typingWPM },
+                        set: { appState.setTypingWPM($0) }
+                    ),
+                    in: 20...80,
+                    step: 5
+                )
+                Text("Used to estimate how long the same text would take to type. Higher WPM → less estimated time saved.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("History") {
+                Button("Clear transcription history", role: .destructive) {
+                    appState.clearHistory()
+                }
+                Text("History powers the weekly word-count and time-saved dashboard. Stored locally in Application Support.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
+
     private var hotkeySettings: some View {
         Form {
             Section("Global Hotkey") {
@@ -149,12 +188,16 @@ struct SettingsView: View {
                 .font(.system(size: 64))
                 .foregroundStyle(Color.accentColor)
 
-            Text("OpenWhispr")
+            Text("MacWispr")
                 .font(.title)
                 .fontWeight(.bold)
 
             Text("On-device voice dictation for macOS")
                 .foregroundStyle(.secondary)
+
+            Text("v1.1.0")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
 
             VStack(spacing: 4) {
                 Text("Powered by Qwen3-ASR-0.6B via MLX")

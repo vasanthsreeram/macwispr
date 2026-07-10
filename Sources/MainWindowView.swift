@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainWindowView: View {
     @EnvironmentObject var appState: AppState
+    @State private var selectedSidebar: SidebarItem = .dashboard
 
     var body: some View {
         NavigationSplitView {
@@ -9,7 +10,7 @@ struct MainWindowView: View {
         } detail: {
             detailView
         }
-        .navigationTitle("OpenWhispr")
+        .navigationTitle("MacWispr")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -30,27 +31,86 @@ struct MainWindowView: View {
     }
 
     private var sidebar: some View {
-        List {
-            Section("Transcription History") {
-                if appState.transcriptionHistory.isEmpty {
-                    Text("No transcriptions yet")
-                        .foregroundStyle(.secondary)
-                        .font(.callout)
-                } else {
+        List(selection: $selectedSidebar) {
+            Section("MacWispr") {
+                Label("Dashboard", systemImage: "chart.bar.fill")
+                    .tag(SidebarItem.dashboard)
+                Label("Dictate", systemImage: "mic.fill")
+                    .tag(SidebarItem.dictate)
+                Label("History", systemImage: "clock")
+                    .tag(SidebarItem.history)
+            }
+
+            if selectedSidebar == .history {
+                Section("Recent") {
+                    if appState.transcriptionHistory.isEmpty {
+                        Text("No transcriptions yet")
+                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                    } else {
+                        ForEach(appState.transcriptionHistory.prefix(50)) { entry in
+                            historyRow(entry)
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .frame(minWidth: 220)
+    }
+
+    private var detailView: some View {
+        Group {
+            switch selectedSidebar {
+            case .dashboard:
+                DashboardView()
+            case .dictate:
+                dictateDetail
+            case .history:
+                historyDetail
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var dictateDetail: some View {
+        VStack(spacing: 24) {
+            if !appState.isModelLoaded {
+                modelLoadingView
+            } else {
+                activeView
+            }
+        }
+        .padding()
+    }
+
+    private var historyDetail: some View {
+        Group {
+            if appState.transcriptionHistory.isEmpty {
+                ContentUnavailableView(
+                    "No history yet",
+                    systemImage: "text.bubble",
+                    description: Text("Your dictations will appear here and feed the weekly dashboard.")
+                )
+            } else {
+                List {
                     ForEach(appState.transcriptionHistory) { entry in
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(entry.text)
-                                .lineLimit(2)
-                                .font(.callout)
-                            HStack {
+                                .font(.body)
+                                .textSelection(.enabled)
+                            HStack(spacing: 8) {
+                                Text(entry.timestamp, style: .date)
                                 Text(entry.timestamp, style: .time)
                                 Text("•")
                                 Text(String(format: "%.1fs", entry.duration))
+                                Text("•")
+                                Text("\(entry.wordCount) words")
                             }
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 4)
                         .contextMenu {
                             Button("Copy") {
                                 NSPasteboard.general.clearContents()
@@ -61,20 +121,28 @@ struct MainWindowView: View {
                 }
             }
         }
-        .listStyle(.sidebar)
-        .frame(minWidth: 200)
     }
 
-    private var detailView: some View {
-        VStack(spacing: 24) {
-            if !appState.isModelLoaded {
-                modelLoadingView
-            } else {
-                activeView
+    private func historyRow(_ entry: TranscriptionEntry) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(entry.text)
+                .lineLimit(2)
+                .font(.callout)
+            HStack {
+                Text(entry.timestamp, style: .time)
+                Text("•")
+                Text("\(entry.wordCount)w")
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 2)
+        .contextMenu {
+            Button("Copy") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(entry.text, forType: .string)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
     }
 
     private var modelLoadingView: some View {
@@ -96,7 +164,6 @@ struct MainWindowView: View {
 
     private var activeView: some View {
         VStack(spacing: 20) {
-            // Status
             VStack(spacing: 8) {
                 Image(systemName: appState.isRecording ? "waveform" : "mic.fill")
                     .font(.system(size: 48))
@@ -112,7 +179,6 @@ struct MainWindowView: View {
                     .foregroundStyle(.tertiary)
             }
 
-            // Current transcription display
             if !appState.currentTranscription.isEmpty {
                 GroupBox("Transcription") {
                     ScrollView {
@@ -125,7 +191,6 @@ struct MainWindowView: View {
                 }
             }
 
-            // Quick settings
             GroupBox("Quick Settings") {
                 VStack(alignment: .leading, spacing: 8) {
                     Picker("Insert Mode", selection: $appState.insertionMode) {
@@ -142,4 +207,10 @@ struct MainWindowView: View {
             }
         }
     }
+}
+
+private enum SidebarItem: Hashable {
+    case dashboard
+    case dictate
+    case history
 }
