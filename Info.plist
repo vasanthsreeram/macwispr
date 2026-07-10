@@ -2,7 +2,29 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleName</key>
+    <string>MacWispr</string>
+    <key>CFBundleDisplayName</key>
+    <string>MacWispr</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.vasanthsreeram.macwispr</string>
+    <key>CFBundleVersion</key>
+    <string>1.1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>MacWispr</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>OpenWhispr needs microphone access for voice dictation.</string>
+    <string>MacWispr needs microphone access for on-device voice dictation.</string>
 </dict>
 </plist>

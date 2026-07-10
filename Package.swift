@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "OpenWhispr",
+    name: "MacWispr",
     platforms: [
         .macOS(.v14)
     ],
@@ -12,7 +12,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "OpenWhispr",
+            name: "MacWispr",
             dependencies: [
                 .product(name: "Qwen3ASR", package: "speech-swift"),
                 .product(name: "SpeechVAD", package: "speech-swift"),

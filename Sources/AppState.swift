@@ -15,6 +15,8 @@ final class AppState: ObservableObject {
     @Published var isStreamingEnabled = true
     @Published var removeFillerWords = true
     @Published var autoCapitalize = true
+    /// Baseline typing speed used for "time saved" estimates.
+    @Published var typingWPM: Double = UsageStats.defaultTypingWPM
 
     let transcriptionEngine = TranscriptionEngine()
     let audioRecorder = AudioRecorder()
@@ -22,6 +24,10 @@ final class AppState: ObservableObject {
     let textInserter = TextInserter()
 
     init() {
+        transcriptionHistory = HistoryStore.load()
+        if let savedWPM = UserDefaults.standard.object(forKey: "typingWPM") as? Double, savedWPM > 0 {
+            typingWPM = savedWPM
+        }
         setupHotkey()
         // Auto-download model on launch
         Task { await loadModel() }
@@ -74,18 +80,31 @@ final class AppState: ObservableObject {
             let processed = postProcess(text)
             currentTranscription = processed
 
+            let duration = Double(samples.count) / 16000.0
             let entry = TranscriptionEntry(
                 text: processed,
                 timestamp: Date(),
-                duration: Double(samples.count) / 16000.0
+                duration: duration,
+                wordCount: UsageStats.wordCount(in: processed)
             )
             transcriptionHistory.insert(entry, at: 0)
+            HistoryStore.save(transcriptionHistory)
 
             // Insert text based on mode
             textInserter.insert(text: processed, mode: insertionMode)
         } catch {
             currentTranscription = "Error: \(error.localizedDescription)"
         }
+    }
+
+    func setTypingWPM(_ value: Double) {
+        typingWPM = max(10, min(120, value))
+        UserDefaults.standard.set(typingWPM, forKey: "typingWPM")
+    }
+
+    func clearHistory() {
+        transcriptionHistory = []
+        HistoryStore.save(transcriptionHistory)
     }
 
     private func postProcess(_ text: String) -> String {
@@ -128,14 +147,23 @@ final class AppState: ObservableObject {
     }
 }
 
-struct TranscriptionEntry: Identifiable {
-    let id = UUID()
+struct TranscriptionEntry: Identifiable, Codable, Equatable {
+    let id: UUID
     let text: String
     let timestamp: Date
     let duration: Double
+    let wordCount: Int
+
+    init(id: UUID = UUID(), text: String, timestamp: Date, duration: Double, wordCount: Int? = nil) {
+        self.id = id
+        self.text = text
+        self.timestamp = timestamp
+        self.duration = duration
+        self.wordCount = wordCount ?? UsageStats.wordCount(in: text)
+    }
 }
 
-enum InsertionMode: String, CaseIterable {
+enum InsertionMode: String, CaseIterable, Codable {
     case clipboard = "Copy to Clipboard"
     case typeOut = "Type into Active App"
     case both = "Both"

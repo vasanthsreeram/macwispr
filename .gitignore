@@ -1,9 +1,11 @@
 .DS_Store
 /.build
 /Packages
+/dist
 xcuserdata/
 DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 qwen_transcript.txt
+*.app

@@ -18,7 +18,7 @@ First run downloads models (~300 MB–2 GB) and builds the benchmark binary. Sub
 |------|-----|
 | Load model once | Matches a running dictation app |
 | Metal warmup | Compiles GPU kernels before timing |
-| 16 kHz mono | Same sample rate as OpenWhispr |
+| 16 kHz mono | Same sample rate as MacWispr |
 | 3 timed runs | Reports best inference time (not cold-start) |
 
 ## Requirements
