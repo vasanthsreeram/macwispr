@@ -36,11 +36,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Verifies status item, model load, and hold-mode record start/stop.
+    /// Verifies status item, model load, hold/toggle API, and ⌥Space hotkey path.
     private func runSelfTest() {
         Task { @MainActor in
             var failures: [String] = []
             print("MacWispr self-test starting…")
+            print("AXIsProcessTrusted:", AXIsProcessTrusted())
 
             // 1. Status item
             try? await Task.sleep(nanoseconds: 500_000_000)
@@ -68,43 +69,76 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 print("FAIL model not loaded: \(state.modelLoadStatus)")
             }
 
-            // 3. Hold-mode start/stop without audio content (empty is ok)
+            let hotkey = state.hotkeyManager
+            print("hotkey tap installed:", hotkey.tapInstalled)
+            print("hotkey monitors installed:", hotkey.monitorsInstalled)
+
             if state.isModelLoaded {
+                // 3. Direct API hold start/stop
                 state.setDictationMode(.hold)
                 state.startRecording()
                 if state.isRecording {
-                    print("PASS hold startRecording")
+                    print("PASS hold startRecording (API)")
                 } else {
-                    failures.append("startRecording did not set isRecording")
-                    print("FAIL startRecording")
-                }
-                try? await Task.sleep(nanoseconds: 300_000_000)
-                await state.stopRecordingAndTranscribe()
-                if !state.isRecording {
-                    print("PASS hold stopRecording")
-                } else {
-                    failures.append("still recording after stop")
-                    print("FAIL stopRecording")
-                }
-
-                // 4. Toggle mode
-                state.setDictationMode(.toggle)
-                state.toggleRecording()
-                if state.isRecording {
-                    print("PASS toggle start")
-                } else {
-                    failures.append("toggle start failed")
-                    print("FAIL toggle start")
+                    failures.append("startRecording API failed")
+                    print("FAIL startRecording API")
                 }
                 try? await Task.sleep(nanoseconds: 200_000_000)
+                await state.stopRecordingAndTranscribe()
+                print(state.isRecording ? "FAIL hold stop API" : "PASS hold stopRecording (API)")
+                if state.isRecording { failures.append("hold stop API") }
+
+                // 4. Toggle API
+                state.setDictationMode(.toggle)
                 state.toggleRecording()
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                if !state.isRecording {
-                    print("PASS toggle stop")
+                print(state.isRecording ? "PASS toggle start (API)" : "FAIL toggle start API")
+                if !state.isRecording { failures.append("toggle start API") }
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                state.toggleRecording()
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                print(!state.isRecording ? "PASS toggle stop (API)" : "FAIL toggle stop API")
+                if state.isRecording { failures.append("toggle stop API") }
+
+                // 5. Hotkey via synthetic handler (no OS event stream needed)
+                state.setDictationMode(.hold)
+                let downsBefore = hotkey.downCount
+                hotkey.handleSyntheticKey(down: true, option: true)
+                // Let main-queue callbacks run
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                if hotkey.downCount > downsBefore && state.isRecording {
+                    print("PASS hotkey synthetic DOWN → recording")
                 } else {
-                    failures.append("toggle stop failed")
-                    print("FAIL toggle stop")
+                    failures.append("synthetic DOWN failed (downCount=\(hotkey.downCount) recording=\(state.isRecording))")
+                    print("FAIL hotkey synthetic DOWN (downCount=\(hotkey.downCount) recording=\(state.isRecording))")
                 }
+                hotkey.handleSyntheticKey(down: false, option: true)
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                if !state.isRecording {
+                    print("PASS hotkey synthetic UP → stopped")
+                } else {
+                    failures.append("synthetic UP did not stop")
+                    print("FAIL hotkey synthetic UP")
+                }
+
+                // 6. Hotkey via real CGEvent.post (tests event tap / monitors)
+                state.setDictationMode(.hold)
+                let downs2 = hotkey.downCount
+                hotkey.injectOptionSpace(down: true)
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                if hotkey.downCount > downs2 || state.isRecording {
+                    print("PASS hotkey CGEvent inject DOWN (downCount \(downs2)→\(hotkey.downCount) recording=\(state.isRecording))")
+                } else {
+                    // Not always a hard fail: some environments block inject into own tap.
+                    print("WARN hotkey CGEvent inject DOWN not observed (tap=\(hotkey.tapInstalled) AX=\(AXIsProcessTrusted()))")
+                    print("     If real keyboard also fails, enable Accessibility for MacWispr.")
+                }
+                hotkey.injectOptionSpace(down: false)
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                if state.isRecording {
+                    // Force cleanup so we exit cleanly.
+                    await state.stopRecordingAndTranscribe()
+                }
+                print("hotkey totals: downs=\(hotkey.downCount) ups=\(hotkey.upCount)")
             }
 
             if failures.isEmpty {
