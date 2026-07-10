@@ -145,17 +145,31 @@ struct SettingsView: View {
 
     private var hotkeySettings: some View {
         Form {
-            Section("Global Hotkey") {
+            Section("Dictation Mode") {
+                Picker("Mode", selection: Binding(
+                    get: { appState.dictationMode },
+                    set: { appState.setDictationMode($0) }
+                )) {
+                    ForEach(DictationMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(appState.dictationMode.help)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 HStack {
-                    Text("Dictation")
+                    Text("Hotkey")
                     Spacer()
-                    Text("⌥ Space (hold)")
+                    Text("⌥ Space")
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(.quaternary)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
-                Text("Hold the hotkey to record, release to transcribe and insert text.")
+                Text("You can also use Hold to Speak / Start Listening in the menu bar panel.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

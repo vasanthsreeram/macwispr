@@ -29,6 +29,92 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--open-dashboard") {
             openDashboardWhenReady(attempts: 30)
         }
+
+        // Automated smoke test: --self-test
+        if CommandLine.arguments.contains("--self-test") {
+            runSelfTest()
+        }
+    }
+
+    /// Verifies status item, model load, and hold-mode record start/stop.
+    private func runSelfTest() {
+        Task { @MainActor in
+            var failures: [String] = []
+            print("MacWispr self-test starting…")
+
+            // 1. Status item
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            if StatusBarController.sharedHasStatusItem {
+                print("PASS status item present")
+            } else {
+                failures.append("status item missing")
+                print("FAIL status item missing")
+            }
+
+            // 2. Wait for model (up to ~60s)
+            let state = appState ?? AppState.shared
+            guard let state else {
+                print("FAIL no AppState")
+                exit(1)
+            }
+            for _ in 0..<120 {
+                if state.isModelLoaded || state.modelLoadStatus.hasPrefix("Error") { break }
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
+            if state.isModelLoaded {
+                print("PASS model loaded")
+            } else {
+                failures.append("model not loaded: \(state.modelLoadStatus)")
+                print("FAIL model not loaded: \(state.modelLoadStatus)")
+            }
+
+            // 3. Hold-mode start/stop without audio content (empty is ok)
+            if state.isModelLoaded {
+                state.setDictationMode(.hold)
+                state.startRecording()
+                if state.isRecording {
+                    print("PASS hold startRecording")
+                } else {
+                    failures.append("startRecording did not set isRecording")
+                    print("FAIL startRecording")
+                }
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                await state.stopRecordingAndTranscribe()
+                if !state.isRecording {
+                    print("PASS hold stopRecording")
+                } else {
+                    failures.append("still recording after stop")
+                    print("FAIL stopRecording")
+                }
+
+                // 4. Toggle mode
+                state.setDictationMode(.toggle)
+                state.toggleRecording()
+                if state.isRecording {
+                    print("PASS toggle start")
+                } else {
+                    failures.append("toggle start failed")
+                    print("FAIL toggle start")
+                }
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                state.toggleRecording()
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                if !state.isRecording {
+                    print("PASS toggle stop")
+                } else {
+                    failures.append("toggle stop failed")
+                    print("FAIL toggle stop")
+                }
+            }
+
+            if failures.isEmpty {
+                print("MacWispr self-test: ALL PASSED")
+                exit(0)
+            } else {
+                print("MacWispr self-test: FAILED \(failures)")
+                exit(1)
+            }
+        }
     }
 
     /// Retries until AppState is available.

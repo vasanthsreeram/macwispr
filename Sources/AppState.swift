@@ -1,10 +1,24 @@
 import SwiftUI
 import Combine
 
+enum DictationMode: String, CaseIterable, Identifiable {
+    case hold = "Hold"
+    case toggle = "Toggle"
+
+    var id: String { rawValue }
+
+    var help: String {
+        switch self {
+        case .hold:
+            return "Hold ⌥Space (or the Hold button) while speaking; release to transcribe."
+        case .toggle:
+            return "Press ⌥Space (or Start) once to begin; press again to stop and transcribe."
+        }
+    }
+}
+
 @MainActor
 final class AppState: ObservableObject {
-    /// Process-wide instance so AppDelegate can open the dashboard without
-    /// waiting on MenuBarExtra's onAppear (which only runs after first click).
     static private(set) var shared: AppState?
 
     @Published var isRecording = false
@@ -14,13 +28,12 @@ final class AppState: ObservableObject {
     @Published var modelLoadStatus: String = ""
     @Published var currentTranscription: String = ""
     @Published var transcriptionHistory: [TranscriptionEntry] = []
-    @Published var selectedLanguage: String? = nil // nil = auto-detect
+    @Published var selectedLanguage: String? = nil
     @Published var insertionMode: InsertionMode = .clipboard
     @Published var removeFillerWords = true
     @Published var autoCapitalize = true
-    /// Soft chime when hold-to-dictate starts / stops.
     @Published var soundFeedbackEnabled = true
-    /// Baseline typing speed used for "time saved" estimates.
+    @Published var dictationMode: DictationMode = .hold
     @Published var typingWPM: Double = UsageStats.defaultTypingWPM
 
     let transcriptionEngine = TranscriptionEngine()
@@ -28,7 +41,6 @@ final class AppState: ObservableObject {
     let hotkeyManager = HotkeyManager()
     let textInserter = TextInserter()
 
-    /// Bumps when recording is cancelled so a delayed mic-start is ignored.
     private var recordingSession = 0
 
     init() {
@@ -40,8 +52,12 @@ final class AppState: ObservableObject {
         if UserDefaults.standard.object(forKey: "soundFeedbackEnabled") != nil {
             soundFeedbackEnabled = UserDefaults.standard.bool(forKey: "soundFeedbackEnabled")
         }
+        if let raw = UserDefaults.standard.string(forKey: "dictationMode"),
+           let mode = DictationMode(rawValue: raw)
+        {
+            dictationMode = mode
+        }
         setupHotkey()
-        // Auto-download model on launch
         Task { await loadModel() }
     }
 
@@ -70,6 +86,13 @@ final class AppState: ObservableObject {
         isModelLoading = false
     }
 
+    func setDictationMode(_ mode: DictationMode) {
+        dictationMode = mode
+        UserDefaults.standard.set(mode.rawValue, forKey: "dictationMode")
+    }
+
+    // MARK: - Recording
+
     func startRecording() {
         guard isModelLoaded, !isRecording else { return }
         isRecording = true
@@ -77,15 +100,13 @@ final class AppState: ObservableObject {
         recordingSession += 1
         let session = recordingSession
 
-        // Chime first, then open the mic after a short beat so the start
-        // sound is not captured into the dictation audio.
         if soundFeedbackEnabled {
             FeedbackSounds.playListeningStarted()
         }
 
         Task { @MainActor in
             if soundFeedbackEnabled {
-                try? await Task.sleep(nanoseconds: 90_000_000) // 90ms
+                try? await Task.sleep(nanoseconds: 90_000_000)
             }
             guard isRecording, recordingSession == session else { return }
             audioRecorder.startRecording()
@@ -98,7 +119,6 @@ final class AppState: ObservableObject {
         recordingSession += 1
         let samples = audioRecorder.stopRecording()
 
-        // Play after mic stops so the chime is not part of the transcript.
         if soundFeedbackEnabled {
             FeedbackSounds.playListeningStopped()
         }
@@ -122,11 +142,18 @@ final class AppState: ObservableObject {
             )
             transcriptionHistory.insert(entry, at: 0)
             HistoryStore.save(transcriptionHistory)
-
-            // Insert text based on mode
             textInserter.insert(text: processed, mode: insertionMode)
         } catch {
             currentTranscription = "Error: \(error.localizedDescription)"
+        }
+    }
+
+    /// Toggle mode: start if idle, stop+transcribe if listening.
+    func toggleRecording() {
+        if isRecording {
+            Task { await stopRecordingAndTranscribe() }
+        } else {
+            startRecording()
         }
     }
 
@@ -157,7 +184,6 @@ final class AppState: ObservableObject {
                     options: [.regularExpression, .caseInsensitive]
                 )
             }
-            // Clean up double spaces
             while result.contains("  ") {
                 result = result.replacingOccurrences(of: "  ", with: " ")
             }
@@ -173,18 +199,26 @@ final class AppState: ObservableObject {
     private func setupHotkey() {
         hotkeyManager.onHotkeyDown = { [weak self] in
             Task { @MainActor in
-                self?.startRecording()
+                guard let self else { return }
+                switch self.dictationMode {
+                case .hold:
+                    self.startRecording()
+                case .toggle:
+                    self.toggleRecording()
+                }
             }
         }
         hotkeyManager.onHotkeyUp = { [weak self] in
             Task { @MainActor in
-                await self?.stopRecordingAndTranscribe()
+                guard let self else { return }
+                // Only hold-mode stops on release. Toggle ignores key-up.
+                if self.dictationMode == .hold {
+                    await self.stopRecordingAndTranscribe()
+                }
             }
         }
         hotkeyManager.register()
 
-        // Accessibility may be granted after launch — re-create the event tap
-        // so Space starts being swallowed without a full restart.
         NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,

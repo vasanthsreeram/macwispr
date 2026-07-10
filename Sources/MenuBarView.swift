@@ -3,7 +3,6 @@ import AppKit
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
-    @Environment(\.openWindow) private var openWindow
 
     private var week: UsageStats.Snapshot {
         UsageStats(typingWPM: appState.typingWPM).weeklySnapshot(entries: appState.transcriptionHistory)
@@ -11,7 +10,7 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            // Status Header
+            // Status
             HStack {
                 Circle()
                     .fill(statusColor)
@@ -27,10 +26,9 @@ struct MenuBarView: View {
             if !appState.isModelLoaded {
                 modelLoadSection
             } else {
-                recordingSection
+                dictationControls
             }
 
-            // Weekly stats strip
             if week.words > 0 || week.dictations > 0 {
                 Divider()
                 HStack {
@@ -54,10 +52,8 @@ struct MenuBarView: View {
                 .padding(.horizontal)
             }
 
-            Divider()
-
-            // Recent transcription
             if !appState.currentTranscription.isEmpty {
+                Divider()
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Last transcription:")
                         .font(.caption)
@@ -69,22 +65,21 @@ struct MenuBarView: View {
                 }
                 .padding(.horizontal)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-                Divider()
             }
 
-            // Quick actions
+            Divider()
+
             VStack(spacing: 2) {
                 menuRow(title: "Open Dashboard", systemImage: "chart.bar.fill") {
+                    StatusBarController.shared.closePopover()
                     openMainWindow()
                 }
                 menuRow(title: "Settings...", systemImage: "gear") {
+                    StatusBarController.shared.closePopover()
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                     NSApp.activate(ignoringOtherApps: true)
                 }
-
                 Divider().padding(.vertical, 4)
-
                 menuRow(title: "Quit MacWispr", systemImage: "power") {
                     NSApplication.shared.terminate(nil)
                 }
@@ -94,45 +89,65 @@ struct MenuBarView: View {
         .padding(.vertical, 12)
         .frame(width: 300)
         .onAppear {
-            // Wire the shared AppState into AppDelegate for reliable window opens.
             AppDelegate.shared?.appState = appState
         }
-        .onReceive(NotificationCenter.default.publisher(for: .macWisprOpenMainWindow)) { _ in
-            openMainWindow()
-        }
     }
 
-    /// Large hit target — plain SwiftUI Buttons inside MenuBarExtra(.window)
-    /// often drop the action when the panel dismisses.
-    private func menuRow(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .padding(.vertical, 6)
-                .padding(.horizontal, 4)
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(title)
-    }
+    // MARK: - Dictation controls
 
-    /// Prefer AppKit-hosted window (reliable from MenuBarExtra).
-    private func openMainWindow() {
-        AppDelegate.shared?.appState = appState
-        // Close the menu-bar panel first, then open — avoids the click being
-        // eaten when the popover tears down.
-        if let panel = NSApp.windows.first(where: {
-            $0.className.contains("MenuBar") || $0.className.contains("StatusBar")
-        }) {
-            panel.orderOut(nil)
+    private var dictationControls: some View {
+        VStack(spacing: 10) {
+            // Mode picker
+            Picker("Mode", selection: Binding(
+                get: { appState.dictationMode },
+                set: { appState.setDictationMode($0) }
+            )) {
+                ForEach(DictationMode.allCases) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+
+            Text(appState.dictationMode.help)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            if appState.isRecording {
+                HStack(spacing: 8) {
+                    RecordingIndicator()
+                    Text(appState.dictationMode == .hold
+                          ? "Listening… release to stop"
+                          : "Listening… tap Stop when done")
+                        .font(.callout)
+                }
+            }
+
+            // Hold-to-speak (press and hold on this button)
+            HoldToSpeakButton()
+                .padding(.horizontal)
+
+            // Toggle start/stop
+            Button {
+                appState.toggleRecording()
+            } label: {
+                Label(
+                    appState.isRecording ? "Stop & Transcribe" : "Start Listening",
+                    systemImage: appState.isRecording ? "stop.circle.fill" : "mic.circle.fill"
+                )
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .tint(appState.isRecording ? .red : .accentColor)
+            .padding(.horizontal)
+
+            Text("Hotkey: ⌥Space  ·  \(appState.dictationMode == .hold ? "hold" : "toggle")")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
         }
-        if let delegate = AppDelegate.shared {
-            delegate.showDashboard()
-            return
-        }
-        NSApp.setActivationPolicy(.regular)
-        openWindow(id: "main")
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     private var modelLoadSection: some View {
@@ -146,36 +161,20 @@ struct MenuBarView: View {
         .padding(.horizontal)
     }
 
-    private var recordingSection: some View {
-        VStack(spacing: 8) {
-            if appState.isRecording {
-                HStack(spacing: 8) {
-                    RecordingIndicator()
-                    Text("Recording... release ⌥Space to stop")
-                        .font(.callout)
-                }
-            } else {
-                Text("Hold ⌥Space to dictate")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            Button {
-                if appState.isRecording {
-                    Task { await appState.stopRecordingAndTranscribe() }
-                } else {
-                    appState.startRecording()
-                }
-            } label: {
-                Label(
-                    appState.isRecording ? "Stop & Transcribe" : "Start Recording",
-                    systemImage: appState.isRecording ? "stop.circle.fill" : "mic.circle.fill"
-                )
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(appState.isRecording ? .red : .accentColor)
+    private func menuRow(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .padding(.vertical, 6)
+                .padding(.horizontal, 4)
         }
-        .padding(.horizontal)
+        .buttonStyle(.plain)
+    }
+
+    private func openMainWindow() {
+        AppDelegate.shared?.appState = appState
+        AppDelegate.shared?.showDashboard()
     }
 
     private var statusColor: Color {
@@ -189,6 +188,43 @@ struct MenuBarView: View {
         if appState.isModelLoaded { return "Ready" }
         if appState.isModelLoading { return "Loading..." }
         return "Model Not Loaded"
+    }
+}
+
+// MARK: - Hold-to-speak button
+
+/// Press and hold this control to dictate (works even if the hotkey is flaky).
+struct HoldToSpeakButton: View {
+    @EnvironmentObject var appState: AppState
+    @State private var pressing = false
+
+    var body: some View {
+        let active = pressing || (appState.isRecording && appState.dictationMode == .hold)
+
+        Text(active ? "Listening… release" : "Hold to Speak")
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .foregroundStyle(.white)
+            .background(active ? Color.red : Color.accentColor)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard !pressing else { return }
+                        pressing = true
+                        // Temporarily force hold semantics for this button.
+                        appState.startRecording()
+                    }
+                    .onEnded { _ in
+                        pressing = false
+                        Task { await appState.stopRecordingAndTranscribe() }
+                    }
+            )
+            .disabled(!appState.isModelLoaded)
+            .opacity(appState.isModelLoaded ? 1 : 0.5)
+            .help("Press and hold while you speak, then release to transcribe")
     }
 }
 

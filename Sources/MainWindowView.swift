@@ -170,14 +170,42 @@ struct MainWindowView: View {
                     .foregroundStyle(appState.isRecording ? .red : .accentColor)
                     .symbolEffect(.variableColor.iterative, isActive: appState.isRecording)
 
-                Text(appState.isRecording ? "Listening..." : "Hold ⌥Space to dictate")
+                Text(appState.isRecording ? "Listening..." : "Ready to dictate")
                     .font(.title3)
                     .foregroundStyle(appState.isRecording ? .primary : .secondary)
 
-                Text("Or click the mic button in the toolbar")
+                Text(appState.dictationMode.help)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
             }
+
+            Picker("Mode", selection: Binding(
+                get: { appState.dictationMode },
+                set: { appState.setDictationMode($0) }
+            )) {
+                ForEach(DictationMode.allCases) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 280)
+
+            HoldToSpeakButton()
+                .frame(maxWidth: 360)
+
+            Button {
+                appState.toggleRecording()
+            } label: {
+                Label(
+                    appState.isRecording ? "Stop & Transcribe" : "Start Listening",
+                    systemImage: appState.isRecording ? "stop.circle.fill" : "mic.circle.fill"
+                )
+                .frame(maxWidth: 360)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .tint(appState.isRecording ? .red : .accentColor)
 
             if !appState.currentTranscription.isEmpty {
                 GroupBox("Transcription") {
