@@ -8,6 +8,8 @@ final class AppState: ObservableObject {
     static private(set) var shared: AppState?
 
     @Published var isRecording = false
+    /// True while the model is converting audio → text after release.
+    @Published var isTranscribing = false
     @Published var isModelLoaded = false
     @Published var isModelLoading = false
     @Published var modelLoadProgress: Double = 0
@@ -21,6 +23,8 @@ final class AppState: ObservableObject {
     @Published var autoCapitalize = true
     /// Soft chime when hold-to-dictate starts / stops.
     @Published var soundFeedbackEnabled = true
+    /// Superwhisper-style floating pill at the top of the screen.
+    @Published var floatingIndicatorEnabled = true
     /// Baseline typing speed used for "time saved" estimates.
     @Published var typingWPM: Double = UsageStats.defaultTypingWPM
 
@@ -41,9 +45,18 @@ final class AppState: ObservableObject {
         if UserDefaults.standard.object(forKey: "soundFeedbackEnabled") != nil {
             soundFeedbackEnabled = UserDefaults.standard.bool(forKey: "soundFeedbackEnabled")
         }
+        if UserDefaults.standard.object(forKey: "floatingIndicatorEnabled") != nil {
+            floatingIndicatorEnabled = UserDefaults.standard.bool(forKey: "floatingIndicatorEnabled")
+        }
         setupHotkey()
         // Auto-download model on launch
         Task { await loadModel() }
+        // Floating pill (after a tick so AppDelegate.shared exists).
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            FloatingIndicatorController.shared.attach(appState: self)
+            AppDelegate.shared?.appState = self
+        }
     }
 
     func loadModel() async {
@@ -106,6 +119,9 @@ final class AppState: ObservableObject {
 
         guard !samples.isEmpty else { return }
 
+        isTranscribing = true
+        defer { isTranscribing = false }
+
         do {
             let text = try await transcriptionEngine.transcribe(
                 samples: samples,
@@ -139,6 +155,12 @@ final class AppState: ObservableObject {
     func setSoundFeedbackEnabled(_ enabled: Bool) {
         soundFeedbackEnabled = enabled
         UserDefaults.standard.set(enabled, forKey: "soundFeedbackEnabled")
+    }
+
+    func setFloatingIndicatorEnabled(_ enabled: Bool) {
+        floatingIndicatorEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: "floatingIndicatorEnabled")
+        FloatingIndicatorController.shared.setVisible(enabled)
     }
 
     func clearHistory() {

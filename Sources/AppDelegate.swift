@@ -17,6 +17,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu-bar agent (LSUIElement) — stay out of the Dock until a window opens.
         NSApp.setActivationPolicy(.accessory)
 
+        // Wire floating indicator as soon as AppState exists.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            if let state = self?.appState ?? AppState.shared {
+                FloatingIndicatorController.shared.attach(appState: state)
+            }
+        }
+
         // Accessibility is required to *suppress* ⌥Space (event tap) and insert text.
         // Without it, Space still types into the focused app.
         let trusted = AXIsProcessTrusted()
