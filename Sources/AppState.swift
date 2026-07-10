@@ -15,6 +15,8 @@ final class AppState: ObservableObject {
     @Published var modelLoadProgress: Double = 0
     @Published var modelLoadStatus: String = ""
     @Published var currentTranscription: String = ""
+    /// Short ephemeral message on the floating pill (e.g. hotkey while loading).
+    @Published var statusBanner: String = ""
     @Published var transcriptionHistory: [TranscriptionEntry] = []
     @Published var selectedLanguage: String? = nil // nil = auto-detect
     @Published var insertionMode: InsertionMode = .clipboard
@@ -85,9 +87,29 @@ final class AppState: ObservableObject {
     }
 
     func startRecording() {
-        guard isModelLoaded, !isRecording else { return }
+        guard !isRecording else { return }
+
+        // Hotkey can fire before the model is ready — show why, don't fail silently.
+        guard isModelLoaded else {
+            let message: String
+            if isModelLoading {
+                message = "Model still loading…"
+            } else if modelLoadStatus.hasPrefix("Error") {
+                message = "Model failed to load"
+            } else {
+                message = "Model not ready"
+            }
+            flashStatusBanner(message)
+            if soundFeedbackEnabled {
+                // Soft "not ready" cue (system Tink is the start sound; use Pop lightly).
+                FeedbackSounds.playListeningStopped()
+            }
+            return
+        }
+
         isRecording = true
         currentTranscription = ""
+        statusBanner = ""
         recordingSession += 1
         let session = recordingSession
 
@@ -103,6 +125,17 @@ final class AppState: ObservableObject {
             }
             guard isRecording, recordingSession == session else { return }
             audioRecorder.startRecording()
+        }
+    }
+
+    private func flashStatusBanner(_ message: String, seconds: Double = 2.0) {
+        statusBanner = message
+        let token = message
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            if statusBanner == token {
+                statusBanner = ""
+            }
         }
     }
 

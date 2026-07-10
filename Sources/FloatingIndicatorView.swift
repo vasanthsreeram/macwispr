@@ -22,6 +22,12 @@ struct FloatingIndicatorView: View {
                         .truncationMode(.head)
                         .frame(maxWidth: 280, alignment: .leading)
                         .transition(.opacity)
+                } else if showsBanner {
+                    Text(appState.statusBanner)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .transition(.opacity)
                 } else if showsLabel {
                     Text(statusLabel)
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -31,7 +37,7 @@ struct FloatingIndicatorView: View {
                 }
             }
             .padding(.leading, 6)
-            .padding(.trailing, (showsLabel || showsStreamingText) ? 12 : 6)
+            .padding(.trailing, (showsLabel || showsStreamingText || showsBanner) ? 12 : 6)
             .padding(.vertical, 6)
             .background {
                 Capsule(style: .continuous)
@@ -54,13 +60,16 @@ struct FloatingIndicatorView: View {
             Button(appState.isRecording ? "Stop Recording" : "Start Recording") {
                 if appState.isRecording {
                     Task { await appState.stopRecordingAndTranscribe() }
-                } else if appState.isModelLoaded {
+                } else {
                     appState.startRecording()
                 }
             }
-            .disabled(!appState.isModelLoaded && !appState.isRecording)
 
             Divider()
+
+            Button("Reset Position") {
+                FloatingIndicatorController.shared.resetPosition()
+            }
 
             Button("Hide Floating Indicator") {
                 appState.setFloatingIndicatorEnabled(false)
@@ -77,8 +86,12 @@ struct FloatingIndicatorView: View {
         appState.isTranscribing && !appState.currentTranscription.isEmpty
     }
 
+    private var showsBanner: Bool {
+        !appState.statusBanner.isEmpty && !showsStreamingText
+    }
+
     private var showsLabel: Bool {
-        if showsStreamingText { return false }
+        if showsStreamingText || showsBanner { return false }
         return appState.isRecording || appState.isTranscribing || appState.isModelLoading
     }
 
@@ -92,14 +105,16 @@ struct FloatingIndicatorView: View {
     private var helpText: String {
         if appState.isRecording { return "Listening — release ⌥Space to stop. Click for dashboard." }
         if showsStreamingText { return appState.currentTranscription }
+        if showsBanner { return appState.statusBanner }
         if appState.isTranscribing { return "Transcribing… Click for dashboard." }
         if !appState.isModelLoaded { return "Loading model… Click for dashboard." }
-        return "MacWispr ready — hold ⌥Space to dictate. Click for dashboard."
+        return "MacWispr ready — hold ⌥Space to dictate. Drag to move · double-click to reset · click for dashboard."
     }
 
     private var statusColor: Color {
         if appState.isRecording { return .red }
         if appState.isTranscribing { return .purple }
+        if showsBanner { return .orange }
         if appState.isModelLoaded { return Color(red: 0.15, green: 0.55, blue: 1.0) }
         if appState.isModelLoading { return .orange }
         return .secondary
