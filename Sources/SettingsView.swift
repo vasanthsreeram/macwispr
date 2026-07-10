@@ -75,7 +75,7 @@ struct SettingsView: View {
                     get: { appState.floatingIndicatorEnabled },
                     set: { appState.setFloatingIndicatorEnabled($0) }
                 ))
-                Text("A Superwhisper-style pill. Turns red while listening, shows “Transcribing…”, and opens the dashboard when clicked. Drag to reposition; right-click for more options.")
+                Text("A Superwhisper-style pill under the menu bar (never over the notch). Drag to move · double-click or right-click → Reset Position if it ever feels stuck. Click opens the dashboard.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
