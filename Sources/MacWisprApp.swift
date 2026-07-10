@@ -15,7 +15,15 @@ struct MacWisprApp: App {
             MenuBarView()
                 .environmentObject(appState)
         } label: {
-            Image(systemName: appState.isRecording ? "waveform.circle.fill" : "waveform.circle")
+            // Prefer custom logo when bundled; fall back to SF Symbol.
+            if let logo = NSImage.appLogo {
+                Image(nsImage: logo)
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 18, height: 18)
+            } else {
+                Image(systemName: appState.isRecording ? "waveform.circle.fill" : "waveform.circle")
+            }
         }
         .menuBarExtraStyle(.window)
 
