@@ -7,7 +7,7 @@ cd "$ROOT"
 
 VERSION="${1:-}"
 if [[ -z "$VERSION" ]]; then
-  echo "Usage: $0 v1.2.0 [--rebuild]" >&2
+  echo "Usage: $0 v1.2.1 [--rebuild]" >&2
   exit 1
 fi
 VERSION="${VERSION#v}"
@@ -46,6 +46,12 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
+# Honest signing status for release notes
+SIGN_NOTE="Unsigned / ad-hoc build — right-click → Open the first time if Gatekeeper prompts. After each update, re-check **Accessibility** (ad-hoc TCC does not survive rebuilds)."
+if codesign -dv --verbose=4 "$ROOT/dist/MacWispr.app" 2>&1 | grep -q "Developer ID Application"; then
+  SIGN_NOTE="**Developer ID** signed (and notarized if credentials were configured). Accessibility grants persist across updates of this app."
+fi
+
 NOTES=$(cat <<EOF
 ## MacWispr ${TAG}
 
@@ -57,19 +63,18 @@ Voice dictation for macOS (Apple Silicon) — on-device by default, optional BYO
 3. Open it, grant **Microphone** + **Accessibility**
 4. Hold **⌥Space**, speak, release
 
-> Unsigned build — right-click → Open the first time if Gatekeeper prompts.
+> ${SIGN_NOTE}
 
 Direct download:
 https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg
 
-### What's new in 1.2.0
-- **BYOK speech-to-text** — OpenAI (gpt-4o-mini-transcribe) or ElevenLabs (scribe_v2)
-- Keys in **macOS Keychain** only
-- **Transcript polish** — Off · local LLM · OpenAI
-- **Local models** — Qwen3-ASR 0.6B / 1.7B 8-bit
-- Default insert mode **Both**
-- End sound after transcription finishes
-- **DMG installer** for one-click drag-to-Applications
+### What's new in 1.2.1
+- **Hotkey reliability** — Carbon \`RegisterEventHotKey\` alongside the CGEvent tap (detection can survive a dropped Accessibility grant)
+- **Honest “armed” status** — menu bar only shows ⌥Space ready when tap or Carbon is live (not monitors-only)
+- **Live re-arm** — polls Accessibility and re-registers without relaunch; Fix / Repair Hotkey in UI
+- **Paste without AX is no longer silent** — transcription is copied; UI warns that Accessibility is required to auto-paste
+- **Mic permission** requested on launch; empty-audio feedback if capture fails
+- **Release tooling** for Developer ID + hardened runtime + notarization (\`docs/context/SIGNING.md\`) — durable TCC is the real end-state for “shortcut died after update”
 
 ### Site
 - https://fuckwisprflow.com/

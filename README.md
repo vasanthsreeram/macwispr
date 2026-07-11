@@ -18,11 +18,12 @@ Hold a hotkey, speak, release — text appears in whatever app you're typing in.
 
 ## Website
 
-Product page & about: **[vasanthsreeram.github.io/macwispr](https://vasanthsreeram.github.io/macwispr/)**
+- Marketing site: **[fuckwisprflow.com](https://www.fuckwisprflow.com)** (MacWispr vs cloud)
+- Product notes: **[vasanthsreeram.github.io/macwispr](https://vasanthsreeram.github.io/macwispr/)**
 
 ## Easy install (release)
 
-1. Grab **MacWispr 1.2.0** (or latest) **`.app` zip** from [Releases](https://github.com/vasanthsreeram/macwispr/releases/latest)
+1. Grab **MacWispr 1.2.1** (or latest) **DMG / `.app` zip** from [Releases](https://github.com/vasanthsreeram/macwispr/releases/latest)
 2. Unzip and drag **MacWispr.app** into Applications
 3. Open it (right-click → **Open** the first time if macOS warns about an unsigned app)
 4. Grant **Microphone** + **Accessibility**

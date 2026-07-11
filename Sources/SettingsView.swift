@@ -548,17 +548,28 @@ struct SettingsView: View {
                 HStack {
                     Text("Accessibility")
                     Spacer()
-                    if AXIsProcessTrusted() {
+                    if appState.accessibilityTrusted {
                         Label("Granted", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                     } else {
                         Button("Grant Access") {
-                            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
-                            AXIsProcessTrustedWithOptions(options)
+                            appState.repairHotkey()
                         }
                     }
                 }
-                Text("Required so ⌥Space is swallowed (won’t type spaces), and for pasting into other apps. After granting, quit and reopen MacWispr.")
+                HStack {
+                    Text("Global hotkey")
+                    Spacer()
+                    if appState.hotkeyArmed {
+                        Label("⌥Space ready", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Button("Repair Hotkey") {
+                            appState.repairHotkey()
+                        }
+                    }
+                }
+                Text("Accessibility is required for ⌥Space and for pasting into other apps. After an update or reinstall, re-enable MacWispr in System Settings → Privacy & Security → Accessibility (TCC binds to the binary). The hotkey re-arms automatically once granted — no relaunch needed.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -646,7 +657,7 @@ enum AppVersion {
         {
             return short
         }
-        return "1.2.0"
+        return "1.2.1"
     }()
 }
 

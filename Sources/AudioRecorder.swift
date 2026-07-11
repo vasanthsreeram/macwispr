@@ -6,12 +6,44 @@ final class AudioRecorder: @unchecked Sendable {
     private var samples: [Float] = []
     private let targetSampleRate: Double = 16000
     private let lock = NSLock()
+    private var isTapped = false
+
+    /// Prompt for mic access if needed. Safe to call at launch.
+    static func requestPermissionIfNeeded() {
+        if #available(macOS 14.0, *) {
+            switch AVCaptureDevice.authorizationStatus(for: .audio) {
+            case .notDetermined:
+                AVCaptureDevice.requestAccess(for: .audio) { granted in
+                    NSLog("MacWispr mic permission: %@", granted ? "granted" : "denied")
+                }
+            case .denied, .restricted:
+                NSLog("MacWispr mic permission: denied — dictation will capture silence")
+            case .authorized:
+                break
+            @unknown default:
+                break
+            }
+        }
+    }
 
     func startRecording() {
         samples = []
 
+        // Clean up a prior session that never stopped cleanly.
+        if isTapped {
+            engine.inputNode.removeTap(onBus: 0)
+            isTapped = false
+        }
+        if engine.isRunning {
+            engine.stop()
+        }
+
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
+        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
+            NSLog("AudioRecorder: invalid input format (mic permission / device?)")
+            return
+        }
 
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
             guard let self else { return }
@@ -20,17 +52,25 @@ final class AudioRecorder: @unchecked Sendable {
             self.samples.append(contentsOf: resampled)
             self.lock.unlock()
         }
+        isTapped = true
 
         do {
             try engine.start()
         } catch {
-            print("AudioRecorder: Failed to start engine: \(error)")
+            NSLog("AudioRecorder: Failed to start engine: \(error)")
+            inputNode.removeTap(onBus: 0)
+            isTapped = false
         }
     }
 
     func stopRecording() -> [Float] {
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
+        if isTapped {
+            engine.inputNode.removeTap(onBus: 0)
+            isTapped = false
+        }
+        if engine.isRunning {
+            engine.stop()
+        }
         lock.lock()
         let result = samples
         lock.unlock()

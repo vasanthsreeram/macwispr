@@ -1,10 +1,13 @@
 import Cocoa
+import Carbon
 import CoreGraphics
 
 /// Hold/press ⌥Space to dictate.
 ///
-/// Uses an event tap (can swallow Space) **and** global monitors as backup.
-/// When the tap swallows, monitors never see the event — no double-fire.
+/// Three layers (any one can detect; tap also swallows Space):
+/// 1. **CGEvent tap** — best: swallows ⌥Space so it never types
+/// 2. **Carbon RegisterEventHotKey** — reliable system hotkey path
+/// 3. **NSEvent monitors** — backup (global needs Accessibility)
 final class HotkeyManager: @unchecked Sendable {
     var onHotkeyDown: (() -> Void)?
     var onHotkeyUp: (() -> Void)?
@@ -16,8 +19,14 @@ final class HotkeyManager: @unchecked Sendable {
     private var localKeyMonitor: Any?
     private var isHotkeyHeld = false
 
-    /// Diagnostics (read from self-test / logs).
+    // Carbon global hotkey
+    private var carbonHotKeyRef: EventHotKeyRef?
+    private var carbonHandlerRef: EventHandlerRef?
+    private let carbonHotKeyID = EventHotKeyID(signature: OSType(0x4D575350), id: 1) // 'MWSP'
+
+    /// Diagnostics (read from self-test / UI).
     private(set) var tapInstalled = false
+    private(set) var carbonInstalled = false
     private(set) var monitorsInstalled = false
     private(set) var lastDownAt: Date?
     private(set) var lastUpAt: Date?
@@ -26,18 +35,32 @@ final class HotkeyManager: @unchecked Sendable {
 
     private static let spaceKeyCode: CGKeyCode = 49
 
+    /// True when at least one path that can receive global keys is live.
+    /// Monitors alone do **not** count — without Accessibility they install
+    /// but never fire for other apps (which looked like “armed but dead”).
+    var isArmed: Bool {
+        tapInstalled || carbonInstalled
+    }
+
+    var accessibilityTrusted: Bool {
+        AXIsProcessTrusted()
+    }
+
     func register() {
         unregister()
         tapInstalled = installEventTap()
+        carbonInstalled = installCarbonHotKey()
         // Always install monitors too — if the tap swallows, they never see
         // the event; if the tap misses, they still catch it.
         installMonitors()
         installLocalMonitors()
         monitorsInstalled = keyMonitor != nil
         NSLog(
-            "MacWispr hotkey: tap=%@ monitors=%@",
+            "MacWispr hotkey: tap=%@ carbon=%@ monitors=%@ ax=%@",
             tapInstalled ? "yes" : "NO",
-            monitorsInstalled ? "yes" : "NO"
+            carbonInstalled ? "yes" : "NO",
+            monitorsInstalled ? "yes" : "NO",
+            accessibilityTrusted ? "yes" : "NO"
         )
     }
 
@@ -46,10 +69,14 @@ final class HotkeyManager: @unchecked Sendable {
             CGEvent.tapEnable(tap: tap, enable: true)
             NSLog("MacWispr hotkey: re-enabled disabled tap")
         }
-        // Without Accessibility the tap fails AND global monitors are installed
-        // but never receive events — so a non-nil monitor doesn't mean working.
-        // Re-register whenever the tap is missing but AX is now granted.
-        if eventTap == nil && (keyMonitor == nil || AXIsProcessTrusted()) {
+
+        let ax = AXIsProcessTrusted()
+        let missingTap = eventTap == nil
+        let missingCarbon = carbonHotKeyRef == nil
+        // Without Accessibility the tap/carbon fail AND global monitors are
+        // installed but never receive events — so a non-nil monitor doesn't
+        // mean working. Re-register when AX is granted or nothing is armed.
+        if (missingTap && missingCarbon && keyMonitor == nil) || (ax && (missingTap || missingCarbon)) {
             register()
         }
     }
@@ -67,8 +94,10 @@ final class HotkeyManager: @unchecked Sendable {
         keyMonitor = nil
         flagsMonitor = nil
         localKeyMonitor = nil
+        uninstallCarbonHotKey()
         isHotkeyHeld = false
         tapInstalled = false
+        carbonInstalled = false
         monitorsInstalled = false
     }
 
@@ -159,43 +188,103 @@ final class HotkeyManager: @unchecked Sendable {
         let option = (event.flags.rawValue & CGEventFlags.maskAlternate.rawValue) != 0
 
         if type == .keyDown && keyCode == Self.spaceKeyCode && option {
-            if !isHotkeyHeld {
-                isHotkeyHeld = true
-                lastDownAt = Date()
-                downCount += 1
-                NSLog("MacWispr hotkey: DOWN (#%d)", downCount)
-                DispatchQueue.main.async { [weak self] in self?.onHotkeyDown?() }
-            }
+            fireDown(source: "tap")
             return nil // swallow
         }
 
+        // Space keyUp ends a hold (with or without Option still down).
         if type == .keyUp && keyCode == Self.spaceKeyCode && isHotkeyHeld {
-            isHotkeyHeld = false
-            lastUpAt = Date()
-            upCount += 1
-            NSLog("MacWispr hotkey: UP (#%d)", upCount)
-            DispatchQueue.main.async { [weak self] in self?.onHotkeyUp?() }
-            return nil
-        }
-
-        // Space keyUp without option still ends a hold.
-        if type == .keyUp && keyCode == Self.spaceKeyCode && isHotkeyHeld {
-            isHotkeyHeld = false
-            lastUpAt = Date()
-            upCount += 1
-            DispatchQueue.main.async { [weak self] in self?.onHotkeyUp?() }
+            fireUp(source: "tap")
             return nil
         }
 
         if type == .flagsChanged && isHotkeyHeld && !option {
-            isHotkeyHeld = false
-            lastUpAt = Date()
-            upCount += 1
-            NSLog("MacWispr hotkey: Option released → UP")
-            DispatchQueue.main.async { [weak self] in self?.onHotkeyUp?() }
+            fireUp(source: "tap-option")
         }
 
         return Unmanaged.passUnretained(event)
+    }
+
+    // MARK: - Carbon hotkey (reliable detection)
+
+    private func installCarbonHotKey() -> Bool {
+        uninstallCarbonHotKey()
+
+        var eventTypes = [
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased)),
+        ]
+
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        let handlerStatus = InstallEventHandler(
+            GetApplicationEventTarget(),
+            { (_, event, userData) -> OSStatus in
+                guard let userData, let event else { return noErr }
+                let mgr = Unmanaged<HotkeyManager>.fromOpaque(userData).takeUnretainedValue()
+                mgr.handleCarbonEvent(event)
+                return noErr
+            },
+            2,
+            &eventTypes,
+            refcon,
+            &carbonHandlerRef
+        )
+        guard handlerStatus == noErr else {
+            NSLog("MacWispr hotkey: InstallEventHandler failed (%d)", handlerStatus)
+            return false
+        }
+
+        var ref: EventHotKeyRef?
+        let regStatus = RegisterEventHotKey(
+            UInt32(kVK_Space),
+            UInt32(optionKey),
+            carbonHotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &ref
+        )
+        guard regStatus == noErr, let ref else {
+            NSLog("MacWispr hotkey: RegisterEventHotKey failed (%d) — grant Accessibility", regStatus)
+            uninstallCarbonHotKey()
+            return false
+        }
+        carbonHotKeyRef = ref
+        return true
+    }
+
+    private func uninstallCarbonHotKey() {
+        if let ref = carbonHotKeyRef {
+            UnregisterEventHotKey(ref)
+            carbonHotKeyRef = nil
+        }
+        if let handler = carbonHandlerRef {
+            RemoveEventHandler(handler)
+            carbonHandlerRef = nil
+        }
+    }
+
+    private func handleCarbonEvent(_ event: EventRef) {
+        var hotKeyID = EventHotKeyID()
+        let err = GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &hotKeyID
+        )
+        guard err == noErr,
+              hotKeyID.signature == carbonHotKeyID.signature,
+              hotKeyID.id == carbonHotKeyID.id
+        else { return }
+
+        let kind = GetEventKind(event)
+        if kind == UInt32(kEventHotKeyPressed) {
+            fireDown(source: "carbon")
+        } else if kind == UInt32(kEventHotKeyReleased) {
+            fireUp(source: "carbon")
+        }
     }
 
     // MARK: - Monitors
@@ -208,10 +297,7 @@ final class HotkeyManager: @unchecked Sendable {
             guard let self else { return }
             let option = event.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.option)
             if self.isHotkeyHeld && !option {
-                self.isHotkeyHeld = false
-                self.lastUpAt = Date()
-                self.upCount += 1
-                DispatchQueue.main.async { self.onHotkeyUp?() }
+                self.fireUp(source: "monitor-option")
             }
         }
     }
@@ -233,23 +319,33 @@ final class HotkeyManager: @unchecked Sendable {
         guard event.keyCode == Self.spaceKeyCode else { return false }
 
         if event.type == .keyDown && option {
-            if !isHotkeyHeld {
-                isHotkeyHeld = true
-                lastDownAt = Date()
-                downCount += 1
-                NSLog("MacWispr hotkey: DOWN via monitor (#%d)", downCount)
-                DispatchQueue.main.async { [weak self] in self?.onHotkeyDown?() }
-            }
+            fireDown(source: "monitor")
             return true
         }
         if event.type == .keyUp && isHotkeyHeld {
-            isHotkeyHeld = false
-            lastUpAt = Date()
-            upCount += 1
-            NSLog("MacWispr hotkey: UP via monitor (#%d)", upCount)
-            DispatchQueue.main.async { [weak self] in self?.onHotkeyUp?() }
+            fireUp(source: "monitor")
             return true
         }
         return false
+    }
+
+    // MARK: - Shared fire (dedupes tap + carbon + monitors)
+
+    private func fireDown(source: String) {
+        guard !isHotkeyHeld else { return }
+        isHotkeyHeld = true
+        lastDownAt = Date()
+        downCount += 1
+        NSLog("MacWispr hotkey: DOWN via %@ (#%d)", source, downCount)
+        DispatchQueue.main.async { [weak self] in self?.onHotkeyDown?() }
+    }
+
+    private func fireUp(source: String) {
+        guard isHotkeyHeld else { return }
+        isHotkeyHeld = false
+        lastUpAt = Date()
+        upCount += 1
+        NSLog("MacWispr hotkey: UP via %@ (#%d)", source, upCount)
+        DispatchQueue.main.async { [weak self] in self?.onHotkeyUp?() }
     }
 }
