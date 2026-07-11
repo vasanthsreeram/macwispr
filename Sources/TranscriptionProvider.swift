@@ -10,7 +10,7 @@ enum TranscriptionProvider: String, CaseIterable, Identifiable, Codable {
 
     var displayName: String {
         switch self {
-        case .local: return "On-device (Qwen3-ASR)"
+        case .local: return "On-device (Local)"
         case .openAI: return "OpenAI"
         case .elevenLabs: return "ElevenLabs"
         }
