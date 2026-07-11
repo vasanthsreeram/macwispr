@@ -40,6 +40,8 @@ struct MainWindowView: View {
                     .tag(SidebarItem.dictate)
                 Label("History", systemImage: "clock")
                     .tag(SidebarItem.history)
+                Label("Settings", systemImage: "gear")
+                    .tag(SidebarItem.settings)
             }
 
             if selectedSidebar == .history {
@@ -68,9 +70,14 @@ struct MainWindowView: View {
                 dictateDetail
             case .history:
                 historyDetail
+            case .settings:
+                SettingsView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onReceive(NotificationCenter.default.publisher(for: .macWisprShowSettings)) { _ in
+            selectedSidebar = .settings
+        }
     }
 
     private var dictateDetail: some View {
@@ -241,4 +248,9 @@ private enum SidebarItem: Hashable {
     case dashboard
     case dictate
     case history
+    case settings
+}
+
+extension Notification.Name {
+    static let macWisprShowSettings = Notification.Name("macWisprShowSettings")
 }

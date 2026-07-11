@@ -97,8 +97,11 @@ struct MenuBarView: View {
                 }
                 menuRow(title: "Settings...", systemImage: "gear") {
                     StatusBarController.shared.closePopover()
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                    NSApp.activate(ignoringOtherApps: true)
+                    openMainWindow()
+                    // Select the Settings section once the window is up.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        NotificationCenter.default.post(name: .macWisprShowSettings, object: nil)
+                    }
                 }
                 Divider().padding(.vertical, 4)
                 menuRow(title: "Quit MacWispr", systemImage: "power") {
