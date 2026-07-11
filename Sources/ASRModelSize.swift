@@ -34,6 +34,28 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// Compact label for dashboard / toolbar chips.
+    var shortName: String {
+        switch self {
+        case .small: return "Qwen 0.6B"
+        case .large: return "Qwen 1.7B"
+        case .parakeetInt4, .parakeetInt8: return "Parakeet INT8"
+        }
+    }
+
+    /// SF Symbol for the engine class.
+    var dashboardSymbol: String {
+        switch engine {
+        case .qwenMLX: return "cpu"
+        case .parakeetCoreML: return "brain.head.profile"
+        }
+    }
+
+    /// Models offered in the dashboard quick-switch menu (INT4 legacy hidden).
+    static var dashboardChoices: [ASRModelSize] {
+        [.small, .large, .parakeetInt8]
+    }
+
     /// HuggingFace model identifier used by speech-swift.
     ///
     /// The INT4 HF repo was retired; both picker values load the INT8 fixed-shape

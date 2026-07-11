@@ -24,13 +24,143 @@ struct DashboardView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Time Saved")
-                .font(.title2.weight(.semibold))
-            Text("Last 7 days · typing baseline \(Int(appState.typingWPM)) WPM")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Time Saved")
+                    .font(.title2.weight(.semibold))
+                Text("Last 7 days · typing baseline \(Int(appState.typingWPM)) WPM")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            modelQuickSwitch
         }
+    }
+
+    /// Top-right chip: current STT model / provider with a one-click switcher.
+    private var modelQuickSwitch: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            Menu {
+                Section("On-device") {
+                    ForEach(ASRModelSize.dashboardChoices) { size in
+                        Button {
+                            appState.setTranscriptionProvider(.local)
+                            appState.setASRModelSize(size)
+                        } label: {
+                            if isSelectedLocalModel(size) {
+                                Label(size.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(size.displayName)
+                            }
+                        }
+                        .disabled(appState.isModelLoading || appState.isRecording)
+                    }
+                }
+                Section("Cloud (BYOK)") {
+                    Button {
+                        appState.setTranscriptionProvider(.openAI)
+                    } label: {
+                        if appState.transcriptionProvider == .openAI {
+                            Label("OpenAI", systemImage: "checkmark")
+                        } else {
+                            Text("OpenAI")
+                        }
+                    }
+                    Button {
+                        appState.setTranscriptionProvider(.elevenLabs)
+                    } label: {
+                        if appState.transcriptionProvider == .elevenLabs {
+                            Label("ElevenLabs", systemImage: "checkmark")
+                        } else {
+                            Text("ElevenLabs")
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    if appState.isModelLoading && appState.transcriptionProvider == .local {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: modelChipSymbol)
+                            .font(.caption.weight(.semibold))
+                    }
+                    Text(modelChipTitle)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.quaternary.opacity(0.7), in: Capsule())
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .disabled(appState.isRecording)
+            .help(modelChipHelp)
+
+            if appState.isModelLoading, appState.transcriptionProvider == .local {
+                Text(appState.modelLoadStatus.isEmpty ? "Loading…" : appState.modelLoadStatus)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: 200, alignment: .trailing)
+            } else if appState.transcriptionProvider == .local {
+                Text(appState.asrModelSize.engine == .qwenMLX ? "GPU · MLX" : "Neural Engine")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            } else if !appState.isReadyToDictate {
+                Text("Add API key in Settings")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private var modelChipTitle: String {
+        switch appState.transcriptionProvider {
+        case .local:
+            // Collapse legacy Parakeet-INT4 onto the INT8 short name.
+            if appState.asrModelSize == .parakeetInt4 {
+                return ASRModelSize.parakeetInt8.shortName
+            }
+            return appState.asrModelSize.shortName
+        case .openAI:
+            return "OpenAI"
+        case .elevenLabs:
+            return "ElevenLabs"
+        }
+    }
+
+    private var modelChipSymbol: String {
+        switch appState.transcriptionProvider {
+        case .local:
+            return appState.asrModelSize.dashboardSymbol
+        case .openAI, .elevenLabs:
+            return "cloud"
+        }
+    }
+
+    private var modelChipHelp: String {
+        switch appState.transcriptionProvider {
+        case .local:
+            return "\(appState.asrModelSize.displayName)\n\(appState.asrModelSize.subtitle)"
+        case .openAI:
+            return "Cloud STT via your OpenAI key"
+        case .elevenLabs:
+            return "Cloud STT via your ElevenLabs key"
+        }
+    }
+
+    private func isSelectedLocalModel(_ size: ASRModelSize) -> Bool {
+        guard appState.transcriptionProvider == .local else { return false }
+        // Legacy Parakeet-INT4 maps to the same INT8 weights as parakeetInt8.
+        if size == .parakeetInt8 {
+            return appState.asrModelSize == .parakeetInt8 || appState.asrModelSize == .parakeetInt4
+        }
+        return appState.asrModelSize == size
     }
 
     private var weekCards: some View {
