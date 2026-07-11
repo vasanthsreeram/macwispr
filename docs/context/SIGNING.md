@@ -1,0 +1,92 @@
+# Signing, notarization, and Accessibility TCC
+
+## Why the shortcut “dies after every update”
+
+macOS **Transparency, Consent, and Control (TCC)** binds the Accessibility
+grant to the app’s **code signature identity**.
+
+| Signing | Team ID | Accessibility across updates |
+|---------|---------|------------------------------|
+| Ad-hoc (`codesign -s -`) | *none* | **Invalidated** when the binary hash changes |
+| Developer ID Application | stable TEAMID | **Persists** across updates of the same bundle ID |
+
+Ad-hoc builds (everything MacWispr has shipped so far) re-key TCC on every
+release. Users must re-enable **System Settings → Privacy & Security →
+Accessibility → MacWispr**. Most will not — they report “the shortcut stopped
+working.”
+
+### What still needs Accessibility even after Carbon hotkey work
+
+| Capability | Needs AX? | Notes |
+|------------|-----------|--------|
+| Detect ⌥Space (Carbon hotkey) | Often **no** | Detection can survive a dropped grant |
+| Swallow Space (CGEvent tap) | **Yes** | Otherwise Option+Space types NBSP |
+| Paste / type into frontmost app | **Yes** | `TextInserter` synthetic ⌘V |
+| Global NSEvent monitors | **Yes** | Install but never fire without AX |
+
+So: Carbon fixes **detection**. Paste is still dead without AX. From the
+user’s seat that is still “shortcut does nothing” (hotkey → listen → text on
+clipboard only, nothing typed). 1.2.1 surfaces that as an explicit warning;
+it does not remove the AX requirement for insertion.
+
+## Durable fix (do this once)
+
+1. **Apple Developer Program** membership ($99/yr).
+2. Create a **Developer ID Application** certificate in
+   [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/certificates/list).
+3. Install the cert + private key in the build machine keychain (export/import `.p12` if needed).
+4. Create an [app-specific password](https://appleid.apple.com) for notarytool, then:
+
+```bash
+xcrun notarytool store-credentials "MacWispr-notary" \
+  --apple-id "you@example.com" \
+  --team-id "YOURTEAMID" \
+  --password "app-specific-password"
+```
+
+5. Ship releases with:
+
+```bash
+export MACWISPR_SIGN_IDENTITY="Developer ID Application: Your Name (YOURTEAMID)"
+export MACWISPR_NOTARY_PROFILE="MacWispr-notary"
+export MACWISPR_VERSION=1.2.1
+./scripts/build-app.sh          # signs via sign-and-notarize.sh
+./scripts/build-dmg.sh
+./scripts/release.sh v1.2.1
+```
+
+Or skip notarization while testing:
+
+```bash
+export MACWISPR_SIGN_IDENTITY="Developer ID Application: Your Name (YOURTEAMID)"
+export MACWISPR_SKIP_NOTARIZE=1
+./scripts/sign-and-notarize.sh dist/MacWispr.app
+```
+
+## Verify a build
+
+```bash
+codesign -dv --verbose=4 /Applications/MacWispr.app 2>&1 | grep -E 'Authority|TeamIdentifier|flags'
+# Expect:
+#   Authority=Developer ID Application: ...
+#   TeamIdentifier=XXXXXXXXXX
+#   flags=0x10000(runtime)   # hardened runtime — not flags=0x2(adhoc)
+
+spctl -a -vv /Applications/MacWispr.app
+# Expect: accepted (notarized)
+```
+
+## Local / CI ad-hoc (default)
+
+With no `MACWISPR_SIGN_IDENTITY`, `build-app.sh` still ad-hoc signs so local
+dev works. That is fine for `./scripts/install.sh` on your machine — not fine
+for public downloads if you want Accessibility to stick.
+
+## Hardened runtime entitlements
+
+See `MacWispr.entitlements`:
+
+- `device.audio-input` — microphone  
+- `cs.allow-jit` / `allow-unsigned-executable-memory` / `disable-library-validation` — MLX Metal runtime  
+
+Tighten these once MLX load paths are fully understood under library validation.

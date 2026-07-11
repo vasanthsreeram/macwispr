@@ -4,15 +4,18 @@
 
 **Code path was verified** with `--self-test` (synthetic handler + CGEvent inject) when Accessibility is granted.
 
+The hotkey uses three layers: **CGEvent tap** (swallows Space), **Carbon RegisterEventHotKey**, and NSEvent monitors as backup. UI “armed” means tap **or** Carbon is live — monitors alone no longer report success (they install without Accessibility but never fire).
+
 Checklist:
 
-1. Click menu bar waveform → look for **“⌥Space armed”** vs **“needs Accessibility”**.  
-2. System Settings → Privacy & Security → **Accessibility** → enable **MacWispr**.  
-3. After reinstall/codesign, **remove and re-add** the app (TCC binds to the binary).  
-4. Also check **Input Monitoring** if present.  
-5. Quit MacWispr completely; reopen `/Applications/MacWispr.app`.  
-6. Model must be loaded (status green **Ready**); startRecording no-ops if not.  
-7. Fallback: use **Hold to Speak** or **Start Listening** in the panel (no global hotkey needed).
+1. Click menu bar waveform → look for **“⌥Space armed”** vs **“needs Accessibility”** / **“not registered”**.  
+2. Click **Fix** (or Settings → Repair Hotkey).  
+3. System Settings → Privacy & Security → **Accessibility** → enable **MacWispr**.  
+4. After reinstall/codesign/update on **ad-hoc** builds, **remove and re-add** the app (TCC binds to the binary hash). **Developer ID** builds keep the grant — see [SIGNING.md](./SIGNING.md).  
+5. Also check **Input Monitoring** if present.  
+6. Model / cloud provider must be ready (status green **Ready**); otherwise you hear a low “not ready” sound.  
+7. If dictation “works” but nothing is typed: text may only be on the clipboard — grant Accessibility so paste can run (1.2.1 shows a warning for this).  
+8. Fallback: use **Hold to Speak** or **Start Listening** in the panel (no global hotkey needed).
 
 ```bash
 /Applications/MacWispr.app/Contents/MacOS/MacWispr --self-test

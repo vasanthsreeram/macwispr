@@ -21,21 +21,18 @@ struct MenuBarView: View {
             }
             .padding(.horizontal)
 
-            // Hotkey health (so we can see if ⌥Space is armed)
+            // Hotkey health — only true when event tap or Carbon hotkey is live.
+            // Monitors alone used to report "armed" while still needing AX.
             HStack(spacing: 6) {
-                Image(systemName: hotkeyArmed ? "keyboard" : "keyboard.badge.ellipsis")
-                    .foregroundStyle(hotkeyArmed ? .green : .orange)
-                Text(hotkeyArmed
-                     ? "⌥Space armed (\(appState.dictationMode.rawValue.lowercased()))"
-                     : "⌥Space needs Accessibility")
+                Image(systemName: appState.hotkeyArmed ? "keyboard" : "keyboard.badge.ellipsis")
+                    .foregroundStyle(appState.hotkeyArmed ? .green : .orange)
+                Text(hotkeyStatusLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                if !hotkeyArmed {
+                if !appState.hotkeyArmed {
                     Button("Fix") {
-                        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
-                        AXIsProcessTrustedWithOptions(options)
-                        appState.hotkeyManager.ensureRegistered()
+                        appState.repairHotkey()
                     }
                     .font(.caption)
                 }
@@ -233,8 +230,14 @@ struct MenuBarView: View {
         return appState.readinessLabel
     }
 
-    private var hotkeyArmed: Bool {
-        appState.hotkeyManager.tapInstalled || appState.hotkeyManager.monitorsInstalled
+    private var hotkeyStatusLabel: String {
+        if appState.hotkeyArmed {
+            return "⌥Space armed (\(appState.dictationMode.rawValue.lowercased()))"
+        }
+        if appState.accessibilityTrusted {
+            return "⌥Space not registered — click Fix"
+        }
+        return "⌥Space needs Accessibility"
     }
 }
 

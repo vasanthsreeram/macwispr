@@ -17,13 +17,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu-bar agent (LSUIElement) — stay out of the Dock until a window opens.
         NSApp.setActivationPolicy(.accessory)
 
-        // Accessibility is required to *suppress* ⌥Space (event tap) and insert text.
-        // Without it, Space still types into the focused app.
+        // Accessibility is required for the global ⌥Space hotkey (event tap /
+        // Carbon) and for pasting into other apps. Mic is required to capture audio.
         let trusted = AXIsProcessTrusted()
         if !trusted {
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
         }
+        AudioRecorder.requestPermissionIfNeeded()
 
         // Allow: open -a MacWispr --args --open-dashboard
         if CommandLine.arguments.contains("--open-dashboard") {
@@ -71,7 +72,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             let hotkey = state.hotkeyManager
             print("hotkey tap installed:", hotkey.tapInstalled)
+            print("hotkey carbon installed:", hotkey.carbonInstalled)
             print("hotkey monitors installed:", hotkey.monitorsInstalled)
+            print("hotkey armed:", hotkey.isArmed)
+            state.refreshHotkeyHealth()
 
             if state.isModelLoaded {
                 // 3. Direct API hold start/stop

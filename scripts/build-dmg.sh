@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="${MACWISPR_VERSION:-1.2.0}"
+VERSION="${MACWISPR_VERSION:-1.2.1}"
 APP="${1:-$ROOT/dist/MacWispr.app}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 DMG_VERSIONED="$DIST_DIR/MacWispr-${VERSION}-macos-arm64.dmg"
@@ -74,8 +74,11 @@ MacWispr ${VERSION}
 3. Grant Microphone + Accessibility
 4. Hold Option+Space, speak, release
 
-Unsigned build — if Gatekeeper complains:
+If Gatekeeper blocks an ad-hoc build:
   xattr -dr com.apple.quarantine /Applications/MacWispr.app
+
+After any update, confirm Accessibility still lists MacWispr
+(Developer ID builds keep the grant; ad-hoc builds often do not).
 
 https://github.com/vasanthsreeram/macwispr
 EOF

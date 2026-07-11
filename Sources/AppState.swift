@@ -50,6 +50,10 @@ final class AppState: ObservableObject {
     @Published var typingWPM: Double = UsageStats.defaultTypingWPM
     /// Custom vocabulary / domain terms fed to Qwen3-ASR as system context.
     @Published var customVocabulary: [String] = []
+    /// Reflects HotkeyManager.isArmed so the menu bar can reactively show Fix.
+    @Published var hotkeyArmed = false
+    /// AXIsProcessTrusted() polled with hotkey health.
+    @Published var accessibilityTrusted = false
 
     let transcriptionEngine = TranscriptionEngine()
     let textPolisher = TextPolisher()
@@ -58,6 +62,7 @@ final class AppState: ObservableObject {
     let textInserter = TextInserter()
 
     private var recordingSession = 0
+    private var hotkeyHealthTimer: Timer?
     /// History id for the latest dictation (so Dictate edits update the same row).
     private var lastTranscriptionId: UUID?
     private static let customVocabularyKey = "customVocabulary"
@@ -337,7 +342,13 @@ final class AppState: ObservableObject {
         let samples = audioRecorder.stopRecording()
 
         // End sound plays only after transcription finishes (not on mic release).
-        guard !samples.isEmpty else { return }
+        guard !samples.isEmpty else {
+            // Very short holds / denied mic produce zero samples — without
+            // feedback this feels like "the shortcut is broken".
+            currentTranscription = "No audio captured — hold longer, or check Microphone permission."
+            if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
+            return
+        }
 
         do {
             let text = try await transcribeSamples(samples)
@@ -356,8 +367,24 @@ final class AppState: ObservableObject {
             lastTranscriptionId = entry.id
             transcriptionHistory.insert(entry, at: 0)
             HistoryStore.save(transcriptionHistory)
-            textInserter.insert(text: processed, mode: insertionMode)
-            if soundFeedbackEnabled {
+
+            // Carbon can detect ⌥Space without AX, but paste/type still needs it.
+            // Without feedback, that path is the classic "shortcut does nothing".
+            let outcome = textInserter.insert(text: processed, mode: insertionMode)
+            switch outcome {
+            case .ok:
+                break
+            case .clipboardOnly(let reason):
+                currentTranscription = "\(processed)\n\n⚠️ \(reason)"
+                accessibilityTrusted = false
+                hotkeyArmed = hotkeyManager.isArmed
+                if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
+            case .failed(let reason):
+                currentTranscription = "\(processed)\n\n⚠️ \(reason)"
+                if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
+            }
+
+            if soundFeedbackEnabled, outcome == .ok {
                 FeedbackSounds.playListeningStopped()
             }
         } catch {
@@ -655,21 +682,50 @@ final class AppState: ObservableObject {
             }
         }
         hotkeyManager.register()
+        refreshHotkeyHealth()
 
         NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.hotkeyManager.ensureRegistered()
+            Task { @MainActor in
+                self?.hotkeyManager.ensureRegistered()
+                self?.refreshHotkeyHealth()
+            }
         }
 
         // Accessory apps rarely become "active", and granting Accessibility
         // after launch doesn't notify us — poll so the global hotkey heals
-        // without a relaunch.
-        Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-            self?.hotkeyManager.ensureRegistered()
+        // without a relaunch, and so the menu bar status stays honest.
+        hotkeyHealthTimer?.invalidate()
+        hotkeyHealthTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.hotkeyManager.ensureRegistered()
+                self?.refreshHotkeyHealth()
+            }
         }
+        if let hotkeyHealthTimer {
+            RunLoop.main.add(hotkeyHealthTimer, forMode: .common)
+        }
+    }
+
+    /// Re-read tap/carbon/AX into @Published fields for SwiftUI.
+    func refreshHotkeyHealth() {
+        let armed = hotkeyManager.isArmed
+        let ax = hotkeyManager.accessibilityTrusted
+        if hotkeyArmed != armed { hotkeyArmed = armed }
+        if accessibilityTrusted != ax { accessibilityTrusted = ax }
+    }
+
+    /// Prompt for Accessibility and re-arm the global hotkey.
+    func repairHotkey() {
+        if !AXIsProcessTrusted() {
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
+            AXIsProcessTrustedWithOptions(options)
+        }
+        hotkeyManager.register()
+        refreshHotkeyHealth()
     }
 }
 

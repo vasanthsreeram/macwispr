@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# Build a double-clickable MacWispr.app (unsigned) from the Swift package.
+# Build a double-clickable MacWispr.app from the Swift package.
+#
+# Signing:
+#   default                          → ad-hoc (TCC Accessibility resets on each update)
+#   MACWISPR_SIGN_IDENTITY=...       → Developer ID + hardened runtime
+#   + MACWISPR_NOTARY_PROFILE=...    → notarize + staple
+# See docs/context/SIGNING.md
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 APP_NAME="MacWispr"
-VERSION="${MACWISPR_VERSION:-1.2.0}"
+VERSION="${MACWISPR_VERSION:-1.2.1}"
 BUILD_DIR="${BUILD_DIR:-$ROOT/.build}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 CONFIG="${CONFIG:-release}"
@@ -103,12 +109,12 @@ if [[ -f "$ICON_SRC" ]]; then
   fi
 fi
 
-# Ad-hoc sign so macOS Gatekeeper is slightly happier on local builds
+# Sign (Developer ID when MACWISPR_SIGN_IDENTITY is set; else ad-hoc)
 if command -v codesign >/dev/null 2>&1; then
-  codesign --force --deep --sign - "$APP" 2>/dev/null || true
+  "$ROOT/scripts/sign-and-notarize.sh" "$APP"
 fi
 
-# Zip for GitHub Releases
+# Zip for GitHub Releases (after sign/staple so the zip carries the ticket)
 mkdir -p "$DIST_DIR"
 ZIP="$DIST_DIR/${APP_NAME}-${VERSION}-macos-arm64.zip"
 rm -f "$ZIP"
@@ -120,6 +126,12 @@ rm -f "$ZIP"
 echo ""
 echo "✓ App:  $APP"
 echo "✓ Zip:  $ZIP"
+if [[ -n "${MACWISPR_SIGN_IDENTITY:-}" && "${MACWISPR_SIGN_IDENTITY}" != "-" ]]; then
+  echo "✓ Signed: Developer ID (stable TCC / Accessibility across updates)"
+else
+  echo "⚠ Signed: ad-hoc — Accessibility will not survive the next update"
+  echo "  Set MACWISPR_SIGN_IDENTITY to fix permanently (docs/context/SIGNING.md)"
+fi
 echo ""
 echo "Open with:  open \"$APP\""
 echo "Or install:  cp -R \"$APP\" /Applications/"
