@@ -104,8 +104,17 @@ Menu bar also shows this week’s words + time saved at a glance:
 |---|---|
 | OS | macOS 14.0+ (Sonoma or later) |
 | Chip | Apple Silicon (M1 / M2 / M3 / M4 / M5) |
+| **Xcode** | **Full [Xcode.app](https://developer.apple.com/xcode/) is required** — **Command Line Tools alone are not enough.** MLX needs the Metal shader compiler (`metal`). With only CLT, `swift build` can succeed but the app fails at runtime with `Failed to load the default metallib`. Install Xcode, then `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`. |
 | Disk | ~500 MB–1.5 GB for local models (first run); cloud BYOK needs no local ASR download |
 | Permissions | Microphone + Accessibility |
+
+Preflight (also run automatically by `./bench.sh`, `./scripts/install.sh`, and `./scripts/build-app.sh`):
+
+```bash
+./scripts/preflight-xcode.sh
+# equivalent check:
+xcrun -sdk macosx metal --version
+```
 
 ## Usage
 
@@ -181,18 +190,23 @@ Sources/
   SettingsView.swift         Provider, keys, language, vocabulary, About
 
 scripts/
-  build-app.sh               Package MacWispr.app + release zip
+  build-app.sh               Package MacWispr.app + release zip (+ Sparkle.framework)
   install.sh                 Build and install to /Applications
   release.sh                 Tag + publish GitHub Release
 
 docs/
   index.html                 Product website (GitHub Pages)
+  SPARKLE.md                 Auto-update keys, sign_update, appcast deploy
   assets/                    Logo + README images
+
+website/
+  appcast.xml                Sparkle feed template (deploy to fuckwisprflow.com)
 ```
 
 ## Dependencies
 
 - [soniqo/speech-swift](https://github.com/soniqo/speech-swift) — Qwen3-ASR, SpeechVAD, AudioCommon (MLX on Apple Silicon)
+- [sparkle-project/Sparkle](https://github.com/sparkle-project/Sparkle) — in-app **Check for Updates…** (appcast on fuckwisprflow.com). Setup and release signing: [docs/SPARKLE.md](docs/SPARKLE.md).
 
 ## Troubleshooting
 
@@ -216,15 +230,34 @@ brew install ffmpeg
 xattr -dr com.apple.quarantine /Applications/MacWispr.app
 ```
 
-**App quits immediately with `Failed to load the default metallib`?**  
-The MLX GPU shader library (`mlx.metallib`) is missing from the app bundle. Rebuild with the fixed packaging script (requires the Xcode Metal Toolchain):
+**App quits / bench fails with `Failed to load the default metallib`?**  
+Two common causes:
 
-```bash
-xcodebuild -downloadComponent MetalToolchain   # once, if metal compiler is missing
-./scripts/install.sh
-```
+1. **Only Command Line Tools installed (no full Xcode.app)** — `swift build` still succeeds, but MLX cannot load Metal shaders. Confirm:
 
-`scripts/build-app.sh` compiles the metal kernels and places `mlx.metallib` next to the binary inside `MacWispr.app`.
+   ```bash
+   xcrun -sdk macosx metal --version
+   # error: unable to find utility "metal"  → you need full Xcode
+   ```
+
+   Fix:
+
+   ```bash
+   # Install Xcode from the Mac App Store, then:
+   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+   xcodebuild -runFirstLaunch
+   # if metal is still missing:
+   xcodebuild -downloadComponent MetalToolchain
+   ./scripts/preflight-xcode.sh   # should succeed
+   ```
+
+2. **Packaged `.app` missing `mlx.metallib`** — rebuild with the packaging script (requires the Metal toolchain above):
+
+   ```bash
+   ./scripts/install.sh
+   ```
+
+   `scripts/build-app.sh` compiles the metal kernels and places `mlx.metallib` next to the binary inside `MacWispr.app`.
 
 ## License
 

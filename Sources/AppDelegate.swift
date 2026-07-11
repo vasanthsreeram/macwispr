@@ -17,6 +17,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu-bar agent (LSUIElement) — stay out of the Dock until a window opens.
         NSApp.setActivationPolicy(.accessory)
 
+        // Sparkle: start background update checks when Info.plist has SUFeedURL
+        // (packaged .app). Bare SPM binaries skip this — see SparkleUpdater.
+        _ = SparkleUpdater.shared
+
         // Accessibility is required for the global ⌥Space hotkey (event tap /
         // Carbon) and for pasting into other apps. Mic is required to capture audio.
         let trusted = AXIsProcessTrusted()

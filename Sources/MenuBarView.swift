@@ -100,6 +100,10 @@ struct MenuBarView: View {
                         NotificationCenter.default.post(name: .macWisprShowSettings, object: nil)
                     }
                 }
+                menuRow(title: "Check for Updates…", systemImage: "arrow.triangle.2.circlepath") {
+                    StatusBarController.shared.closePopover()
+                    SparkleUpdater.shared.checkForUpdates()
+                }
                 Divider().padding(.vertical, 4)
                 menuRow(title: "Quit MacWispr", systemImage: "power") {
                     NSApplication.shared.terminate(nil)

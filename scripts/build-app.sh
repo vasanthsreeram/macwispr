@@ -11,6 +11,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# Metal toolchain required to build mlx.metallib for the packaged app.
+"$ROOT/scripts/preflight-xcode.sh"
+
 APP_NAME="MacWispr"
 VERSION="${MACWISPR_VERSION:-1.2.1}"
 BUILD_DIR="${BUILD_DIR:-$ROOT/.build}"
@@ -88,6 +91,38 @@ if command -v /usr/libexec/PlistBuddy >/dev/null 2>&1; then
 else
   cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
 fi
+
+# Embed Sparkle.framework (SPM binary target) next to the app binary path layout.
+# Without this, Check for Updates fails at load time on the packaged .app.
+echo "==> Embedding Sparkle.framework..."
+FRAMEWORKS_DIR="$APP/Contents/Frameworks"
+mkdir -p "$FRAMEWORKS_DIR"
+SPARKLE_FW=""
+# Prefer resolved artifact layout, then any framework under .build
+for candidate in \
+  "$BUILD_DIR/artifacts/sparkle/Sparkle/Sparkle.framework" \
+  "$BUILD_DIR/checkouts/Sparkle/Sparkle.framework"
+do
+  if [[ -d "$candidate" ]]; then
+    SPARKLE_FW="$candidate"
+    break
+  fi
+done
+if [[ -z "$SPARKLE_FW" ]]; then
+  SPARKLE_FW="$(find "$BUILD_DIR" -type d -name 'Sparkle.framework' 2>/dev/null | head -n1 || true)"
+fi
+if [[ -z "$SPARKLE_FW" || ! -d "$SPARKLE_FW" ]]; then
+  echo "error: Sparkle.framework not found under $BUILD_DIR (run swift build first)" >&2
+  exit 1
+fi
+# Preserve symlinks inside the framework bundle.
+rm -rf "$FRAMEWORKS_DIR/Sparkle.framework"
+cp -a "$SPARKLE_FW" "$FRAMEWORKS_DIR/"
+# Ensure the executable can load @rpath / relative Frameworks at runtime.
+if command -v install_name_tool >/dev/null 2>&1; then
+  install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/MacWispr" 2>/dev/null || true
+fi
+echo "    Sparkle.framework → $FRAMEWORKS_DIR/"
 
 # App icon + bundled logo for About / UI (.icns from PNG)
 ICON_SRC="$ROOT/docs/assets/logo.png"

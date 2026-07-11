@@ -14,6 +14,9 @@ if [[ "$(uname -m)" != "arm64" ]]; then
   exit 1
 fi
 
+# Full Xcode.app (not only CLT) — metal shaders / MLX metallib.
+"$ROOT/scripts/preflight-xcode.sh"
+
 echo "==> Building MacWispr.app..."
 "$ROOT/scripts/build-app.sh"
 
