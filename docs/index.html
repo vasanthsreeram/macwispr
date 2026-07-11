@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MacWispr — Voice dictation for macOS</title>
+  <meta name="description" content="MacWispr is free, open-source voice dictation for Apple Silicon. On-device Qwen3-ASR by default, or bring your own OpenAI / ElevenLabs key." />
+  <meta property="og:title" content="MacWispr" />
+  <meta property="og:description" content="On-device voice dictation for macOS — or BYOK OpenAI / ElevenLabs." />
+  <meta property="og:image" content="assets/hero.png" />
+  <link rel="icon" type="image/png" href="assets/logo-128.png" />
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --bg-card: #141820;
+      --fg: #f4f6fb;
+      --muted: #9aa3b5;
+      --accent: #4d8dff;
+      --accent-soft: rgba(77, 141, 255, 0.14);
+      --border: rgba(255, 255, 255, 0.08);
+      --ok: #3ecf8e;
+      --radius: 16px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: radial-gradient(1200px 600px at 20% -10%, #1a2744 0%, transparent 55%),
+                  radial-gradient(900px 500px at 100% 0%, #1a2a22 0%, transparent 45%),
+                  var(--bg);
+      color: var(--fg);
+      line-height: 1.55;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { width: min(1040px, calc(100% - 2.5rem)); margin: 0 auto; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 0;
+      gap: 1rem;
+    }
+    .brand { display: flex; align-items: center; gap: 0.7rem; font-weight: 700; letter-spacing: -0.02em; }
+    .brand img { width: 36px; height: 36px; border-radius: 9px; }
+    nav { display: flex; gap: 1.1rem; flex-wrap: wrap; font-size: 0.95rem; }
+    nav a { color: var(--muted); }
+    nav a:hover { color: var(--fg); text-decoration: none; }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 2.5rem;
+      align-items: center;
+      padding: 3rem 0 4rem;
+    }
+    @media (max-width: 820px) {
+      .hero { grid-template-columns: 1fr; padding-top: 1.5rem; }
+      nav { display: none; }
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #9ec0ff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+      margin: 0 0 1rem;
+    }
+    .lede { color: var(--muted); font-size: 1.12rem; max-width: 36rem; margin: 0 0 1.6rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.8rem 1.15rem;
+      border-radius: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      text-decoration: none !important;
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #3d7ef0; }
+    .btn-ghost { background: transparent; color: var(--fg); border-color: var(--border); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.04); }
+    .hero-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 0.7rem;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.35);
+    }
+    .hero-card img { width: 100%; border-radius: 16px; display: block; }
+    section { padding: 2.5rem 0; }
+    h2 { font-size: 1.7rem; letter-spacing: -0.03em; margin: 0 0 0.4rem; }
+    .section-lede { color: var(--muted); margin: 0 0 1.5rem; max-width: 40rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.25rem;
+    }
+    .card h3 { margin: 0 0 0.4rem; font-size: 1.05rem; }
+    .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    .icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: grid; place-items: center;
+      background: var(--accent-soft); color: #9ec0ff;
+      margin-bottom: 0.8rem; font-size: 1rem;
+    }
+    .steps { display: grid; gap: 0.8rem; }
+    .step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.9rem;
+      align-items: start;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+    }
+    .num {
+      width: 28px; height: 28px; border-radius: 999px;
+      background: var(--accent); color: white;
+      display: grid; place-items: center; font-weight: 700; font-size: 0.85rem;
+    }
+    .about-panel {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 820px) { .about-panel { grid-template-columns: 1fr; } }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.7rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .tag {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(62, 207, 142, 0.12);
+      color: var(--ok);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0 3rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.88em;
+      background: rgba(255,255,255,0.06);
+      padding: 0.1rem 0.35rem;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <img src="assets/logo-128.png" alt="MacWispr logo" />
+        <span>MacWispr</span>
+      </div>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#byok">BYOK</a>
+        <a href="#install">Install</a>
+        <a href="#about">About</a>
+        <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="pill">v1.2.0 · macOS · Apple Silicon</div>
+        <h1>Speak. Release.<br />Text appears.</h1>
+        <p class="lede">
+          Free, open-source voice dictation for Mac. Runs <strong>on-device</strong> with Qwen3-ASR by default —
+          or bring your own <strong>OpenAI</strong> / <strong>ElevenLabs</strong> key for cloud speech-to-text.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://github.com/vasanthsreeram/macwispr/releases/latest">
+            Download for Mac
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/vasanthsreeram/macwispr">
+            View source
+          </a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <img src="assets/hero.png" alt="MacWispr product preview" />
+      </div>
+    </section>
+
+    <section id="features">
+      <h2>Built for everyday dictation</h2>
+      <p class="section-lede">Hold ⌥Space, talk, release. Insert into Slack, VS Code, browsers, email — anywhere.</p>
+      <div class="grid">
+        <div class="card">
+          <div class="icon">⌘</div>
+          <h3>Hold or toggle</h3>
+          <p>⌥Space hold-to-speak or toggle mode, plus menu-bar controls when the hotkey is flaky.</p>
+        </div>
+        <div class="card">
+          <div class="icon">◎</div>
+          <h3>On-device first</h3>
+          <p>Qwen3-ASR 0.6B / 1.7B (MLX 8-bit) on Apple Silicon. Private by default — no account required.</p>
+        </div>
+        <div class="card">
+          <div class="icon">✎</div>
+          <h3>Polish &amp; cleanup</h3>
+          <p>Strip fillers, auto-capitalize, optional local LLM or OpenAI polish for cleaner sentences.</p>
+        </div>
+        <div class="card">
+          <div class="icon">＃</div>
+          <h3>Custom vocabulary</h3>
+          <p>Teach names and jargon once. Biases local ASR, OpenAI prompts, and ElevenLabs keyterms.</p>
+        </div>
+        <div class="card">
+          <div class="icon">⏱</div>
+          <h3>Time saved</h3>
+          <p>Weekly dashboard for words, speaking time, and estimated typing time avoided.</p>
+        </div>
+        <div class="card">
+          <div class="icon">⎘</div>
+          <h3>Insert modes</h3>
+          <p>Clipboard, type into the active app, or <strong>Both</strong> (default in 1.2).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="byok">
+      <h2>Bring your own key</h2>
+      <p class="section-lede">
+        Prefer cloud accuracy? Paste your key in Settings. Keys never leave your Mac except to call the provider you chose.
+      </p>
+      <div class="grid">
+        <div class="card">
+          <h3>Local <span class="tag">default</span></h3>
+          <p>Qwen3-ASR via MLX. Offline after the model download. Fast warm latency (~0.3s on 10s audio for 0.6B).</p>
+        </div>
+        <div class="card">
+          <h3>OpenAI</h3>
+          <p><code>gpt-4o-mini-transcribe</code> for speech-to-text. Optional <code>gpt-4o-mini</code> polish with the same key.</p>
+        </div>
+        <div class="card">
+          <h3>ElevenLabs</h3>
+          <p>Scribe v2 speech-to-text. Strong multilingual accuracy when you want cloud quality.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <h2>Install</h2>
+      <p class="section-lede">Apple Silicon, macOS 14+. Microphone + Accessibility required.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div>
+            <strong>Download the latest release</strong>
+            <p style="margin:0.25rem 0 0;color:var(--muted)">Grab <code>MacWispr-1.2.0-macos-arm64.zip</code> from
+              <a href="https://github.com/vasanthsreeram/macwispr/releases/latest">GitHub Releases</a>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div>
+            <strong>Drag to Applications</strong>
+            <p style="margin:0.25rem 0 0;color:var(--muted)">Unzip and move <code>MacWispr.app</code>. Right-click → Open the first time if Gatekeeper warns.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div>
+            <strong>Grant permissions &amp; dictate</strong>
+            <p style="margin:0.25rem 0 0;color:var(--muted)">Microphone + Accessibility. Hold ⌥Space, speak, release. Optional: Settings → Transcription for BYOK.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <h2>About</h2>
+      <div class="about-panel">
+        <div class="card">
+          <p>
+            MacWispr is a free, MIT-licensed alternative to commercial dictation apps.
+            It started as an on-device Qwen3-ASR wrapper for Apple Silicon and now also supports
+            optional cloud providers when you bring your own API keys.
+          </p>
+          <p style="color:var(--muted);margin-bottom:0">
+            No MacWispr account. No telemetry backend. History and keys stay on your machine
+            (Application Support + Keychain).
+          </p>
+          <p style="margin-top:1rem">
+            <a href="https://github.com/vasanthsreeram/macwispr">Source on GitHub</a>
+            · <a href="https://github.com/vasanthsreeram/macwispr/blob/main/LICENSE">MIT License</a>
+            · <a href="https://github.com/vasanthsreeram/macwispr/releases">Changelog / releases</a>
+          </p>
+        </div>
+        <div class="card">
+          <table>
+            <tr><th>Item</th><th>Detail</th></tr>
+            <tr><td>Version</td><td>1.2.0</td></tr>
+            <tr><td>Platform</td><td>macOS 14+ · Apple Silicon</td></tr>
+            <tr><td>Default STT</td><td>Qwen3-ASR 0.6B MLX 8-bit</td></tr>
+            <tr><td>Cloud STT</td><td>OpenAI · ElevenLabs (BYOK)</td></tr>
+            <tr><td>License</td><td>MIT</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div>© MacWispr · Open source voice dictation</div>
+      <div>
+        <a href="https://github.com/vasanthsreeram/macwispr/releases/latest">Download</a>
+        · <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

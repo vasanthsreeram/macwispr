@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 APP_NAME="MacWispr"
-VERSION="${MACWISPR_VERSION:-1.1.0}"
+VERSION="${MACWISPR_VERSION:-1.2.0}"
 BUILD_DIR="${BUILD_DIR:-$ROOT/.build}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 CONFIG="${CONFIG:-release}"
