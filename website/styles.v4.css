@@ -637,7 +637,7 @@ h1 .line { display: block; }
   transition: height 0.16s cubic-bezier(0.167, 0.167, 0.833, 0.833);
   will-change: height;
 }
-.race-wave-wrap.is-idle .vd-bar { opacity: 0.28; }
+.race-wave-wrap.is-idle .vd-bar { opacity: 0.55; }
 .race-wave-wrap.is-listening .vd-bar,
 .race-wave-wrap.is-polish .vd-bar { opacity: 1; }
 .race-wave-label {
@@ -839,8 +839,8 @@ img.wf-logo {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  mask-image: radial-gradient(ellipse 85% 70% at 50% 40%, #000 10%, transparent 78%);
-  -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 40%, #000 10%, transparent 78%);
+  mask-image: radial-gradient(ellipse 90% 75% at 50% 42%, #000 18%, transparent 82%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 42%, #000 18%, transparent 82%);
 }
 .bg-marquee-svg {
   width: min(140vw, 1600px);
@@ -1146,7 +1146,7 @@ kbd {
   .bento-card,
   .bento-wide { grid-column: span 2; }
   .section { padding: 2.5rem 0; }
-  .bg-marquee { opacity: 0.18; }
+  .bg-marquee { opacity: 0.42; }
   .orb { filter: blur(50px); opacity: 0.4; }
 }
 
@@ -1194,7 +1194,7 @@ kbd {
   .bento { grid-template-columns: 1fr; gap: 0.65rem; }
   .bento-card,
   .bento-wide { grid-column: span 1; min-height: 0; }
-  .bg-marquee { opacity: 0.14; }
+  .bg-marquee { opacity: 0.38; }
   .bg-marquee-svg { min-height: 55vh; width: min(160vw, 1400px); }
   .bento-card { padding: 1.15rem 1.05rem; }
   .bento-card:hover,
@@ -1244,7 +1244,7 @@ kbd {
   .speed-card:hover,
   .steps li:hover { transform: none; }
   .bg-marquee animate { display: none; }
-  .bg-marquee { opacity: 0.12; }
+  .bg-marquee { opacity: 0.32; }
 }
 
 /* Low-power / coarse pointer: kill heavy continuous effects */
