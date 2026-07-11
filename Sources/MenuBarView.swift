@@ -44,7 +44,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            if !appState.isModelLoaded {
+            if !appState.isReadyToDictate {
                 modelLoadSection
             } else {
                 dictationControls
@@ -176,11 +176,24 @@ struct MenuBarView: View {
 
     private var modelLoadSection: some View {
         VStack(spacing: 8) {
-            ProgressView(value: appState.modelLoadProgress) {
-                Text(appState.modelLoadStatus)
+            if appState.transcriptionProvider == .local && appState.isModelLoading {
+                ProgressView(value: appState.modelLoadProgress) {
+                    Text(appState.modelLoadStatus)
+                        .font(.caption)
+                }
+                .padding(.horizontal)
+            } else {
+                Text(appState.readinessLabel)
                     .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                if appState.transcriptionProvider != .local {
+                    Text("Add your API key in Settings")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
-            .padding(.horizontal)
         }
         .padding(.horizontal)
     }
@@ -203,15 +216,21 @@ struct MenuBarView: View {
 
     private var statusColor: Color {
         if appState.isRecording { return .red }
-        if appState.isModelLoaded { return .green }
+        if appState.isReadyToDictate { return .green }
         return .orange
     }
 
     private var statusText: String {
         if appState.isRecording { return "Recording" }
-        if appState.isModelLoaded { return "Ready" }
+        if appState.isReadyToDictate {
+            switch appState.transcriptionProvider {
+            case .local: return "Ready · Local"
+            case .openAI: return "Ready · OpenAI"
+            case .elevenLabs: return "Ready · ElevenLabs"
+            }
+        }
         if appState.isModelLoading { return "Loading..." }
-        return "Model Not Loaded"
+        return appState.readinessLabel
     }
 
     private var hotkeyArmed: Bool {
@@ -250,8 +269,8 @@ struct HoldToSpeakButton: View {
                         Task { await appState.stopRecordingAndTranscribe() }
                     }
             )
-            .disabled(!appState.isModelLoaded)
-            .opacity(appState.isModelLoaded ? 1 : 0.5)
+            .disabled(!appState.isReadyToDictate)
+            .opacity(appState.isReadyToDictate ? 1 : 0.5)
             .help("Press and hold while you speak, then release to transcribe")
     }
 }

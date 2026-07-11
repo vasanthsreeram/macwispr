@@ -10,10 +10,10 @@ struct ModelSpec {
 @main
 struct BenchLatency {
     static let defaultModels: [ModelSpec] = [
-        ModelSpec(label: "0.6B MLX-4bit (recommended)", modelId: "aufklarer/Qwen3-ASR-0.6B-MLX-4bit"),
-        ModelSpec(label: "0.6B MLX-8bit", modelId: "aufklarer/Qwen3-ASR-0.6B-MLX-8bit"),
-        ModelSpec(label: "1.7B MLX-4bit", modelId: "aufklarer/Qwen3-ASR-1.7B-MLX-4bit"),
-        ModelSpec(label: "1.7B MLX-8bit (mlx-community)", modelId: "mlx-community/Qwen3-ASR-1.7B-8bit"),
+        ModelSpec(label: "0.6B 4bit (aufklarer)", modelId: "aufklarer/Qwen3-ASR-0.6B-MLX-4bit"),
+        ModelSpec(label: "0.6B 8bit (mlx-community)", modelId: "mlx-community/Qwen3-ASR-0.6B-8bit"),
+        ModelSpec(label: "1.7B 4bit (aufklarer)", modelId: "aufklarer/Qwen3-ASR-1.7B-MLX-4bit"),
+        ModelSpec(label: "1.7B 8bit (mlx-community)", modelId: "mlx-community/Qwen3-ASR-1.7B-8bit"),
     ]
 
     static func main() async {

@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <strong>On-device voice dictation for macOS</strong><br/>
-  Powered by <a href="https://huggingface.co/aufklarer/Qwen3-ASR-0.6B-MLX-4bit">Qwen3-ASR-0.6B</a> via Apple Metal (MLX).<br/>
-  A free, open-source alternative to Wispr Flow — runs entirely on your Mac. No cloud. No API keys.
+  <strong>Voice dictation for macOS</strong><br/>
+  On-device <a href="https://huggingface.co/collections/Qwen/qwen3-asr">Qwen3-ASR</a> (MLX) by default — or bring your own OpenAI / ElevenLabs key for cloud STT.<br/>
+  A free, open-source alternative to Wispr Flow.
 </p>
 
 <p align="center">
@@ -57,7 +57,9 @@ Benchmark model latency:
 
 - **Hold-to-dictate** — Hold `Option+Space`, speak, release to transcribe and insert
 - **System-wide insertion** — Pastes into Slack, VS Code, browser, terminal, anywhere
-- **On-device MLX inference** — Qwen3-ASR 0.6B on Apple Silicon GPU
+- **On-device MLX inference** — Qwen3-ASR on Apple Silicon GPU (default, private)
+- **BYOK cloud STT** — Optional OpenAI (`gpt-4o-mini-transcribe`) or ElevenLabs (`scribe_v2`); keys in Keychain only
+- **Transcript polish** — Off, local LLM, or OpenAI (`gpt-4o-mini`)
 - **Menu bar app** — Always ready from the waveform icon
 - **Weekly Time Saved dashboard** — Word count + estimated typing time saved
 - **Filler word removal** — Strips “uh”, “um”, “like”, “you know”, etc.
@@ -65,6 +67,7 @@ Benchmark model latency:
 - **52 languages** — Auto-detect or pin a language
 - **Transcription history** — Browse and copy past results (persisted locally)
 - **Multiple insertion modes** — Clipboard paste, simulated typing, or both
+- **Custom vocabulary** — Names/jargon bias for local + cloud providers
 
 ## Weekly Time Saved dashboard
 

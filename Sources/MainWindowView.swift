@@ -3,6 +3,8 @@ import SwiftUI
 struct MainWindowView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedSidebar: SidebarItem = .dashboard
+    @State private var editingTranscription: String = ""
+    @State private var isEditingTranscription = false
 
     var body: some View {
         NavigationSplitView {
@@ -17,7 +19,7 @@ struct MainWindowView: View {
                 Button {
                     if appState.isRecording {
                         Task { await appState.stopRecordingAndTranscribe() }
-                    } else if appState.isModelLoaded {
+                    } else if appState.isReadyToDictate {
                         appState.startRecording()
                     }
                 } label: {
@@ -25,7 +27,7 @@ struct MainWindowView: View {
                         .font(.title2)
                         .foregroundStyle(appState.isRecording ? .red : .accentColor)
                 }
-                .disabled(!appState.isModelLoaded)
+                .disabled(!appState.isReadyToDictate)
                 .help(appState.isRecording ? "Stop recording" : "Start recording")
             }
         }
@@ -82,7 +84,7 @@ struct MainWindowView: View {
 
     private var dictateDetail: some View {
         VStack(spacing: 24) {
-            if !appState.isModelLoaded {
+            if !appState.isReadyToDictate {
                 modelLoadingView
             } else {
                 activeView
@@ -102,28 +104,7 @@ struct MainWindowView: View {
             } else {
                 List {
                     ForEach(appState.transcriptionHistory) { entry in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(entry.text)
-                                .font(.body)
-                                .textSelection(.enabled)
-                            HStack(spacing: 8) {
-                                Text(entry.timestamp, style: .date)
-                                Text(entry.timestamp, style: .time)
-                                Text("•")
-                                Text(String(format: "%.1fs", entry.duration))
-                                Text("•")
-                                Text("\(entry.wordCount) words")
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 4)
-                        .contextMenu {
-                            Button("Copy") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(entry.text, forType: .string)
-                            }
-                        }
+                        EditableHistoryRow(entry: entry)
                     }
                 }
             }
@@ -154,18 +135,41 @@ struct MainWindowView: View {
 
     private var modelLoadingView: some View {
         VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.5)
+            if appState.transcriptionProvider == .local && appState.isModelLoading {
+                ProgressView()
+                    .scaleEffect(1.5)
 
-            Text("Loading Qwen3-ASR 0.6B")
-                .font(.title3)
+                Text("Loading \(appState.asrModelSize.displayName)")
+                    .font(.title3)
 
-            ProgressView(value: appState.modelLoadProgress) {
-                Text(appState.modelLoadStatus)
+                ProgressView(value: appState.modelLoadProgress) {
+                    Text(appState.modelLoadStatus)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: 300)
+            } else {
+                Image(systemName: appState.transcriptionProvider == .local ? "arrow.down.circle" : "key.fill")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.secondary)
+
+                Text(appState.readinessLabel)
+                    .font(.title3)
+                    .multilineTextAlignment(.center)
+
+                Text(appState.transcriptionProvider.help)
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 360)
+
+                if appState.transcriptionProvider != .local {
+                    Button("Open Settings") {
+                        NotificationCenter.default.post(name: .macWisprShowSettings, object: nil)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             }
-            .frame(maxWidth: 300)
         }
     }
 
@@ -214,21 +218,65 @@ struct MainWindowView: View {
             .controlSize(.large)
             .tint(appState.isRecording ? .red : .accentColor)
 
-            if !appState.currentTranscription.isEmpty {
-                GroupBox("Transcription") {
-                    ScrollView {
-                        Text(appState.currentTranscription)
-                            .font(.body)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+            if !appState.currentTranscription.isEmpty || isEditingTranscription {
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Transcription")
+                                .font(.headline)
+                            Spacer()
+                            if isEditingTranscription {
+                                Button("Save") {
+                                    appState.commitCurrentTranscriptionEdit(editingTranscription)
+                                    isEditingTranscription = false
+                                }
+                                .keyboardShortcut(.return, modifiers: .command)
+                                Button("Cancel") {
+                                    editingTranscription = appState.currentTranscription
+                                    isEditingTranscription = false
+                                }
+                                .keyboardShortcut(.escape, modifiers: [])
+                            } else {
+                                Button("Edit") {
+                                    editingTranscription = appState.currentTranscription
+                                    isEditingTranscription = true
+                                }
+                            }
+                        }
+
+                        if isEditingTranscription {
+                            TextEditor(text: $editingTranscription)
+                                .font(.body)
+                                .frame(minHeight: 100, maxHeight: 200)
+                                .scrollContentBackground(.hidden)
+                            Text("Save to apply edits. Corrected words are added to your custom vocabulary.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ScrollView {
+                                Text(appState.currentTranscription)
+                                    .font(.body)
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .frame(maxHeight: 200)
+                        }
                     }
-                    .frame(maxHeight: 200)
+                }
+                .onChange(of: appState.currentTranscription) { _, newValue in
+                    // Fresh dictation replaces any in-progress edit.
+                    if !isEditingTranscription {
+                        editingTranscription = newValue
+                    }
                 }
             }
 
             GroupBox("Quick Settings") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Picker("Insert Mode", selection: $appState.insertionMode) {
+                    Picker("Insert Mode", selection: Binding(
+                        get: { appState.insertionMode },
+                        set: { appState.setInsertionMode($0) }
+                    )) {
                         ForEach(InsertionMode.allCases, id: \.self) { mode in
                             Text(mode.rawValue).tag(mode)
                         }
@@ -239,6 +287,70 @@ struct MainWindowView: View {
                     Toggle("Auto-capitalize", isOn: $appState.autoCapitalize)
                 }
                 .padding(4)
+            }
+        }
+    }
+}
+
+/// History row with inline edit; saving learns new words into custom vocabulary.
+private struct EditableHistoryRow: View {
+    @EnvironmentObject var appState: AppState
+    let entry: TranscriptionEntry
+    @State private var isEditing = false
+    @State private var draft: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if isEditing {
+                TextEditor(text: $draft)
+                    .font(.body)
+                    .frame(minHeight: 60, maxHeight: 140)
+                    .scrollContentBackground(.hidden)
+                HStack {
+                    Text("Corrected words join your custom vocabulary.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Cancel") {
+                        isEditing = false
+                    }
+                    Button("Save") {
+                        appState.commitHistoryEdit(id: entry.id, newText: draft)
+                        isEditing = false
+                    }
+                    .keyboardShortcut(.return, modifiers: .command)
+                }
+            } else {
+                Text(entry.text)
+                    .font(.body)
+                    .textSelection(.enabled)
+                HStack(spacing: 8) {
+                    Text(entry.timestamp, style: .date)
+                    Text(entry.timestamp, style: .time)
+                    Text("•")
+                    Text(String(format: "%.1fs", entry.duration))
+                    Text("•")
+                    Text("\(entry.wordCount) words")
+                    Spacer()
+                    Button("Edit") {
+                        draft = entry.text
+                        isEditing = true
+                    }
+                    .buttonStyle(.borderless)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+        .contextMenu {
+            Button("Edit") {
+                draft = entry.text
+                isEditing = true
+            }
+            Button("Copy") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(entry.text, forType: .string)
             }
         }
     }
