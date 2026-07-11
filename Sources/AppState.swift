@@ -52,7 +52,8 @@ final class AppState: ObservableObject {
     @Published var isModelLoading = false
     @Published var modelLoadProgress: Double = 0
     @Published var modelLoadStatus: String = ""
-    @Published var asrModelSize: ASRModelSize = .small
+    /// Qwen size; RAM-aware default applied in `init` when no preference is saved.
+    @Published var asrModelSize: ASRModelSize = ASRModelSize.recommendedDefault
     @Published var transcriptionProvider: TranscriptionProvider = .local
     @Published var polishProvider: PolishProvider = .off
     /// Keychain presence flags (never store the raw secrets in @Published).
@@ -74,6 +75,12 @@ final class AppState: ObservableObject {
     @Published var soundFeedbackEnabled = true
     /// Default output is muted / volume ~0 — chimes will be silent until unmuted.
     @Published var outputMuted = false
+    /// 0…1 feedback chime level (settings slider).
+    @Published var feedbackSoundVolume: Double = FeedbackSoundPreferences.volume
+    @Published var startChime: SystemChime = FeedbackSoundPreferences.startChime
+    @Published var stopChime: SystemChime = FeedbackSoundPreferences.stopChime
+    @Published var successChime: SystemChime = FeedbackSoundPreferences.successChime
+    @Published var failureChime: SystemChime = FeedbackSoundPreferences.failureChime
     @Published var dictationMode: DictationMode = .hold
     @Published var typingWPM: Double = UsageStats.defaultTypingWPM
     /// Custom vocabulary / domain terms fed to Qwen3-ASR as system context.
@@ -96,7 +103,8 @@ final class AppState: ObservableObject {
     @Published var lastCleanTranscription: String = ""
     /// Transient failure banner (AX, empty mic, STT) — not mixed into history text.
     @Published var lastFailureMessage: String? = nil
-    /// When true, show the non-activating listening HUD.
+    /// Show a simple floating banner under the menu bar while dictating.
+    /// (Not a Dynamic Island — plain app UI, easy to see.)
     @Published var listeningHUDEnabled = true
     /// First-run setup checklist until the user dismisses it.
     @Published var showOnboarding = false
@@ -156,15 +164,38 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Formatted mm:ss (or s.s under a minute) for listening elapsed time.
+    /// Formatted m:ss for listening elapsed time (menu / copy).
     var recordingElapsedLabel: String {
-        let t = max(0, recordingElapsed)
-        if t < 60 {
-            return String(format: "0:%02d", Int(t))
-        }
-        let m = Int(t) / 60
-        let s = Int(t) % 60
+        recordingElapsedFixedLabel
+    }
+
+    /// Always `m:ss` with monospaced width intent (HUD uses fixed frame).
+    var recordingElapsedFixedLabel: String {
+        let t = max(0, Int(recordingElapsed))
+        let m = t / 60
+        let s = t % 60
         return String(format: "%d:%02d", m, s)
+    }
+
+    /// Human-readable STT latency for the “Done” banner / menu bar.
+    /// Under 1s → milliseconds; otherwise one decimal second.
+    static func formatSTTLatency(_ seconds: TimeInterval) -> String {
+        let t = max(0, seconds)
+        if t < 1.0 {
+            return "\(Int((t * 1000).rounded())) ms"
+        }
+        if t < 10.0 {
+            return String(format: "%.1f s", t)
+        }
+        return "\(Int(t.rounded())) s"
+    }
+
+    static func formatSuccessDetail(words: Int, sttLatency: TimeInterval) -> String {
+        let latency = formatSTTLatency(sttLatency)
+        if words > 0 {
+            return "\(words)w · \(latency)"
+        }
+        return latency
     }
 
     /// Mic granted (or not yet determined counts as pending setup).
@@ -189,8 +220,20 @@ final class AppState: ObservableObject {
         if UserDefaults.standard.object(forKey: "soundFeedbackEnabled") != nil {
             soundFeedbackEnabled = UserDefaults.standard.bool(forKey: "soundFeedbackEnabled")
         }
-        if UserDefaults.standard.object(forKey: Self.listeningHUDKey) != nil {
+        feedbackSoundVolume = FeedbackSoundPreferences.volume
+        startChime = FeedbackSoundPreferences.startChime
+        stopChime = FeedbackSoundPreferences.stopChime
+        successChime = FeedbackSoundPreferences.successChime
+        failureChime = FeedbackSoundPreferences.failureChime
+        // Banner is on by default. Re-enable if an older build forced it off.
+        if UserDefaults.standard.object(forKey: "listeningBannerV2") == nil {
+            listeningHUDEnabled = true
+            UserDefaults.standard.set(true, forKey: Self.listeningHUDKey)
+            UserDefaults.standard.set(true, forKey: "listeningBannerV2")
+        } else if UserDefaults.standard.object(forKey: Self.listeningHUDKey) != nil {
             listeningHUDEnabled = UserDefaults.standard.bool(forKey: Self.listeningHUDKey)
+        } else {
+            listeningHUDEnabled = true
         }
         refreshOutputMuteState()
         if let raw = UserDefaults.standard.string(forKey: "insertionMode"),
@@ -207,6 +250,10 @@ final class AppState: ObservableObject {
            let size = ASRModelSize(rawValue: raw)
         {
             asrModelSize = size
+        } else {
+            // First run / no saved choice: 1.7B when RAM > 16 GB, else 0.6B.
+            asrModelSize = ASRModelSize.recommendedDefault
+            UserDefaults.standard.set(asrModelSize.rawValue, forKey: Self.asrModelSizeKey)
         }
         if let raw = UserDefaults.standard.string(forKey: Self.transcriptionProviderKey),
            let provider = TranscriptionProvider(rawValue: raw)
@@ -447,6 +494,7 @@ final class AppState: ObservableObject {
             stopElapsedTimer()
         }
         // Only reload on-device weights when local STT is active.
+        // loadModel() first unloads the previous size (weights + MLX GPU cache).
         guard transcriptionProvider == .local else { return }
         Task { await loadModel() }
     }
@@ -461,6 +509,8 @@ final class AppState: ObservableObject {
         UserDefaults.standard.set(enabled, forKey: Self.listeningHUDKey)
         if !enabled {
             ListeningHUDController.shared.hide()
+        } else {
+            ListeningHUDController.shared.sync(with: self)
         }
     }
 
@@ -623,9 +673,10 @@ final class AppState: ObservableObject {
             case .ok:
                 telemetryOutcome = .ok
                 let words = UsageStats.wordCount(in: processed)
-                setPhase(.success, detail: words > 0 ? "Inserted \(words) words" : "Inserted")
+                setPhase(.success, detail: Self.formatSuccessDetail(words: words, sttLatency: sttLatency))
                 if soundFeedbackEnabled { FeedbackSounds.playSuccess() }
-                schedulePhaseResetToIdle()
+                schedulePhaseResetToIdle(after: 2.8)
+
             case .clipboardOnly(let reason):
                 telemetryOutcome = .clipboardOnly
                 accessibilityTrusted = false
@@ -999,6 +1050,32 @@ final class AppState: ObservableObject {
         if enabled {
             refreshOutputMuteState()
         }
+    }
+
+    func setFeedbackSoundVolume(_ value: Double) {
+        let v = min(1, max(0, value))
+        feedbackSoundVolume = v
+        FeedbackSoundPreferences.volume = v
+    }
+
+    func setStartChime(_ chime: SystemChime) {
+        startChime = chime
+        FeedbackSoundPreferences.startChime = chime
+    }
+
+    func setStopChime(_ chime: SystemChime) {
+        stopChime = chime
+        FeedbackSoundPreferences.stopChime = chime
+    }
+
+    func setSuccessChime(_ chime: SystemChime) {
+        successChime = chime
+        FeedbackSoundPreferences.successChime = chime
+    }
+
+    func setFailureChime(_ chime: SystemChime) {
+        failureChime = chime
+        FeedbackSoundPreferences.failureChime = chime
     }
 
     /// Re-read system output mute / near-zero volume for the chime mute banner.

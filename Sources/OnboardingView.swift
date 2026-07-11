@@ -73,11 +73,14 @@ struct OnboardingView: View {
                 }
             }
 
-            Toggle("Show listening HUD while dictating", isOn: Binding(
+            Toggle("Show listening banner under the menu bar", isOn: Binding(
                 get: { appState.listeningHUDEnabled },
                 set: { appState.setListeningHUDEnabled($0) }
             ))
             .toggleStyle(.checkbox)
+            Text("Also: menu bar mic turns red with a timer while you speak.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             HStack {
                 Spacer()

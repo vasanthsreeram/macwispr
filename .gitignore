@@ -20,3 +20,9 @@ sparkle-private*
 # Local Developer ID / notary env (scripts/setup-signing.sh)
 .signing/
 .env.signing
+
+# Benchmark datasets & large result caches (keep SUMMARY.md committed)
+/bench/data/
+/bench/results/*.json
+!/bench/results/SUMMARY.md
+!/bench/results/.gitkeep

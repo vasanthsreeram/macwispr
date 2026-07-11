@@ -101,3 +101,7 @@ Turning telemetry on does **not** change where transcription runs. Local stays l
 4. We **never** send what you said, your audio, keys, or personal identifiers.
 
 See the epic and related issues on GitHub for implementation details. This document is the public contract: if something is not listed under [What we collect](#what-we-collect), it is not telemetry.
+
+### Implementation note (maintainers)
+
+Events are sent only from builds that embed a real PostHog **project** write key in `Sources/Telemetry.swift`. Placeholder keys send nothing. Agent-oriented release/privacy notes: [AGENTS.md](AGENTS.md).

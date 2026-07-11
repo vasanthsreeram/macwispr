@@ -24,17 +24,58 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
 
     var subtitle: String {
         switch self {
-        case .small: return "~500 MB · 8-bit · fast everyday dictation"
-        case .large: return "~1.5 GB · 8-bit · highest accuracy · slower (~2–3×)"
+        case .small: return "~500 MB · 8-bit · lighter · best on ≤16 GB Macs"
+        case .large: return "~1.5 GB · 8-bit · higher accuracy · best on >16 GB Macs"
         }
     }
 
     var help: String {
         switch self {
         case .small:
-            return "Default. 8-bit weights for better quality than 4-bit with nearly the same speed."
+            return "Faster and uses less memory. Prefer on 16 GB machines or when you want snappier dictation."
         case .large:
-            return "Best accuracy on names, accents, and noisy audio. Larger download on first use."
+            return "Slightly better accuracy (names, accents, noise). Comfortable on Macs with more than 16 GB of memory."
+        }
+    }
+
+    // MARK: - RAM-based default
+
+    /// Physical system memory in bytes (`ProcessInfo`).
+    static var systemMemoryBytes: UInt64 {
+        ProcessInfo.processInfo.physicalMemory
+    }
+
+    /// System RAM in whole gigabytes (binary GiB, floor).
+    static var systemMemoryGB: Int {
+        Int(systemMemoryBytes / 1_073_741_824)
+    }
+
+    /// Macs with **more than 16 GB** default to 1.7B; 16 GB and below default to 0.6B.
+    static let sixteenGigabytes: UInt64 = 16 * 1_073_741_824
+
+    /// Recommended size for this machine (user can always override).
+    static var recommendedDefault: ASRModelSize {
+        systemMemoryBytes > sixteenGigabytes ? .large : .small
+    }
+
+    var isRecommendedForThisMac: Bool {
+        self == Self.recommendedDefault
+    }
+
+    /// Segmented control label (marks the RAM-based recommendation).
+    var pickerLabel: String {
+        isRecommendedForThisMac ? "\(rawValue) · rec." : rawValue
+    }
+
+    /// Short caption for Settings (e.g. “Recommended for this Mac (32 GB)”).
+    static var recommendationCaption: String {
+        let gb = systemMemoryGB
+        let rec = recommendedDefault
+        switch rec {
+        case .large:
+            return "This Mac has \(gb) GB of memory — defaulting to 1.7B for higher accuracy. You can switch to 0.6B anytime."
+        case .small:
+            return "This Mac has \(gb) GB of memory — defaulting to 0.6B to stay light. You can try 1.7B if you want max accuracy."
         }
     }
 }

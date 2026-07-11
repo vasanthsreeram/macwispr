@@ -315,7 +315,7 @@ struct SettingsView: View {
                         set: { appState.setASRModelSize($0) }
                     )) {
                         ForEach(ASRModelSize.allCases) { size in
-                            Text(size.rawValue).tag(size)
+                            Text(size.pickerLabel).tag(size)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -339,6 +339,10 @@ struct SettingsView: View {
                                 .foregroundStyle(.orange)
                         }
                     }
+
+                    Text(ASRModelSize.recommendationCaption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
                     Text(appState.asrModelSize.subtitle)
                         .font(.caption)
@@ -548,20 +552,17 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("Sound & HUD") {
-                Toggle("Play sounds when listening starts and stops", isOn: Binding(
+            Section("Sound & status") {
+                Toggle("Play feedback sounds", isOn: Binding(
                     get: { appState.soundFeedbackEnabled },
                     set: { appState.setSoundFeedbackEnabled($0) }
                 ))
-                Text("Tink on start · Pop on release · Glass on success · Funk on failure.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
 
-                Toggle("Show listening HUD", isOn: Binding(
+                Toggle("Show listening banner", isOn: Binding(
                     get: { appState.listeningHUDEnabled },
                     set: { appState.setListeningHUDEnabled($0) }
                 ))
-                Text("Floating status pill while listening / transcribing (does not steal focus).")
+                Text("Floating “Listening” / “Done” banner under the menu bar. Menu bar mic also turns red with a timer.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -575,14 +576,71 @@ struct SettingsView: View {
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
                     }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Volume")
+                            Spacer()
+                            Text("\(Int(appState.feedbackSoundVolume * 100))%")
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                        Slider(
+                            value: Binding(
+                                get: { appState.feedbackSoundVolume },
+                                set: { appState.setFeedbackSoundVolume($0) }
+                            ),
+                            in: 0...1,
+                            step: 0.05
+                        )
+                        Text("Applies to all MacWispr chimes (separate from system volume).")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    chimePicker(
+                        title: "Start listening",
+                        selection: Binding(
+                            get: { appState.startChime },
+                            set: { appState.setStartChime($0) }
+                        ),
+                        preview: { FeedbackSounds.playListeningStarted() }
+                    )
+                    chimePicker(
+                        title: "Stop / release",
+                        selection: Binding(
+                            get: { appState.stopChime },
+                            set: { appState.setStopChime($0) }
+                        ),
+                        preview: { FeedbackSounds.playListeningStopped() }
+                    )
+                    chimePicker(
+                        title: "Done (final chime)",
+                        selection: Binding(
+                            get: { appState.successChime },
+                            set: { appState.setSuccessChime($0) }
+                        ),
+                        preview: { FeedbackSounds.playSuccess() }
+                    )
+                    chimePicker(
+                        title: "Error / not ready",
+                        selection: Binding(
+                            get: { appState.failureChime },
+                            set: { appState.setFailureChime($0) }
+                        ),
+                        preview: { FeedbackSounds.playFailure() }
+                    )
+
                     HStack(spacing: 12) {
-                        Button("Preview start") {
+                        Button("Preview all") {
                             appState.refreshOutputMuteState()
                             FeedbackSounds.playListeningStarted()
-                        }
-                        Button("Preview stop") {
-                            appState.refreshOutputMuteState()
-                            FeedbackSounds.playListeningStopped()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                                FeedbackSounds.playListeningStopped()
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                                FeedbackSounds.playSuccess()
+                            }
                         }
                         Button("Recheck mute") {
                             appState.refreshOutputMuteState()
@@ -691,6 +749,30 @@ struct SettingsView: View {
             }
             .padding()
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func chimePicker(
+        title: String,
+        selection: Binding<SystemChime>,
+        preview: @escaping () -> Void
+    ) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Picker(title, selection: selection) {
+                ForEach(SystemChime.playable) { chime in
+                    Text(chime.displayName).tag(chime)
+                }
+            }
+            Button {
+                appState.refreshOutputMuteState()
+                // Apply binding first is already done; preview uses prefs.
+                preview()
+            } label: {
+                Image(systemName: "play.fill")
+            }
+            .buttonStyle(.borderless)
+            .help("Preview")
+            .disabled(selection.wrappedValue.isSilent)
         }
     }
 

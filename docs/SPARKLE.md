@@ -77,7 +77,13 @@ You can re-print the public key later with the same tool if the private key is s
    ./scripts/release.sh v1.2.2
    ```
 
-5. **Deploy appcast** so `https://fuckwisprflow.com/appcast.xml` serves the updated feed (static host / Cloudflare Pages — only the small XML, not the multi-hundred-MB zip).
+5. **Deploy appcast** so `https://fuckwisprflow.com/appcast.xml` serves the updated feed (Cloudflare Pages project `fuckwisprflow` — only the small XML, not the multi-hundred-MB zip):
+
+   ```bash
+   wrangler pages deploy website --project-name=fuckwisprflow
+   ```
+
+Agent release checklist: [AGENTS.md](../AGENTS.md).
 
 ## In-app UI
 

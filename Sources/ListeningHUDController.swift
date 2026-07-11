@@ -1,14 +1,20 @@
 import AppKit
 import SwiftUI
 
-/// Compact non-activating floating HUD for eyes-free dictation status.
-/// Shows listening / transcribing / success / fail without stealing focus.
+/// Simple, fixed-size floating banner under the menu bar while dictating.
+///
+/// This is ordinary app UI (not a Dynamic Island / notch integration — Apple
+/// does not expose that for third-party Mac apps). Centered under the menu bar
+/// so it’s always visible without fighting the camera housing.
 @MainActor
 final class ListeningHUDController {
     static let shared = ListeningHUDController()
 
+    private static let width: CGFloat = 200
+    private static let height: CGFloat = 40
+
     private var panel: NSPanel?
-    private var host: NSHostingView<ListeningHUDView>?
+    private var host: NSHostingView<ListeningBannerView>?
 
     private init() {}
 
@@ -18,60 +24,60 @@ final class ListeningHUDController {
             return
         }
 
-        // Only show while actively dictating or briefly after success/fail.
-        let visible: Bool
         switch state.dictationPhase {
         case .listening, .transcribing, .success, .failed:
-            visible = true
+            break
         case .setup, .ready:
-            visible = false
-        }
-
-        guard visible else {
             hide()
             return
         }
 
-        let model = ListeningHUDModel(
+        let secondary: String?
+        switch state.dictationPhase {
+        case .listening:
+            secondary = state.recordingElapsedFixedLabel
+        case .success, .failed:
+            // e.g. "24w · 320 ms" or failure reason (truncated by view).
+            secondary = state.phaseDetail.isEmpty ? nil : state.phaseDetail
+        case .transcribing, .ready, .setup:
+            secondary = nil
+        }
+
+        let model = ListeningBannerModel(
             phase: state.dictationPhase,
-            detail: state.phaseDetail.isEmpty ? statusFallback(state) : state.phaseDetail,
-            elapsedLabel: state.dictationPhase == .listening ? state.recordingElapsedLabel : nil
+            secondaryLabel: secondary
         )
 
+        ensurePanel()
+
         if let host {
-            host.rootView = ListeningHUDView(model: model)
-        } else {
-            ensurePanel()
-            let view = NSHostingView(rootView: ListeningHUDView(model: model))
-            view.frame = panel?.contentView?.bounds ?? .zero
+            host.rootView = ListeningBannerView(model: model)
+        } else if let panel {
+            let view = NSHostingView(rootView: ListeningBannerView(model: model))
+            view.frame = panel.contentView?.bounds ?? .zero
             view.autoresizingMask = [.width, .height]
-            panel?.contentView = view
+            panel.contentView = view
             host = view
         }
 
-        positionPanel()
-        panel?.orderFrontRegardless()
+        // Fixed geometry always — no resize while the clock ticks.
+        if let panel {
+            var frame = panel.frame
+            frame.size = NSSize(width: Self.width, height: Self.height)
+            panel.setFrame(frame, display: false)
+            position(panel)
+            panel.orderFrontRegardless()
+        }
     }
 
     func hide() {
         panel?.orderOut(nil)
     }
 
-    private func statusFallback(_ state: AppState) -> String {
-        switch state.dictationPhase {
-        case .listening: return "Listening…"
-        case .transcribing: return "Transcribing…"
-        case .success: return "Done"
-        case .failed: return "Failed"
-        case .ready: return "Ready"
-        case .setup: return "Setup"
-        }
-    }
-
     private func ensurePanel() {
         if panel != nil { return }
         let p = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 280, height: 56),
+            contentRect: NSRect(x: 0, y: 0, width: Self.width, height: Self.height),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -89,67 +95,52 @@ final class ListeningHUDController {
         panel = p
     }
 
-    private func positionPanel() {
-        guard let panel, let screen = NSScreen.main else { return }
+    /// Sit just under the menu bar, screen center — never under the notch.
+    private func position(_ panel: NSPanel) {
+        guard let screen = NSScreen.main else { return }
         let visible = screen.visibleFrame
         let size = panel.frame.size
         let x = visible.midX - size.width / 2
-        let y = visible.maxY - size.height - 28
+        let y = visible.maxY - size.height - 10
         panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }
 
-struct ListeningHUDModel: Equatable {
+struct ListeningBannerModel: Equatable {
     var phase: DictationPhase
-    var detail: String
-    var elapsedLabel: String?
+    /// Timer while listening, or latency/summary on Done (e.g. "24w · 320 ms").
+    var secondaryLabel: String?
 }
 
-struct ListeningHUDView: View {
-    let model: ListeningHUDModel
+struct ListeningBannerView: View {
+    let model: ListeningBannerModel
 
     var body: some View {
         HStack(spacing: 10) {
             Circle()
-                .fill(dotColor)
+                .fill(lightColor)
                 .frame(width: 10, height: 10)
-                .overlay {
-                    if model.phase == .listening {
-                        Circle()
-                            .stroke(Color.red.opacity(0.5), lineWidth: 2)
-                            .scaleEffect(1.6)
-                    }
-                }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.primary)
-                if !model.detail.isEmpty {
-                    Text(model.detail)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
+            Text(title)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.primary)
 
-            if let elapsed = model.elapsedLabel {
-                Spacer(minLength: 8)
-                Text(elapsed)
-                    .font(.system(size: 12, weight: .medium).monospacedDigit())
+            if let secondary = model.secondaryLabel {
+                Text(secondary)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .frame(minWidth: 220)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.regularMaterial, in: Capsule(style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+            Capsule(style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
-        .padding(4)
+        .shadow(color: .black.opacity(0.2), radius: 8, y: 2)
+        .accessibilityLabel(accessibilityText)
     }
 
     private var title: String {
@@ -158,19 +149,24 @@ struct ListeningHUDView: View {
         case .transcribing: return "Transcribing"
         case .success: return "Done"
         case .failed: return "Failed"
-        case .ready: return "Ready"
-        case .setup: return "Setup"
+        default: return "MacWispr"
         }
     }
 
-    private var dotColor: Color {
+    private var accessibilityText: String {
+        if let secondary = model.secondaryLabel {
+            return "\(title), \(secondary)"
+        }
+        return title
+    }
+
+    private var lightColor: Color {
         switch model.phase {
         case .listening: return .red
         case .transcribing: return .orange
         case .success: return .green
-        case .failed: return .red
-        case .ready: return .green
-        case .setup: return .orange
+        case .failed: return .orange
+        default: return .secondary
         }
     }
 }
