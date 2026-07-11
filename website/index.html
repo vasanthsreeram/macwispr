@@ -79,7 +79,7 @@
         },
         "isAccessibleForFree": true,
         "license": "https://github.com/vasanthsreeram/macwispr/blob/main/LICENSE",
-        "downloadUrl": "https://github.com/vasanthsreeram/macwispr/releases/latest",
+        "downloadUrl": "https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg",
         "softwareVersion": "1.2.1",
         "url": "https://fuckwisprflow.com/",
         "image": "https://fuckwisprflow.com/assets/share-og.png",
@@ -161,10 +161,11 @@
       </a>
       <nav class="nav" aria-label="Primary">
         <a href="#race">Race</a>
+        <a href="#polish">Polish</a>
         <a href="#compare">Compare</a>
         <a href="#install">Install</a>
       </nav>
-      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest">Download</a>
+      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download</a>
     </div>
   </header>
 
@@ -181,7 +182,7 @@
           Wispr Flow pays the network tax at <strong>~2–3s</strong>.
         </p>
         <div class="hero-actions">
-          <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest">Download for Mac · $0</a>
+          <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download for Mac · $0</a>
           <a class="btn btn-ghost glass" href="#race">Watch the race</a>
         </div>
         <div class="hero-chips">
@@ -294,6 +295,68 @@
       </div>
     </section>
 
+    <!-- Raw speech vs polished path marquee -->
+    <section class="section polish-section cv-auto" id="polish" aria-labelledby="polish-title">
+      <div class="section-head reveal">
+        <p class="kicker">On-device polish</p>
+        <h2 id="polish-title">Messy in. Clean out.</h2>
+        <p>Raw dictation drifts. Polished text lands ready to send.</p>
+      </div>
+
+      <div class="polish-frame glass-card reveal" role="img" aria-label="Animated comparison: faint dashed path with messy dictation versus solid path with cleaned-up prose.">
+        <div class="polish-legend" aria-hidden="true">
+          <span class="polish-leg polish-leg-raw"><i></i> Raw speech</span>
+          <span class="polish-leg polish-leg-clean"><i></i> Polished</span>
+        </div>
+
+        <svg class="polish-marquee" width="100%" height="auto" viewBox="0 0 1048 640" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" focusable="false">
+          <style>
+            #marquee-text-hero1 {
+              font-family: Figtree, system-ui, -apple-system, sans-serif;
+              font-size: 16px;
+              font-weight: 400;
+              fill: #14120f;
+              opacity: 0.38;
+            }
+            #marquee-text-hero2 {
+              font-family: Figtree, system-ui, -apple-system, sans-serif;
+              font-size: 17px;
+              font-weight: 600;
+              fill: #fffdf8;
+              opacity: 1;
+              baseline-shift: -30%;
+            }
+          </style>
+
+          <defs>
+            <linearGradient id="gradient-curve2" x1="0" y1="0" x2="100%" y2="0">
+              <stop offset="0%" stop-color="#e85d4c" />
+              <stop offset="45%" stop-color="#3b6ef5" />
+              <stop offset="100%" stop-color="#1a9a5c" />
+            </linearGradient>
+          </defs>
+
+          <!-- Curve 1 (Figure-8) Track — raw -->
+          <path id="curve1" d="M0.59 50.92C17.46 143.29 70.74 364.34 257.39 424.74C413.71 470.25 601.76 267.82 535.11 166.46C451.89 57.15 317.12 324.88 578.16 484.45C630.82 520.59 817.46 561.26 1046.43 565.23" stroke="#14120f" stroke-opacity="0.14" stroke-width="4" stroke-dasharray="8,6" fill="none"></path>
+
+          <!-- Curve 2 (Wave) Track — polished -->
+          <path id="curve2" d="M2.04 563.87C111.59 558.26 316.49 554.01 517.96 490.06C703.01 431.32 875.31 444.53 1021.88 453.21" stroke="url(#gradient-curve2)" stroke-opacity="1" stroke-width="30" stroke-linecap="round" fill="none"></path>
+
+          <!-- Marquee Text 1 (raw / messy) -->
+          <text x="-3300">
+            <textPath id="marquee-text-hero1" xlink:href="#curve1" href="#curve1">Umm, hope your week has started well…I was talking to Cheyene earlier but reception was really bad and I think their going to handle the first part of the project, but I’m not totally sure. Also, I told the team the the new timeline should be ready by Friday, although it’s probably going to slip. There’s been a lot of back and forth and honestly the the whole thing’s been kind of chaotic, like nobody really knows what’s going on so can you check in with them and see if the notes from yesterday’s meeting were sent out, or if they’re still waiting. I think Cheyene mentioned it but didn’t confirm, and now I’m a little lost.</textPath>
+            <animate id="marquee1-anim" attributeName="x" dur="35s" values="-3300; 0" repeatCount="indefinite"></animate>
+          </text>
+
+          <!-- Marquee Text 2 (polished) -->
+          <text x="-4500">
+            <textPath id="marquee-text-hero2" xlink:href="#curve2" href="#curve2">Hope your week is off to a good start. I was talking to Cheyene earlier, but the reception was really bad. I think they’re going to handle the first part of the project, but I’m not totally sure. I also told the team the new timeline should be ready by Friday — although it might slip. There’s been a lot of back and forth, and honestly, the whole thing has been a bit chaotic. It feels like nobody really knows what’s going on. Can you check in with them and see if the notes from yesterday’s meeting were sent out, or if they’re still waiting? I think Cheyene mentioned it, but didn’t confirm — and now I’m a little lost!</textPath>
+            <animate id="marquee2-anim" attributeName="x" dur="50s" values="-4500; 0" repeatCount="indefinite"></animate>
+          </text>
+        </svg>
+      </div>
+    </section>
+
     <section class="section bento-section cv-auto" id="features" aria-labelledby="features-title">
       <div class="section-head reveal">
         <p class="kicker">Why</p>
@@ -391,7 +454,7 @@
           <span class="step-n">01</span>
           <div>
             <strong>Download</strong>
-            <p><a href="https://github.com/vasanthsreeram/macwispr/releases/latest">Latest release</a></p>
+            <p><a href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Latest release</a></p>
           </div>
         </li>
         <li class="glass-card reveal" data-delay="0.06">
@@ -417,7 +480,7 @@
         <h2 id="cta-title">Speak. Free. Mac only.</h2>
         <p class="cta-note">Windows users: we believe in you. Just not enough to ship a .exe.</p>
         <div class="hero-actions center">
-          <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest">Download for Mac</a>
+          <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download for Mac</a>
           <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
         </div>
       </div>
