@@ -16,51 +16,24 @@ struct MenuBarView: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            // Status
-            HStack {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 8, height: 8)
-                Text(statusText)
-                    .font(.headline)
-                Spacer()
-                if appState.dictationPhase == .listening {
-                    Text(appState.recordingElapsedLabel)
-                        .font(.callout.monospacedDigit().weight(.semibold))
+        VStack(spacing: 10) {
+            // Compact alerts only — status + Hold to Speak live on the menu-bar
+            // icon / ⌥Space, not duplicated in this popover.
+            if !appState.hotkeyArmed {
+                HStack(spacing: 6) {
+                    Image(systemName: "keyboard.badge.ellipsis")
+                        .foregroundStyle(.orange)
+                    Text(hotkeyStatusLabel)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal)
-
-            if !appState.phaseDetail.isEmpty,
-               appState.dictationPhase == .transcribing
-                || appState.dictationPhase == .failed
-                || appState.dictationPhase == .success
-            {
-                Text(appState.phaseDetail)
-                    .font(.caption)
-                    .foregroundStyle(appState.dictationPhase == .failed ? .orange : .secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-            }
-
-            // Hotkey health
-            HStack(spacing: 6) {
-                Image(systemName: appState.hotkeyArmed ? "keyboard" : "keyboard.badge.ellipsis")
-                    .foregroundStyle(appState.hotkeyArmed ? .green : .orange)
-                Text(hotkeyStatusLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if !appState.hotkeyArmed {
+                    Spacer()
                     Button("Fix") {
                         appState.repairHotkey()
                     }
                     .font(.caption)
                 }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
 
             if appState.soundFeedbackEnabled && appState.outputMuted {
                 HStack(spacing: 6) {
@@ -88,16 +61,12 @@ struct MenuBarView: View {
                 .padding(.horizontal)
             }
 
-            Divider()
-
             if !appState.isReadyToDictate {
                 modelLoadSection
-            } else {
-                dictationControls
+                Divider()
             }
 
             if week.words > 0 || week.dictations > 0 {
-                Divider()
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("This week")
@@ -117,10 +86,11 @@ struct MenuBarView: View {
                     }
                 }
                 .padding(.horizontal)
+
+                Divider()
             }
 
             if !displayTranscript.isEmpty {
-                Divider()
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Last result")
                         .font(.caption)
@@ -143,9 +113,9 @@ struct MenuBarView: View {
                 }
                 .padding(.horizontal)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            }
 
-            Divider()
+                Divider()
+            }
 
             VStack(spacing: 2) {
                 menuRow(title: "Open Dashboard", systemImage: "chart.bar.fill") {
@@ -184,67 +154,6 @@ struct MenuBarView: View {
         .onAppear {
             AppDelegate.shared?.appState = appState
             appState.refreshOutputMuteState()
-        }
-    }
-
-    // MARK: - Dictation controls (one path per mode)
-
-    private var dictationControls: some View {
-        VStack(spacing: 10) {
-            Text(appState.dictationMode.help)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            if appState.isRecording {
-                HStack(spacing: 8) {
-                    RecordingIndicator()
-                    Text(appState.dictationMode == .hold
-                          ? "Listening… release to stop"
-                          : "Listening… tap Stop when done")
-                        .font(.callout)
-                    Spacer()
-                    Text(appState.recordingElapsedLabel)
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal)
-            } else if appState.dictationPhase == .transcribing {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Transcribing…")
-                        .font(.callout)
-                    Spacer()
-                }
-                .padding(.horizontal)
-            }
-
-            switch appState.dictationMode {
-            case .hold:
-                HoldToSpeakButton()
-                    .padding(.horizontal)
-            case .toggle:
-                Button {
-                    appState.toggleRecording()
-                } label: {
-                    Label(
-                        appState.isRecording ? "Stop & Transcribe" : "Start Listening",
-                        systemImage: appState.isRecording ? "stop.circle.fill" : "mic.circle.fill"
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .tint(appState.isRecording ? .red : .accentColor)
-                .padding(.horizontal)
-                .disabled(!appState.isReadyToDictate && !appState.isRecording)
-            }
-
-            Text("Hotkey: ⌥Space  ·  \(appState.dictationMode == .hold ? "hold" : "toggle") · change in Settings")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
         }
     }
 
@@ -295,34 +204,6 @@ struct MenuBarView: View {
     private func openMainWindow() {
         AppDelegate.shared?.appState = appState
         AppDelegate.shared?.showDashboard()
-    }
-
-    private var statusColor: Color {
-        switch appState.dictationPhase {
-        case .listening: return .red
-        case .transcribing: return .blue
-        case .success: return .green
-        case .failed, .setup: return .orange
-        case .ready: return .green
-        }
-    }
-
-    private var statusText: String {
-        switch appState.dictationPhase {
-        case .listening: return "Listening"
-        case .transcribing: return "Transcribing"
-        case .success: return "Done"
-        case .failed: return "Needs attention"
-        case .setup:
-            if appState.isModelLoading { return "Loading…" }
-            return "Setup needed"
-        case .ready:
-            switch appState.transcriptionProvider {
-            case .local: return "Ready · Local"
-            case .openAI: return "Ready · OpenAI"
-            case .elevenLabs: return "Ready · ElevenLabs"
-            }
-        }
     }
 
     private var hotkeyStatusLabel: String {
