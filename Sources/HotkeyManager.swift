@@ -46,7 +46,10 @@ final class HotkeyManager: @unchecked Sendable {
             CGEvent.tapEnable(tap: tap, enable: true)
             NSLog("MacWispr hotkey: re-enabled disabled tap")
         }
-        if eventTap == nil && keyMonitor == nil {
+        // Without Accessibility the tap fails AND global monitors are installed
+        // but never receive events — so a non-nil monitor doesn't mean working.
+        // Re-register whenever the tap is missing but AX is now granted.
+        if eventTap == nil && (keyMonitor == nil || AXIsProcessTrusted()) {
             register()
         }
     }

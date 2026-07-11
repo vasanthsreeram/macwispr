@@ -94,7 +94,15 @@ final class AppState: ObservableObject {
     // MARK: - Recording
 
     func startRecording() {
-        guard isModelLoaded, !isRecording else { return }
+        guard isModelLoaded else {
+            // Pressing the hotkey during model load used to no-op silently,
+            // which reads as "the hotkey is broken". Give audible feedback
+            // and retry a failed load.
+            if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
+            if !isModelLoading { Task { await loadModel() } }
+            return
+        }
+        guard !isRecording else { return }
         isRecording = true
         currentTranscription = ""
         recordingSession += 1
@@ -224,6 +232,13 @@ final class AppState: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            self?.hotkeyManager.ensureRegistered()
+        }
+
+        // Accessory apps rarely become "active", and granting Accessibility
+        // after launch doesn't notify us — poll so the global hotkey heals
+        // without a relaunch.
+        Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
             self?.hotkeyManager.ensureRegistered()
         }
     }

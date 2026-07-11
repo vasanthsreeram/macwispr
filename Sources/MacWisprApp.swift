@@ -13,11 +13,6 @@ struct MacWisprApp: App {
             StatusBarController.shared.install(appState: appState)
         }()
 
-        Settings {
-            SettingsView()
-                .environmentObject(appState)
-        }
-
         Window("MacWispr", id: "main") {
             MainWindowView()
                 .environmentObject(appState)

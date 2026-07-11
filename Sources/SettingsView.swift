@@ -35,16 +35,13 @@ struct SettingsView: View {
             transcriptionSettings
                 .tabItem { Label("Transcription", systemImage: "text.bubble") }
 
-            dashboardSettings
-                .tabItem { Label("Dashboard", systemImage: "chart.bar") }
-
             hotkeySettings
                 .tabItem { Label("Hotkeys", systemImage: "keyboard") }
 
             aboutView
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 470, height: 380)
+        .padding(.top, 8)
     }
 
     private var generalSettings: some View {
@@ -64,6 +61,36 @@ struct SettingsView: View {
             Section("Post-Processing") {
                 Toggle("Remove filler words (uh, um, like...)", isOn: $appState.removeFillerWords)
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
+            }
+
+            Section("Time Saved") {
+                HStack {
+                    Text("Typing speed baseline")
+                    Spacer()
+                    Text("\(Int(appState.typingWPM)) WPM")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                Slider(
+                    value: Binding(
+                        get: { appState.typingWPM },
+                        set: { appState.setTypingWPM($0) }
+                    ),
+                    in: 20...80,
+                    step: 5
+                )
+                Text("Used to estimate how long the same text would take to type. Higher WPM → less estimated time saved.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("History") {
+                Button("Clear transcription history", role: .destructive) {
+                    appState.clearHistory()
+                }
+                Text("History powers the weekly word-count and time-saved dashboard. Stored locally in Application Support.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -99,42 +126,6 @@ struct SettingsView: View {
                     }
                 }
                 Text("Auto-detect works well for most languages. Pin a language for faster results.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .formStyle(.grouped)
-        .padding()
-    }
-
-    private var dashboardSettings: some View {
-        Form {
-            Section("Time Saved") {
-                HStack {
-                    Text("Typing speed baseline")
-                    Spacer()
-                    Text("\(Int(appState.typingWPM)) WPM")
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
-                Slider(
-                    value: Binding(
-                        get: { appState.typingWPM },
-                        set: { appState.setTypingWPM($0) }
-                    ),
-                    in: 20...80,
-                    step: 5
-                )
-                Text("Used to estimate how long the same text would take to type. Higher WPM → less estimated time saved.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("History") {
-                Button("Clear transcription history", role: .destructive) {
-                    appState.clearHistory()
-                }
-                Text("History powers the weekly word-count and time-saved dashboard. Stored locally in Application Support.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

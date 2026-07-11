@@ -22,6 +22,11 @@ enum FeedbackSounds {
         playSystemSound(named: "Pop", volume: 0.6)
     }
 
+    /// Low thud — hotkey pressed but the app can't record yet (model loading).
+    static func playNotReady() {
+        playSystemSound(named: "Basso", volume: 0.5)
+    }
+
     private static func playSystemSound(named name: String, volume: Float) {
         // Always hop to main — NSSound is picky about threads.
         if Thread.isMainThread {
