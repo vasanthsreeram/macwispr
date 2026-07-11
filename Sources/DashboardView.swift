@@ -107,14 +107,15 @@ struct DashboardView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .frame(maxWidth: 200, alignment: .trailing)
-            } else if appState.transcriptionProvider == .local {
-                Text(appState.asrModelSize.engine == .qwenMLX ? "GPU · MLX" : "Neural Engine")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            } else if !appState.isReadyToDictate {
+            } else if !appState.isReadyToDictate, appState.transcriptionProvider != .local {
                 Text("Add API key in Settings")
                     .font(.caption2)
                     .foregroundStyle(.orange)
+            } else {
+                Text(modelChipSubtitle)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
             }
         }
     }
@@ -122,11 +123,8 @@ struct DashboardView: View {
     private var modelChipTitle: String {
         switch appState.transcriptionProvider {
         case .local:
-            // Collapse legacy Parakeet-INT4 onto the INT8 short name.
-            if appState.asrModelSize == .parakeetInt4 {
-                return ASRModelSize.parakeetInt8.shortName
-            }
-            return appState.asrModelSize.shortName
+            // Clean chip label; specific model is in the menu + subtitle.
+            return "Local"
         case .openAI:
             return "OpenAI"
         case .elevenLabs:
@@ -137,7 +135,7 @@ struct DashboardView: View {
     private var modelChipSymbol: String {
         switch appState.transcriptionProvider {
         case .local:
-            return appState.asrModelSize.dashboardSymbol
+            return "laptopcomputer"
         case .openAI, .elevenLabs:
             return "cloud"
         }
@@ -151,6 +149,16 @@ struct DashboardView: View {
             return "Cloud STT via your OpenAI key"
         case .elevenLabs:
             return "Cloud STT via your ElevenLabs key"
+        }
+    }
+
+    /// Second line under the chip — which local engine, not the chip title.
+    private var modelChipSubtitle: String {
+        switch appState.transcriptionProvider {
+        case .local:
+            return appState.asrModelSize.shortName
+        case .openAI, .elevenLabs:
+            return "Cloud · BYOK"
         }
     }
 
