@@ -628,6 +628,14 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
 
+                Button {
+                    SparkleUpdater.shared.checkForUpdates()
+                } label: {
+                    Label("Check for Updates…", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .buttonStyle(.bordered)
+                .disabled(!SparkleUpdater.shared.canCheckForUpdates)
+
                 VStack(alignment: .leading, spacing: 8) {
                     aboutRow(icon: "macbook", title: "On-device", detail: "Qwen3-ASR 0.6B / 1.7B (MLX 8-bit)")
                     aboutRow(icon: "key.fill", title: "BYOK cloud", detail: "OpenAI · ElevenLabs Scribe v2")
