@@ -3,6 +3,11 @@ import AppKit
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
+    @State private var newVocabTerm: String = ""
+    @State private var openAIKeyDraft: String = ""
+    @State private var elevenLabsKeyDraft: String = ""
+    @State private var keySaveMessage: String?
+    @State private var keySaveIsError = false
 
     private let languages: [(String?, String)] = [
         (nil, "Auto-detect"),
@@ -47,7 +52,10 @@ struct SettingsView: View {
     private var generalSettings: some View {
         Form {
             Section("Text Insertion") {
-                Picker("Mode", selection: $appState.insertionMode) {
+                Picker("Mode", selection: Binding(
+                    get: { appState.insertionMode },
+                    set: { appState.setInsertionMode($0) }
+                )) {
                     ForEach(InsertionMode.allCases, id: \.self) { mode in
                         Text(mode.rawValue).tag(mode)
                     }
@@ -61,6 +69,63 @@ struct SettingsView: View {
             Section("Post-Processing") {
                 Toggle("Remove filler words (uh, um, like...)", isOn: $appState.removeFillerWords)
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
+
+                Picker("Polish transcript", selection: Binding(
+                    get: { appState.polishProvider },
+                    set: { appState.setPolishProvider($0) }
+                )) {
+                    ForEach(PolishProvider.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                Text(appState.polishProvider.help)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if appState.polishProvider == .local {
+                    HStack {
+                        Text(TextPolisher.displayName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if appState.isLLMLoaded {
+                            Label("Loaded", systemImage: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        } else if appState.isLLMLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text(appState.llmLoadStatus)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        } else if appState.llmLoadStatus.hasPrefix("Error") {
+                            Label(appState.llmLoadStatus, systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .lineLimit(1)
+                        } else {
+                            Text("Not loaded")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if !appState.isLLMLoaded && !appState.isLLMLoading {
+                        Button("Download polish model (~300 MB)") {
+                            Task { await appState.loadLLM() }
+                        }
+                    }
+                } else if appState.polishProvider == .openAI {
+                    if appState.hasOpenAIKey {
+                        Label("Using saved OpenAI key (\(appState.openAIKeyMasked))", systemImage: "key.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Label("Add an OpenAI key under API Keys first", systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
             }
 
             Section("Time Saved") {
@@ -99,22 +164,216 @@ struct SettingsView: View {
 
     private var transcriptionSettings: some View {
         Form {
-            Section("Model") {
+            Section("Provider (BYOK)") {
+                Picker("Speech-to-text", selection: Binding(
+                    get: { appState.transcriptionProvider },
+                    set: { appState.setTranscriptionProvider($0) }
+                )) {
+                    ForEach(TranscriptionProvider.allCases) { provider in
+                        Text(provider.displayName).tag(provider)
+                    }
+                }
+                .disabled(appState.isRecording)
+
+                Text(appState.transcriptionProvider.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(appState.transcriptionProvider.help)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 HStack {
-                    Text("Qwen3-ASR-0.6B-MLX-4bit")
+                    Text("Status")
                     Spacer()
-                    if appState.isModelLoaded {
-                        Label("Loaded", systemImage: "checkmark.circle.fill")
+                    if appState.isReadyToDictate {
+                        Label(appState.readinessLabel, systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                     } else if appState.isModelLoading {
                         ProgressView()
                             .controlSize(.small)
+                        Text(appState.modelLoadStatus)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     } else {
-                        Label("Downloading...", systemImage: "arrow.down.circle")
+                        Label(appState.readinessLabel, systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                     }
                 }
-                Text("300MB, on-device, Metal GPU accelerated")
+            }
+
+            Section("API Keys") {
+                Text("Keys stay on this Mac in the Keychain. They are never uploaded to MacWispr servers (there are none).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("OpenAI")
+                            .fontWeight(.medium)
+                        Spacer()
+                        if appState.hasOpenAIKey {
+                            Text(appState.openAIKeyMasked)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Not set")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    SecureField("sk-…", text: $openAIKeyDraft)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(.body, design: .monospaced))
+                    HStack {
+                        Button("Save OpenAI key") {
+                            saveOpenAIKey()
+                        }
+                        .disabled(openAIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        if appState.hasOpenAIKey {
+                            Button("Clear", role: .destructive) {
+                                clearOpenAIKey()
+                            }
+                        }
+                        Spacer()
+                        Link("Get key", destination: URL(string: "https://platform.openai.com/api-keys")!)
+                            .font(.caption)
+                    }
+                }
+                .padding(.vertical, 4)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("ElevenLabs")
+                            .fontWeight(.medium)
+                        Spacer()
+                        if appState.hasElevenLabsKey {
+                            Text(appState.elevenLabsKeyMasked)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Not set")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    SecureField("xi-…", text: $elevenLabsKeyDraft)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(.body, design: .monospaced))
+                    HStack {
+                        Button("Save ElevenLabs key") {
+                            saveElevenLabsKey()
+                        }
+                        .disabled(elevenLabsKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        if appState.hasElevenLabsKey {
+                            Button("Clear", role: .destructive) {
+                                clearElevenLabsKey()
+                            }
+                        }
+                        Spacer()
+                        Link("Get key", destination: URL(string: "https://elevenlabs.io/app/settings/api-keys")!)
+                            .font(.caption)
+                    }
+                }
+                .padding(.vertical, 4)
+
+                if let keySaveMessage {
+                    Text(keySaveMessage)
+                        .font(.caption)
+                        .foregroundStyle(keySaveIsError ? .red : .green)
+                }
+            }
+
+            if appState.transcriptionProvider == .local {
+                Section("On-device Speech Model") {
+                    Picker("Size", selection: Binding(
+                        get: { appState.asrModelSize },
+                        set: { appState.setASRModelSize($0) }
+                    )) {
+                        ForEach(ASRModelSize.allCases) { size in
+                            Text(size.rawValue).tag(size)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(appState.isModelLoading || appState.isRecording)
+
+                    HStack {
+                        Text(appState.asrModelSize.displayName)
+                        Spacer()
+                        if appState.isModelLoaded {
+                            Label("Loaded", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        } else if appState.isModelLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text(appState.modelLoadStatus)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        } else {
+                            Label("Not loaded", systemImage: "exclamationmark.triangle")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+
+                    Text(appState.asrModelSize.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(appState.asrModelSize.help)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text(appState.asrModelSize.modelId)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .textSelection(.enabled)
+                }
+            } else {
+                Section("Cloud model") {
+                    if appState.transcriptionProvider == .openAI {
+                        Text("Uses gpt-4o-mini-transcribe over the OpenAI Audio API. Custom vocabulary is sent as a recognition prompt.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Uses ElevenLabs scribe_v2. Custom vocabulary is sent as keyterms when present.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section("Polish Model") {
+                HStack {
+                    Text(appState.polishProvider.displayName)
+                    Spacer()
+                    switch appState.polishProvider {
+                    case .off:
+                        Text("Off")
+                            .foregroundStyle(.secondary)
+                    case .local:
+                        if appState.isLLMLoaded {
+                            Label("Loaded", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        } else if appState.isLLMLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label("Pending", systemImage: "arrow.down.circle")
+                                .foregroundStyle(.orange)
+                        }
+                    case .openAI:
+                        if appState.hasOpenAIKey {
+                            Label("Key ready", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        } else {
+                            Label("Needs key", systemImage: "exclamationmark.triangle")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                }
+                Text("Optional rewrite for cleaner sentences. Configure under General → Post-Processing.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -129,9 +388,108 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section("Custom Vocabulary") {
+                Text("Add names, product terms, or jargon you want the speech model to recognize more accurately. Editing a dictation also adds corrected words here automatically.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    TextField("Add words… e.g. MacWispr, Grok", text: $newVocabTerm)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { addVocabTerm() }
+                    Button("Add") { addVocabTerm() }
+                        .disabled(newVocabTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                Text("Tip: paste several at once, separated by commas.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+
+                if appState.customVocabulary.isEmpty {
+                    Text("No custom words yet — add any that get misheard.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                } else {
+                    Text("\(appState.customVocabulary.count) custom word\(appState.customVocabulary.count == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    ForEach(appState.customVocabulary, id: \.self) { term in
+                        HStack {
+                            Text(term)
+                            Spacer()
+                            Button {
+                                appState.removeVocabularyTerm(term)
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Remove \(term)")
+                        }
+                    }
+
+                    Button("Clear all", role: .destructive) {
+                        appState.clearVocabulary()
+                    }
+                }
+            }
         }
         .formStyle(.grouped)
         .padding()
+    }
+
+    private func addVocabTerm() {
+        appState.addVocabularyTerm(newVocabTerm)
+        newVocabTerm = ""
+    }
+
+    private func saveOpenAIKey() {
+        do {
+            try appState.saveOpenAIKey(openAIKeyDraft)
+            openAIKeyDraft = ""
+            keySaveIsError = false
+            keySaveMessage = "OpenAI key saved to Keychain."
+        } catch {
+            keySaveIsError = true
+            keySaveMessage = error.localizedDescription
+        }
+    }
+
+    private func clearOpenAIKey() {
+        do {
+            try appState.clearOpenAIKey()
+            openAIKeyDraft = ""
+            keySaveIsError = false
+            keySaveMessage = "OpenAI key removed."
+        } catch {
+            keySaveIsError = true
+            keySaveMessage = error.localizedDescription
+        }
+    }
+
+    private func saveElevenLabsKey() {
+        do {
+            try appState.saveElevenLabsKey(elevenLabsKeyDraft)
+            elevenLabsKeyDraft = ""
+            keySaveIsError = false
+            keySaveMessage = "ElevenLabs key saved to Keychain."
+        } catch {
+            keySaveIsError = true
+            keySaveMessage = error.localizedDescription
+        }
+    }
+
+    private func clearElevenLabsKey() {
+        do {
+            try appState.clearElevenLabsKey()
+            elevenLabsKeyDraft = ""
+            keySaveIsError = false
+            keySaveMessage = "ElevenLabs key removed."
+        } catch {
+            keySaveIsError = true
+            keySaveMessage = error.localizedDescription
+        }
     }
 
     private var hotkeySettings: some View {
@@ -170,7 +528,7 @@ struct SettingsView: View {
                     get: { appState.soundFeedbackEnabled },
                     set: { appState.setSoundFeedbackEnabled($0) }
                 ))
-                Text("Soft chime on hold (listening) and release (stopped). The mic opens after the start sound so it is not recorded.")
+                Text("Start chime when listening begins. End chime only after transcription finishes (not when you release the key).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -228,16 +586,16 @@ struct SettingsView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("On-device voice dictation for macOS")
+            Text("Voice dictation for macOS — local or BYOK cloud")
                 .foregroundStyle(.secondary)
 
-            Text("v1.1.0")
+            Text("v1.2.0")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
 
             VStack(spacing: 4) {
-                Text("Powered by Qwen3-ASR-0.6B via MLX")
-                Text("Uses soniqo/speech-swift")
+                Text("Local: Qwen3-ASR (MLX) · Cloud: OpenAI / ElevenLabs")
+                Text("API keys stay in your Keychain")
             }
             .font(.caption)
             .foregroundStyle(.tertiary)

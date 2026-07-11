@@ -4,15 +4,36 @@ import Qwen3ASR
 actor TranscriptionEngine {
     private var model: Qwen3ASRModel?
     private var isWarmedUp = false
+    private(set) var loadedModelId: String?
 
-    func loadModel(progressHandler: @escaping @Sendable (Double, String) -> Void) async throws {
+    func loadModel(
+        modelId: String,
+        progressHandler: @escaping @Sendable (Double, String) -> Void
+    ) async throws {
+        // Already on the requested model.
+        if model != nil, loadedModelId == modelId {
+            return
+        }
+
+        // Drop previous weights before loading another size.
+        model = nil
+        isWarmedUp = false
+        loadedModelId = nil
+
         let loaded = try await Qwen3ASRModel.fromPretrained(
-            modelId: "aufklarer/Qwen3-ASR-0.6B-MLX-4bit"
+            modelId: modelId
         ) { progress, status in
             progressHandler(progress, status)
         }
         self.model = loaded
+        self.loadedModelId = modelId
         warmUp()
+    }
+
+    func unloadModel() {
+        model = nil
+        isWarmedUp = false
+        loadedModelId = nil
     }
 
     /// Compile Metal kernels so the first real dictation isn't slow.
@@ -23,7 +44,14 @@ actor TranscriptionEngine {
         isWarmedUp = true
     }
 
-    func transcribe(samples: [Float], language: String? = nil) async throws -> String {
+    /// - Parameter context: Optional system-prompt context (custom vocab / domain terms).
+    ///   Qwen3-ASR injects this as background knowledge so rare names and jargon
+    ///   are more likely to be recognized correctly.
+    func transcribe(
+        samples: [Float],
+        language: String? = nil,
+        context: String? = nil
+    ) async throws -> String {
         guard let model = model else {
             throw TranscriptionError.modelNotLoaded
         }
@@ -34,7 +62,8 @@ actor TranscriptionEngine {
             audio: samples,
             sampleRate: 16000,
             language: language,
-            maxTokens: maxTokens
+            maxTokens: maxTokens,
+            context: context
         )
         return text
     }

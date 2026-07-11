@@ -26,22 +26,69 @@ final class AppState: ObservableObject {
     @Published var isModelLoading = false
     @Published var modelLoadProgress: Double = 0
     @Published var modelLoadStatus: String = ""
+    @Published var asrModelSize: ASRModelSize = .small
+    @Published var transcriptionProvider: TranscriptionProvider = .local
+    @Published var polishProvider: PolishProvider = .off
+    /// Keychain presence flags (never store the raw secrets in @Published).
+    @Published var hasOpenAIKey = false
+    @Published var hasElevenLabsKey = false
+    @Published var openAIKeyMasked: String = ""
+    @Published var elevenLabsKeyMasked: String = ""
     @Published var currentTranscription: String = ""
     @Published var transcriptionHistory: [TranscriptionEntry] = []
     @Published var selectedLanguage: String? = nil
-    @Published var insertionMode: InsertionMode = .clipboard
+    @Published var insertionMode: InsertionMode = .both
     @Published var removeFillerWords = true
     @Published var autoCapitalize = true
+    /// Legacy flag kept in sync with polishProvider == .local for older UI bindings.
+    @Published var llmPolishEnabled = false
+    @Published var isLLMLoaded = false
+    @Published var isLLMLoading = false
+    @Published var llmLoadStatus: String = ""
     @Published var soundFeedbackEnabled = true
     @Published var dictationMode: DictationMode = .hold
     @Published var typingWPM: Double = UsageStats.defaultTypingWPM
+    /// Custom vocabulary / domain terms fed to Qwen3-ASR as system context.
+    @Published var customVocabulary: [String] = []
 
     let transcriptionEngine = TranscriptionEngine()
+    let textPolisher = TextPolisher()
     let audioRecorder = AudioRecorder()
     let hotkeyManager = HotkeyManager()
     let textInserter = TextInserter()
 
     private var recordingSession = 0
+    /// History id for the latest dictation (so Dictate edits update the same row).
+    private var lastTranscriptionId: UUID?
+    private static let customVocabularyKey = "customVocabulary"
+    private static let asrModelSizeKey = "asrModelSize"
+    private static let transcriptionProviderKey = "transcriptionProvider"
+    private static let polishProviderKey = "polishProvider"
+
+    /// Ready to accept mic input for the active transcription provider.
+    var isReadyToDictate: Bool {
+        switch transcriptionProvider {
+        case .local:
+            return isModelLoaded
+        case .openAI:
+            return hasOpenAIKey
+        case .elevenLabs:
+            return hasElevenLabsKey
+        }
+    }
+
+    var readinessLabel: String {
+        switch transcriptionProvider {
+        case .local:
+            if isModelLoaded { return "Ready · Local" }
+            if isModelLoading { return modelLoadStatus.isEmpty ? "Loading model…" : modelLoadStatus }
+            return modelLoadStatus.hasPrefix("Error") ? modelLoadStatus : "Model not loaded"
+        case .openAI:
+            return hasOpenAIKey ? "Ready · OpenAI" : "Add OpenAI API key"
+        case .elevenLabs:
+            return hasElevenLabsKey ? "Ready · ElevenLabs" : "Add ElevenLabs API key"
+        }
+    }
 
     init() {
         AppState.shared = self
@@ -52,24 +99,169 @@ final class AppState: ObservableObject {
         if UserDefaults.standard.object(forKey: "soundFeedbackEnabled") != nil {
             soundFeedbackEnabled = UserDefaults.standard.bool(forKey: "soundFeedbackEnabled")
         }
+        if let raw = UserDefaults.standard.string(forKey: "insertionMode"),
+           let mode = InsertionMode(rawValue: raw)
+        {
+            insertionMode = mode
+        }
         if let raw = UserDefaults.standard.string(forKey: "dictationMode"),
            let mode = DictationMode(rawValue: raw)
         {
             dictationMode = mode
         }
+        if let raw = UserDefaults.standard.string(forKey: Self.asrModelSizeKey),
+           let size = ASRModelSize(rawValue: raw)
+        {
+            asrModelSize = size
+        }
+        if let raw = UserDefaults.standard.string(forKey: Self.transcriptionProviderKey),
+           let provider = TranscriptionProvider(rawValue: raw)
+        {
+            transcriptionProvider = provider
+        }
+        // Polish: prefer new key; migrate old llmPolishEnabled bool.
+        if let raw = UserDefaults.standard.string(forKey: Self.polishProviderKey),
+           let polish = PolishProvider(rawValue: raw)
+        {
+            polishProvider = polish
+        } else if UserDefaults.standard.object(forKey: "llmPolishEnabled") != nil,
+                  UserDefaults.standard.bool(forKey: "llmPolishEnabled")
+        {
+            polishProvider = .local
+        }
+        llmPolishEnabled = polishProvider == .local
+        if let saved = UserDefaults.standard.stringArray(forKey: Self.customVocabularyKey) {
+            customVocabulary = saved
+        }
+        refreshKeyPresence()
         setupHotkey()
-        Task { await loadModel() }
+        Task { await prepareActiveProvider() }
+        if polishProvider == .local {
+            Task { await loadLLM() }
+        }
+    }
+
+    // MARK: - BYOK keys
+
+    func refreshKeyPresence() {
+        if let key = KeychainStore.load(account: .openAI) {
+            hasOpenAIKey = true
+            openAIKeyMasked = KeychainStore.masked(key)
+        } else {
+            hasOpenAIKey = false
+            openAIKeyMasked = ""
+        }
+        if let key = KeychainStore.load(account: .elevenLabs) {
+            hasElevenLabsKey = true
+            elevenLabsKeyMasked = KeychainStore.masked(key)
+        } else {
+            hasElevenLabsKey = false
+            elevenLabsKeyMasked = ""
+        }
+    }
+
+    func saveOpenAIKey(_ raw: String) throws {
+        try KeychainStore.save(raw, account: .openAI)
+        refreshKeyPresence()
+        if transcriptionProvider == .openAI {
+            Task { await prepareActiveProvider() }
+        }
+    }
+
+    func saveElevenLabsKey(_ raw: String) throws {
+        try KeychainStore.save(raw, account: .elevenLabs)
+        refreshKeyPresence()
+        if transcriptionProvider == .elevenLabs {
+            Task { await prepareActiveProvider() }
+        }
+    }
+
+    func clearOpenAIKey() throws {
+        try KeychainStore.delete(account: .openAI)
+        refreshKeyPresence()
+        if transcriptionProvider == .openAI {
+            isModelLoaded = false
+            modelLoadStatus = "Add OpenAI API key"
+        }
+        if polishProvider == .openAI {
+            setPolishProvider(.off)
+        }
+    }
+
+    func clearElevenLabsKey() throws {
+        try KeychainStore.delete(account: .elevenLabs)
+        refreshKeyPresence()
+        if transcriptionProvider == .elevenLabs {
+            isModelLoaded = false
+            modelLoadStatus = "Add ElevenLabs API key"
+        }
+    }
+
+    func setTranscriptionProvider(_ provider: TranscriptionProvider) {
+        guard provider != transcriptionProvider else { return }
+        if isRecording {
+            _ = audioRecorder.stopRecording()
+            isRecording = false
+            recordingSession += 1
+        }
+        transcriptionProvider = provider
+        UserDefaults.standard.set(provider.rawValue, forKey: Self.transcriptionProviderKey)
+        Task { await prepareActiveProvider() }
+    }
+
+    func setPolishProvider(_ provider: PolishProvider) {
+        polishProvider = provider
+        llmPolishEnabled = provider == .local
+        UserDefaults.standard.set(provider.rawValue, forKey: Self.polishProviderKey)
+        UserDefaults.standard.set(llmPolishEnabled, forKey: "llmPolishEnabled")
+        if provider == .local && !isLLMLoaded && !isLLMLoading {
+            Task { await loadLLM() }
+        }
+    }
+
+    /// Marks cloud providers ready when a key exists; loads local model otherwise.
+    func prepareActiveProvider() async {
+        switch transcriptionProvider {
+        case .local:
+            await loadModel()
+        case .openAI:
+            isModelLoading = false
+            if hasOpenAIKey {
+                isModelLoaded = true
+                modelLoadStatus = "Ready · OpenAI"
+                modelLoadProgress = 1
+            } else {
+                isModelLoaded = false
+                modelLoadStatus = "Add OpenAI API key in Settings"
+                modelLoadProgress = 0
+            }
+        case .elevenLabs:
+            isModelLoading = false
+            if hasElevenLabsKey {
+                isModelLoaded = true
+                modelLoadStatus = "Ready · ElevenLabs"
+                modelLoadProgress = 1
+            } else {
+                isModelLoaded = false
+                modelLoadStatus = "Add ElevenLabs API key in Settings"
+                modelLoadProgress = 0
+            }
+        }
     }
 
     func loadModel() async {
-        guard !isModelLoaded && !isModelLoading else { return }
+        guard !isModelLoading else { return }
+        // Allow reload when switching size (isModelLoaded may already be true).
         isModelLoading = true
-        modelLoadStatus = "Downloading model..."
+        isModelLoaded = false
+        modelLoadProgress = 0
+        modelLoadStatus = "Loading \(asrModelSize.displayName)..."
 
         do {
             let engine = transcriptionEngine
+            let modelId = asrModelSize.modelId
             try await Task.detached {
-                try await engine.loadModel { progress, status in
+                try await engine.loadModel(modelId: modelId) { progress, status in
                     DispatchQueue.main.async { [weak self] in
                         self?.modelLoadProgress = progress
                         self?.modelLoadStatus = status.isEmpty
@@ -82,8 +274,21 @@ final class AppState: ObservableObject {
             modelLoadStatus = "Ready"
         } catch {
             modelLoadStatus = "Error: \(error.localizedDescription)"
+            isModelLoaded = false
         }
         isModelLoading = false
+    }
+
+    func setASRModelSize(_ size: ASRModelSize) {
+        guard size != asrModelSize else { return }
+        asrModelSize = size
+        UserDefaults.standard.set(size.rawValue, forKey: Self.asrModelSizeKey)
+        if isRecording {
+            _ = audioRecorder.stopRecording()
+            isRecording = false
+            recordingSession += 1
+        }
+        Task { await loadModel() }
     }
 
     func setDictationMode(_ mode: DictationMode) {
@@ -94,12 +299,16 @@ final class AppState: ObservableObject {
     // MARK: - Recording
 
     func startRecording() {
-        guard isModelLoaded else {
-            // Pressing the hotkey during model load used to no-op silently,
-            // which reads as "the hotkey is broken". Give audible feedback
-            // and retry a failed load.
+        guard isReadyToDictate else {
+            // Pressing the hotkey during model load / missing key used to no-op
+            // silently, which reads as "the hotkey is broken". Give audible feedback
+            // and retry preparing the active provider.
             if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
-            if !isModelLoading { Task { await loadModel() } }
+            if transcriptionProvider == .local, !isModelLoading {
+                Task { await loadModel() }
+            } else {
+                Task { await prepareActiveProvider() }
+            }
             return
         }
         guard !isRecording else { return }
@@ -127,18 +336,14 @@ final class AppState: ObservableObject {
         recordingSession += 1
         let samples = audioRecorder.stopRecording()
 
-        if soundFeedbackEnabled {
-            FeedbackSounds.playListeningStopped()
-        }
-
+        // End sound plays only after transcription finishes (not on mic release).
         guard !samples.isEmpty else { return }
 
         do {
-            let text = try await transcriptionEngine.transcribe(
-                samples: samples,
-                language: selectedLanguage
-            )
-            let processed = postProcess(text)
+            let text = try await transcribeSamples(samples)
+            var processed = postProcess(text)
+            processed = await applyPolish(processed)
+
             currentTranscription = processed
 
             let duration = Double(samples.count) / 16000.0
@@ -148,12 +353,189 @@ final class AppState: ObservableObject {
                 duration: duration,
                 wordCount: UsageStats.wordCount(in: processed)
             )
+            lastTranscriptionId = entry.id
             transcriptionHistory.insert(entry, at: 0)
             HistoryStore.save(transcriptionHistory)
             textInserter.insert(text: processed, mode: insertionMode)
+            if soundFeedbackEnabled {
+                FeedbackSounds.playListeningStopped()
+            }
         } catch {
             currentTranscription = "Error: \(error.localizedDescription)"
+            lastTranscriptionId = nil
+            // Still signal that processing ended.
+            if soundFeedbackEnabled {
+                FeedbackSounds.playListeningStopped()
+            }
         }
+    }
+
+    func setInsertionMode(_ mode: InsertionMode) {
+        insertionMode = mode
+        UserDefaults.standard.set(mode.rawValue, forKey: "insertionMode")
+    }
+
+    private func transcribeSamples(_ samples: [Float]) async throws -> String {
+        switch transcriptionProvider {
+        case .local:
+            return try await transcriptionEngine.transcribe(
+                samples: samples,
+                language: selectedLanguage,
+                context: asrContext
+            )
+        case .openAI:
+            guard let key = KeychainStore.load(account: .openAI) else {
+                throw CloudSTTError.missingAPIKey("OpenAI")
+            }
+            return try await CloudSTTClient.transcribeOpenAI(
+                samples: samples,
+                apiKey: key,
+                language: selectedLanguage,
+                prompt: asrContext
+            )
+        case .elevenLabs:
+            guard let key = KeychainStore.load(account: .elevenLabs) else {
+                throw CloudSTTError.missingAPIKey("ElevenLabs")
+            }
+            return try await CloudSTTClient.transcribeElevenLabs(
+                samples: samples,
+                apiKey: key,
+                language: selectedLanguage,
+                keyterms: customVocabulary
+            )
+        }
+    }
+
+    private func applyPolish(_ text: String) async -> String {
+        switch polishProvider {
+        case .off:
+            return text
+        case .local:
+            if !isLLMLoaded && !isLLMLoading {
+                await loadLLM()
+            }
+            guard isLLMLoaded else { return text }
+            let polished = await textPolisher.polish(text)
+            return postProcess(polished)
+        case .openAI:
+            guard let key = KeychainStore.load(account: .openAI) else { return text }
+            do {
+                let polished = try await CloudSTTClient.polishOpenAI(text: text, apiKey: key)
+                return postProcess(polished)
+            } catch {
+                NSLog("MacWispr OpenAI polish failed: \(error.localizedDescription)")
+                return text
+            }
+        }
+    }
+
+    // MARK: - Edit transcription → update history + dictionary
+
+    /// Applies a user edit from the Dictate panel. Learns new words into custom vocabulary.
+    func commitCurrentTranscriptionEdit(_ newText: String) {
+        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let original = currentTranscription
+        guard trimmed != original else { return }
+
+        learnVocabularyFromEdit(original: original, corrected: trimmed)
+        currentTranscription = trimmed
+
+        if let id = lastTranscriptionId {
+            updateHistoryEntry(id: id, text: trimmed, learnVocab: false)
+        }
+    }
+
+    /// Applies a user edit from History. Learns new words into custom vocabulary.
+    func commitHistoryEdit(id: UUID, newText: String) {
+        updateHistoryEntry(id: id, text: newText, learnVocab: true)
+    }
+
+    private func updateHistoryEntry(id: UUID, text newText: String, learnVocab: Bool) {
+        let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let index = transcriptionHistory.firstIndex(where: { $0.id == id }) else { return }
+        let original = transcriptionHistory[index].text
+        guard trimmed != original else { return }
+
+        if learnVocab {
+            learnVocabularyFromEdit(original: original, corrected: trimmed)
+        }
+
+        let old = transcriptionHistory[index]
+        transcriptionHistory[index] = TranscriptionEntry(
+            id: old.id,
+            text: trimmed,
+            timestamp: old.timestamp,
+            duration: old.duration,
+            wordCount: UsageStats.wordCount(in: trimmed)
+        )
+        HistoryStore.save(transcriptionHistory)
+
+        if lastTranscriptionId == id {
+            currentTranscription = trimmed
+        }
+    }
+
+    /// Words present in the corrected text but not the original are added to the dictionary.
+    func learnVocabularyFromEdit(original: String, corrected: String) {
+        let originalSet = Set(Self.tokenize(original).map { $0.lowercased() })
+        let correctedTokens = Self.tokenize(corrected)
+
+        for token in correctedTokens {
+            let lower = token.lowercased()
+            if originalSet.contains(lower) { continue }
+            if Self.vocabularyStopWords.contains(lower) { continue }
+            if token.count < 2 { continue }
+            // Prefer proper nouns / jargon (mixed case, hyphen, digits) but allow plain new words too.
+            addVocabularyTerm(token)
+        }
+    }
+
+    private static func tokenize(_ text: String) -> [String] {
+        text.components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    /// Common function words — don't put these in the ASR dictionary from edits.
+    private static let vocabularyStopWords: Set<String> = [
+        "a", "an", "the", "and", "or", "but", "if", "then", "else", "when", "while",
+        "to", "of", "in", "on", "at", "for", "from", "by", "with", "as", "is", "are",
+        "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did",
+        "will", "would", "could", "should", "may", "might", "must", "can", "this", "that",
+        "these", "those", "it", "its", "i", "me", "my", "we", "our", "you", "your",
+        "he", "she", "they", "them", "his", "her", "their", "not", "no", "yes", "so",
+        "just", "also", "very", "too", "than", "into", "about", "up", "out", "all",
+        "any", "some", "more", "most", "other", "only", "own", "same", "such", "over",
+        "after", "before", "between", "through", "during", "without", "again", "further",
+        "once", "here", "there", "where", "why", "how", "what", "which", "who", "whom",
+    ]
+
+    func setLLMPolishEnabled(_ enabled: Bool) {
+        setPolishProvider(enabled ? .local : .off)
+    }
+
+    func loadLLM() async {
+        guard !isLLMLoaded && !isLLMLoading else { return }
+        isLLMLoading = true
+        llmLoadStatus = "Downloading polish model..."
+        do {
+            let polisher = textPolisher
+            try await Task.detached {
+                try await polisher.load { progress, status in
+                    DispatchQueue.main.async { [weak self] in
+                        self?.llmLoadStatus = status.isEmpty
+                            ? "Downloading... \(Int(progress * 100))%"
+                            : "\(status) (\(Int(progress * 100))%)"
+                    }
+                }
+            }.value
+            isLLMLoaded = true
+            llmLoadStatus = "Ready"
+        } catch {
+            llmLoadStatus = "Error: \(error.localizedDescription)"
+            isLLMLoaded = false
+        }
+        isLLMLoading = false
     }
 
     /// Toggle mode: start if idle, stop+transcribe if listening.
@@ -178,6 +560,53 @@ final class AppState: ObservableObject {
     func clearHistory() {
         transcriptionHistory = []
         HistoryStore.save(transcriptionHistory)
+    }
+
+    // MARK: - Custom vocabulary (ASR context)
+
+    /// Builds the system-prompt context string Qwen3-ASR uses as background knowledge.
+    var asrContext: String? {
+        let terms = customVocabulary
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !terms.isEmpty else { return nil }
+        // Free-form context — model was trained to treat this as domain knowledge.
+        return "Proper nouns, product names, and domain terms that may appear in the speech: "
+            + terms.joined(separator: ", ")
+            + "."
+    }
+
+    /// Adds one term, or several if the user pastes a comma/newline-separated list.
+    func addVocabularyTerm(_ raw: String) {
+        let parts = raw
+            .components(separatedBy: CharacterSet(charactersIn: ",\n;"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !parts.isEmpty else { return }
+
+        var changed = false
+        for term in parts {
+            if customVocabulary.contains(where: { $0.caseInsensitiveCompare(term) == .orderedSame }) {
+                continue
+            }
+            customVocabulary.append(term)
+            changed = true
+        }
+        if changed { persistVocabulary() }
+    }
+
+    func removeVocabularyTerm(_ term: String) {
+        customVocabulary.removeAll { $0 == term }
+        persistVocabulary()
+    }
+
+    func clearVocabulary() {
+        customVocabulary = []
+        persistVocabulary()
+    }
+
+    private func persistVocabulary() {
+        UserDefaults.standard.set(customVocabulary, forKey: Self.customVocabularyKey)
     }
 
     private func postProcess(_ text: String) -> String {
