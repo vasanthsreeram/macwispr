@@ -14,16 +14,24 @@ VERSION="${VERSION#v}"
 TAG="v$VERSION"
 export MACWISPR_VERSION="$VERSION"
 
-"$ROOT/scripts/build-app.sh"
+# Skip rebuild if zip already present (pass --rebuild to force)
+if [[ "${2:-}" == "--rebuild" || ! -f "$ROOT/dist/MacWispr-${VERSION}-macos-arm64.zip" ]]; then
+  "$ROOT/scripts/build-app.sh"
+fi
 ZIP="$ROOT/dist/MacWispr-${VERSION}-macos-arm64.zip"
+if [[ ! -f "$ZIP" ]]; then
+  echo "error: missing $ZIP" >&2
+  exit 1
+fi
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "gh CLI required to publish. Zip ready at: $ZIP" >&2
   exit 1
 fi
 
-NOTES="$(cat <<EOF
-## MacWispr $TAG
+# Unquoted EOF expands VERSION/TAG; avoid shell backticks inside notes.
+NOTES=$(cat <<EOF
+## MacWispr ${TAG}
 
 Voice dictation for macOS (Apple Silicon) — on-device by default, optional BYOK cloud.
 
@@ -36,7 +44,7 @@ Voice dictation for macOS (Apple Silicon) — on-device by default, optional BYO
 > Unsigned local build — right-click → Open the first time if Gatekeeper prompts.
 
 ### What's new in 1.2.0
-- **BYOK speech-to-text** — bring your own **OpenAI** (\`gpt-4o-mini-transcribe\`) or **ElevenLabs** (\`scribe_v2\`) API key
+- **BYOK speech-to-text** — bring your own **OpenAI** (gpt-4o-mini-transcribe) or **ElevenLabs** (scribe_v2) API key
 - Keys stored only in the **macOS Keychain** (never in UserDefaults)
 - **Transcript polish** — Off · local Qwen chat LLM · or OpenAI
 - **Local models** — Qwen3-ASR **0.6B / 1.7B 8-bit** (selectable in Settings)
@@ -49,17 +57,16 @@ Voice dictation for macOS (Apple Silicon) — on-device by default, optional BYO
 - https://vasanthsreeram.github.io/macwispr/
 
 ### Build from source
-\`\`\`bash
-git clone https://github.com/vasanthsreeram/macwispr.git
-cd macwispr
-./scripts/install.sh
-\`\`\`
-EOF
-)"
 
-# Ensure working tree for this version is on origin before tagging
+    git clone https://github.com/vasanthsreeram/macwispr.git
+    cd macwispr
+    ./scripts/install.sh
+EOF
+)
+
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "error: working tree dirty — commit changes before releasing" >&2
+  git status --porcelain >&2
   exit 1
 fi
 
