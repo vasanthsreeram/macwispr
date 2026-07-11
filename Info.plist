@@ -31,12 +31,12 @@
     <key>SUFeedURL</key>
     <string>https://fuckwisprflow.com/appcast.xml</string>
     <!--
-      SUPublicEDKey: PLACEHOLDER — replace with the public key printed by Sparkle
-      `generate_keys` (one-time). The matching private key must NEVER be committed;
-      keep it in Keychain / secrets manager only. See docs/SPARKLE.md.
+      SUPublicEDKey: public half of the Sparkle EdDSA pair. The private key lives
+      only in the maintainer's login Keychain ("Private key for signing Sparkle
+      updates") and must NEVER be committed. See docs/SPARKLE.md.
     -->
     <key>SUPublicEDKey</key>
-    <string>PLACEHOLDER_REPLACE_WITH_generate_keys_PUBLIC_OUTPUT</string>
+    <string>8hZtQy2CzXWCvCNLAmsYOoCWJ+c/1mRurro+unieraw=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
 </dict>
