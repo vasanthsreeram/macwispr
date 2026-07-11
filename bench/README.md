@@ -42,7 +42,7 @@ uv run --with 'git+https://github.com/Blaizzy/mlx-audio.git' --with soundfile \
 | Harness | Engines | Backend | Metric |
 |---------|---------|---------|--------|
 | `./bench.sh` → `BenchLatency` | Qwen3-ASR 0.6B/1.7B | MLX (Metal) | Latency |
-| same | Parakeet TDT **v3** INT4/INT8 | CoreML (ANE) via speech-swift | Latency |
+| same | Parakeet TDT **v3** INT8 | CoreML (ANE) via speech-swift | Latency |
 | `bench/bench_mlx_audio.py` | Nemotron 3.5 · Parakeet v2/v3 | MLX (`mlx-community/*`) | Latency |
 | `bench/bench_wer.py` | Qwen · Parakeet v2/v3 · Nemotron | MLX (`mlx-audio`) | **WER + RTF** |
 | optional `--include-fluidaudio` | Parakeet v3 | FluidAudio CoreML CLI | WER + wall time |

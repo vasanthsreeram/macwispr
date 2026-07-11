@@ -21,6 +21,26 @@ Checklist:
 /Applications/MacWispr.app/Contents/MacOS/MacWispr --self-test
 ```
 
+## Parakeet: MultiArray shape (1×128×200) vs (1×128×3000)
+
+**Symptom:** Banner/error
+`Transcription failed: MultiArray shape (1 x 128 x 200) does not match the shape (1 x 128 x 3000) specified in the model description`.
+
+**Cause:** Hugging Face re-exported the Parakeet Core ML encoder as a **fixed** mel shape `[1, 128, 3000]` (~30 s). Older speech-swift padding still chose the nearest *enumerated* size (100 / 200 / …) for short dictation, which Core ML rejects. The INT4 HF repo was also retired.
+
+**Fix (app-side, macOS 14 pin):**
+- Both Parakeet picker values load **INT8** (`aufklarer/Parakeet-TDT-v3-CoreML-INT8`).
+- `TranscriptionEngine.prepareParakeetSamples` zero-pads short PCM so mel frames land in `(2000, 3000]` (pad target 3000) and trims longer audio to the encoder max.
+- Warm-up uses the same padding (library `warmUp()` still uses 1 s silence and would fail).
+
+If you still see INT4 download failures, delete the stale cache and re-pick Parakeet in Settings:
+
+```bash
+rm -rf ~/Library/Caches/qwen3-speech/models/aufklarer/Parakeet-TDT-v3-CoreML-INT4
+```
+
+Upstream speech-swift main now discovers shapes and defaults to `…-INT8-30s`, but requires **macOS 15** — MacWispr stays on a macOS 14-compatible pin until a platform bump.
+
 ## Floating HUD looks wrong / still has long text
 
 Current design is **minimal**: glowing phase dot + elapsed digits only (no “Listening…” / “release to…” copy).

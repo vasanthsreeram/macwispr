@@ -2,6 +2,8 @@
 
 Last updated: 2026-07-12 · product line **1.2.2+**
 
+**Stack choice:** stay on **Swift** (AppKit + MLX via `speech-swift` + Sparkle). Size and peak RAM are dominated by metallibs and model weights, not the app language. Full comparison and “why not Rust/Zig/Bun”: [LANGUAGE_STACK.md](./LANGUAGE_STACK.md).
+
 ## Runtime shape
 
 ```
@@ -19,7 +21,7 @@ Last updated: 2026-07-12 · product line **1.2.2+**
 │  • dictationPhase: setup | ready | listening | transcribing    │
 │                    | success | failed                          │
 │  • dictationMode: hold | toggle                                │
-│  • asrModelSize: Qwen 0.6B/1.7B | Parakeet INT4/INT8           │
+│  • asrModelSize: Qwen 0.6B/1.7B | Parakeet INT8 (fixed 30s)    │
 │  • AudioRecorder → samples @ 16 kHz                            │
 │  • TranscriptionEngine → Qwen3ASR (MLX) or ParakeetASR (CoreML)│
 │  • CloudSTTClient when provider is OpenAI / ElevenLabs         │
@@ -46,11 +48,11 @@ Last updated: 2026-07-12 · product line **1.2.2+**
 |-------|---------|---------|--------|
 | Qwen3-ASR 0.6B 8-bit | `Qwen3ASR` | MLX / GPU | Default on ≤16 GB |
 | Qwen3-ASR 1.7B 8-bit | `Qwen3ASR` | MLX / GPU | Default on >16 GB |
-| Parakeet TDT v3 INT4 | `ParakeetASR` | Core ML / ANE | Fast multilingual |
-| Parakeet TDT v3 INT8 | `ParakeetASR` | Core ML / ANE | Higher quality ANE |
+| Parakeet TDT v3 INT8 | `ParakeetASR` | Core ML / ANE | Fixed mel `[1,128,3000]`; short clips padded |
 
 - Catalog: `ASRModelSize.swift`
 - Load / warm / transcribe: `TranscriptionEngine.swift` (actor with dual backend)
+- Parakeet short-clip pad: `prepareParakeetSamples` (HF encoder is fixed-shape; INT4 repo retired)
 - Custom vocabulary context is **Qwen-only** (`supportsContext`)
 - Switching models unloads the previous backend (frees MLX / Core ML footprint)
 

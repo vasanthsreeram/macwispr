@@ -199,7 +199,9 @@ struct SettingsView: View {
                             }
                         }
                         Section("Parakeet (Neural Engine / Core ML)") {
-                            ForEach([ASRModelSize.parakeetInt4, .parakeetInt8], id: \.id) { size in
+                            // Single INT8 fixed-shape export (INT4 HF retired).
+                            // Legacy Parakeet-INT4 UserDefaults still load via ASRModelSize.
+                            ForEach([ASRModelSize.parakeetInt8], id: \.id) { size in
                                 Text(size.pickerLabel).tag(size)
                             }
                         }
