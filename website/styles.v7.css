@@ -950,6 +950,23 @@ kbd {
 }
 .vs-col.us li { color: var(--ink); }
 .vs-col.us li strong { color: var(--ok); }
+.why-link {
+  text-align: center;
+  margin: 1.15rem 0 0;
+  font-weight: 700;
+  font-size: 1.02rem;
+}
+.why-link a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1.5px solid rgba(232, 93, 76, 0.45);
+  padding-bottom: 2px;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.why-link a:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
 
 /* Steps */
 .steps {
@@ -986,6 +1003,193 @@ kbd {
   margin: 0;
   color: var(--muted);
   font-size: 1.05rem;
+}
+
+/* ---------- Manifesto / why ---------- */
+.manifesto-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+.manifesto-card {
+  padding: 1.5rem 1.35rem;
+  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+}
+.manifesto-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+.manifesto-wide {
+  grid-column: 1 / -1;
+  background:
+    radial-gradient(600px 200px at 0% 0%, rgba(232, 93, 76, 0.08) 0%, transparent 60%),
+    rgba(255, 253, 248, 0.82);
+}
+.manifesto-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.55rem;
+}
+.manifesto-card h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 0.65rem;
+}
+.manifesto-card p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  max-width: 52rem;
+}
+.manifesto-bullets {
+  list-style: none;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.manifesto-bullets li {
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(26, 154, 92, 0.07);
+  border: 1px solid rgba(26, 154, 92, 0.12);
+  font-size: 0.98rem;
+  color: var(--ink-soft);
+}
+.manifesto-bullets strong { color: var(--ok); }
+
+/* ---------- Sentiment pull quotes ---------- */
+.sentiment-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.35rem;
+}
+.pull-quote {
+  margin: 0;
+  padding: 1.2rem 1.15rem;
+}
+.pull-quote blockquote {
+  margin: 0 0 0.75rem;
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  font-style: italic;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.pull-quote figcaption {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- Gripe → fix cards ---------- */
+.gripe-list {
+  display: grid;
+  gap: 0.75rem;
+}
+.gripe-card {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.85rem 1rem;
+  align-items: stretch;
+  padding: 1.25rem 1.2rem;
+  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+}
+.gripe-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+.gripe-bad,
+.gripe-good {
+  min-width: 0;
+}
+.gripe-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+.gripe-tag.them {
+  color: var(--accent);
+  background: rgba(232, 93, 76, 0.1);
+}
+.gripe-tag.us {
+  color: var(--ok);
+  background: rgba(26, 154, 92, 0.1);
+}
+.gripe-card h3 {
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.35rem;
+  line-height: 1.25;
+}
+.gripe-card p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+.gripe-arrow {
+  align-self: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--muted);
+  opacity: 0.55;
+}
+.gripe-good {
+  border-left: 2px solid rgba(26, 154, 92, 0.25);
+  padding-left: 1rem;
+}
+
+/* ---------- Valuation note ---------- */
+.valuation-note .val-box {
+  padding: 2.25rem 1.75rem;
+  background:
+    radial-gradient(520px 220px at 100% 0%, rgba(59, 110, 245, 0.1) 0%, transparent 65%),
+    radial-gradient(420px 180px at 0% 100%, rgba(232, 93, 76, 0.08) 0%, transparent 60%),
+    rgba(255, 253, 248, 0.88);
+}
+.valuation-note h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2rem, 4.5vw, 2.85rem);
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 0.35rem 0 1rem;
+  max-width: 18ch;
+}
+.valuation-note p {
+  margin: 0 0 0.85rem;
+  max-width: 40rem;
+  color: var(--ink-soft);
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+.valuation-note .val-punch {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 1.15rem;
+  margin-bottom: 0;
+}
+.valuation-note .val-actions {
+  justify-content: flex-start;
+  margin-top: 1.25rem;
 }
 
 /* CTA */
@@ -1075,6 +1279,22 @@ kbd {
   }
   .bento-card { grid-column: span 3; }
   .steps { grid-template-columns: 1fr; max-width: 420px; }
+  .manifesto-grid { grid-template-columns: 1fr; }
+  .sentiment-row { grid-template-columns: 1fr; }
+  .gripe-card {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+  .gripe-arrow {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+  .gripe-good {
+    border-left: none;
+    border-top: 2px solid rgba(26, 154, 92, 0.25);
+    padding-left: 0;
+    padding-top: 0.85rem;
+  }
 }
 
 @media (max-width: 820px) {
@@ -1149,6 +1369,9 @@ kbd {
 
   .vs-grid { grid-template-columns: 1fr; }
   .steps li { min-height: 0; }
+  .valuation-note h2 { max-width: none; }
+  .valuation-note .val-box { padding: 1.5rem 1.15rem; }
+  .valuation-note .val-actions { flex-direction: column; align-items: stretch; }
   .cta-box { padding: 2rem 1.1rem; border-radius: 20px; }
   .cta-box h2 { font-size: clamp(2.4rem, 10vw, 3rem); }
   .cta-note { font-size: 1.05rem; }
@@ -1183,7 +1406,9 @@ kbd {
   .lane.won,
   .bento-card:hover,
   .speed-card:hover,
-  .steps li:hover { transform: none; }
+  .steps li:hover,
+  .manifesto-card:hover,
+  .gripe-card:hover { transform: none; }
   .bg-marquee animate { display: none; }
   .bg-marquee { opacity: 0.32; }
 }
@@ -1200,5 +1425,7 @@ kbd {
   .bento-card:hover,
   .speed-card:hover,
   .steps li:hover,
+  .manifesto-card:hover,
+  .gripe-card:hover,
   .vd-replay:hover { transform: none; }
 }

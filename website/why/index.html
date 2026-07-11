@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Why MacWispr — Free open-source dictation vs a $2B giant</title>
+  <meta name="description" content="Wispr Flow is valued around $2B. They buy attention with marketing. MacWispr ships free, local, open-source dictation for Mac. Same job — no subscription." />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#f7f2e8" />
+  <meta name="color-scheme" content="light" />
+  <link rel="canonical" href="https://fuckwisprflow.com/why" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="MacWispr" />
+  <meta property="og:url" content="https://fuckwisprflow.com/why" />
+  <meta property="og:title" content="Why MacWispr — Free open-source dictation vs a $2B giant" />
+  <meta property="og:description" content="Stop renting your voice. Free local Mac dictation. Open source must win." />
+  <meta property="og:image" content="https://fuckwisprflow.com/assets/share-og.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Why MacWispr — Free open-source dictation vs a $2B giant" />
+  <meta name="twitter:description" content="Stop renting your voice. Free local Mac dictation. Open source must win." />
+  <meta name="twitter:image" content="https://fuckwisprflow.com/assets/share-og.png" />
+
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/logo-128.png" />
+  <link rel="icon" type="image/png" sizes="256x256" href="/assets/logo-256.png" />
+  <link rel="apple-touch-icon" href="/assets/logo-256.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="/styles.v7.css" />
+  <style>
+    .why-main {
+      position: relative;
+      z-index: 1;
+      width: min(var(--max), calc(100% - 1.5rem));
+      margin: 0 auto;
+      padding: calc(var(--header-h) + 2.25rem) 0 4rem;
+    }
+    .why-hero {
+      max-width: 42rem;
+      margin-bottom: 1.75rem;
+    }
+    .why-hero .eyebrow {
+      margin: 0 0 0.6rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .why-hero h1 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2.55rem, 6vw, 3.75rem);
+      letter-spacing: -0.03em;
+      line-height: 1.04;
+      margin: 0 0 0.85rem;
+    }
+    .why-hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .why-hero .lede {
+      margin: 0 0 1.25rem;
+      font-size: 1.18rem;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+    .why-hero .hero-actions {
+      justify-content: flex-start;
+    }
+    .trust-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 1.1rem;
+    }
+
+    .score {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.75rem 1rem;
+      margin: 2rem 0 2.5rem;
+      align-items: stretch;
+    }
+    .score-card {
+      padding: 1.35rem 1.2rem;
+      text-align: left;
+    }
+    .score-card.them {
+      border: 1px solid rgba(232, 93, 76, 0.2);
+      background:
+        radial-gradient(280px 120px at 100% 0%, rgba(232, 93, 76, 0.1) 0%, transparent 70%),
+        rgba(255, 253, 248, 0.88);
+    }
+    .score-card.us {
+      border: 1px solid rgba(26, 154, 92, 0.22);
+      background:
+        radial-gradient(280px 120px at 0% 0%, rgba(26, 154, 92, 0.1) 0%, transparent 70%),
+        rgba(255, 253, 248, 0.88);
+    }
+    .score-card .label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .score-card.them .label { color: var(--accent); }
+    .score-card.us .label { color: var(--ok); }
+    .score-card .metric {
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 4.5vw, 3rem);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin: 0 0 0.55rem;
+    }
+    .score-card.them .metric { color: var(--accent); }
+    .score-card.us .metric { color: var(--ok); }
+    .score-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.98rem;
+      line-height: 1.45;
+    }
+    .score-vs {
+      align-self: center;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 0.8rem;
+      background: var(--ink);
+      color: var(--cream);
+      box-shadow: var(--shadow);
+    }
+
+    .why-main .section {
+      width: 100%;
+      padding: 1.75rem 0;
+    }
+    .why-main .section-head { margin-bottom: 1.25rem; }
+    .why-main .section-head h2 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(1.9rem, 3.8vw, 2.55rem);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin: 0.25rem 0 0.5rem;
+    }
+    .why-main .section-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 36rem;
+    }
+
+    .promise-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+    .promise-card {
+      padding: 1.25rem 1.15rem;
+    }
+    .promise-card .n {
+      display: inline-grid;
+      place-items: center;
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: rgba(26, 154, 92, 0.12);
+      color: var(--ok);
+      margin-bottom: 0.55rem;
+    }
+    .promise-card h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+    .promise-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+    }
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 520px;
+      background: rgba(255, 253, 248, 0.88);
+    }
+    .cmp-table th,
+    .cmp-table td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.98rem;
+    }
+    .cmp-table th {
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      background: rgba(20, 18, 15, 0.03);
+    }
+    .cmp-table td:nth-child(2) { color: var(--ok); font-weight: 700; }
+    .cmp-table td:nth-child(3) { color: var(--ink-soft); }
+    .cmp-table tr:last-child td { border-bottom: 0; }
+    .cmp-table .feat { color: var(--ink); font-weight: 600; }
+
+    .quote-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+    .quote-card {
+      margin: 0;
+      padding: 1.2rem 1.15rem;
+    }
+    .quote-card blockquote {
+      margin: 0 0 0.7rem;
+      font-family: var(--serif);
+      font-size: 1.12rem;
+      font-style: italic;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+    }
+    .quote-card figcaption {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .fix-list {
+      display: grid;
+      gap: 0.7rem;
+    }
+    .fix-card {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.75rem 1rem;
+      padding: 1.2rem 1.15rem;
+      align-items: start;
+    }
+    .fix-card h3 {
+      margin: 0 0 0.3rem;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+    .fix-card p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--ink-soft);
+      line-height: 1.45;
+    }
+    .fix-tag {
+      display: inline-block;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+      padding: 0.18rem 0.48rem;
+      border-radius: 999px;
+    }
+    .fix-tag.pain {
+      color: var(--accent);
+      background: rgba(232, 93, 76, 0.1);
+    }
+    .fix-tag.fix {
+      color: var(--ok);
+      background: rgba(26, 154, 92, 0.1);
+    }
+    .fix-arrow {
+      align-self: center;
+      color: var(--muted);
+      font-weight: 700;
+      opacity: 0.55;
+    }
+    .fix-good {
+      border-left: 2px solid rgba(26, 154, 92, 0.25);
+      padding-left: 1rem;
+    }
+
+    .close-box {
+      padding: 2.25rem 1.6rem;
+      text-align: center;
+      background:
+        radial-gradient(520px 220px at 50% 0%, rgba(255, 200, 140, 0.4) 0%, transparent 70%),
+        rgba(255, 253, 248, 0.9);
+    }
+    .close-box h2 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2rem, 4.5vw, 2.9rem);
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      margin: 0.35rem 0 0.85rem;
+      max-width: 18ch;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .close-box p {
+      margin: 0 auto 1.35rem;
+      max-width: 34rem;
+      color: var(--ink-soft);
+      font-size: 1.1rem;
+      line-height: 1.5;
+    }
+    .close-box .hero-actions {
+      justify-content: center;
+    }
+    .close-note {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    @media (max-width: 820px) {
+      .promise-grid,
+      .quote-grid { grid-template-columns: 1fr; }
+      .score {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .score-vs {
+        justify-self: center;
+        transform: rotate(90deg);
+      }
+      .fix-card {
+        grid-template-columns: 1fr;
+        gap: 0.55rem;
+      }
+      .fix-arrow {
+        transform: rotate(90deg);
+        justify-self: center;
+      }
+      .fix-good {
+        border-left: none;
+        border-top: 2px solid rgba(26, 154, 92, 0.25);
+        padding-left: 0;
+        padding-top: 0.75rem;
+      }
+    }
+    @media (max-width: 520px) {
+      .why-main {
+        width: min(var(--max), calc(100% - 1.1rem));
+        padding-top: calc(var(--header-h) + 1.4rem);
+      }
+      .why-hero .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .why-hero .hero-actions .btn { width: 100%; }
+      .close-box { padding: 1.75rem 1.1rem; }
+      .close-box .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .close-box .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" aria-hidden="true">
+    <div class="aurora"></div>
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="grid-fade"></div>
+    <div class="vignette"></div>
+    <div class="noise"></div>
+  </div>
+
+  <header class="site-header">
+    <div class="header-inner glass">
+      <a class="brand" href="/" aria-label="MacWispr home">
+        <img src="/assets/logo-mark.png" width="32" height="32" alt="" decoding="async" />
+        <span class="brand-text">f*ck<span class="soft">wispr</span>flow</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/#race">Race</a>
+        <a href="/#install">Install</a>
+        <a href="/why" aria-current="page">Why</a>
+      </nav>
+      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download</a>
+    </div>
+  </header>
+
+  <main class="why-main">
+    <!-- ATTENTION + one promise -->
+    <header class="why-hero">
+      <p class="eyebrow">Open source · Mac only · $0</p>
+      <h1>Stop renting your voice to a <em>$2B</em> cloud app.</h1>
+      <p class="lede">
+        Wispr Flow is valued around <strong>two billion dollars</strong>. That money buys marketing —
+        ads, stunts, and a story. MacWispr does the same job free, on your Mac, in under half a second.
+        <strong>Open source must win.</strong>
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download for Mac · free forever</a>
+        <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr">View source on GitHub</a>
+      </div>
+      <div class="trust-row" aria-label="Trust signals">
+        <span class="chip yes">MIT open source</span>
+        <span class="chip yes">On-device ASR</span>
+        <span class="chip yes">No account</span>
+        <span class="chip yes">No word limits</span>
+      </div>
+    </header>
+
+    <!-- One glance proof -->
+    <div class="score" aria-label="MacWispr versus Wispr Flow">
+      <article class="score-card them glass-card">
+        <span class="label">Wispr Flow</span>
+        <div class="metric">~$2B</div>
+        <p>Cloud dictation SaaS. ~$12–15/mo. Free tier caps. Your audio leaves the machine. Marketing is the product story.</p>
+      </article>
+      <div class="score-vs" aria-hidden="true">VS</div>
+      <article class="score-card us glass-card">
+        <span class="label">MacWispr</span>
+        <div class="metric">$0</div>
+        <p>Local on Apple Silicon. &lt;0.5s. MIT licensed. No account. No meter. Code you can fork if we suck.</p>
+      </article>
+    </div>
+
+    <!-- PROBLEM → AGITATE → SOLVE -->
+    <section class="section" id="problem" aria-labelledby="problem-title">
+      <div class="section-head">
+        <p class="kicker">The problem</p>
+        <h2 id="problem-title">You’re paying a subscription for something your Mac can already do</h2>
+        <p>
+          Cloud dictation adds latency, privacy risk, and another monthly bill —
+          then spends the raise on the narrative that you need them forever.
+        </p>
+      </div>
+      <div class="promise-grid">
+        <article class="promise-card glass-card">
+          <span class="n">01</span>
+          <h3>The tax</h3>
+          <p>~$12–15/mo (or more). Free tiers hit word walls. Talking becomes metered content.</p>
+        </article>
+        <article class="promise-card glass-card">
+          <span class="n">02</span>
+          <h3>The wait</h3>
+          <p>Upload → queue → polish → paste. ~2–3s feels fine in a demo, slow in real work.</p>
+        </article>
+        <article class="promise-card glass-card">
+          <span class="n">03</span>
+          <h3>The leak</h3>
+          <p>Your voice leaves the device. Wrong default for code, notes, and anything private.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="truth" aria-labelledby="truth-title">
+      <div class="section-head">
+        <p class="kicker">Why a $2B price tag stings</p>
+        <h2 id="truth-title">Marketing is not a moat. Defaults are.</h2>
+        <p>
+          A giant valuation funds ads and launch theater. It doesn’t make a cloud round-trip
+          faster than your Neural Engine — and it doesn’t make open source less free.
+        </p>
+      </div>
+      <div class="promise-grid">
+        <article class="promise-card glass-card">
+          <span class="n">$</span>
+          <h3>They buy attention</h3>
+          <p>Stunts, retargeting, “3× accuracy” slogans. Attention is rented. Habits are too — at $15/mo.</p>
+        </article>
+        <article class="promise-card glass-card">
+          <span class="n">⌘</span>
+          <h3>We ship the default</h3>
+          <p>Menu bar. ⌥Space. Text lands where you are. Local model. Updates via Sparkle. No deck required.</p>
+        </article>
+        <article class="promise-card glass-card">
+          <span class="n">∞</span>
+          <h3>Open source must win</h3>
+          <p>Inspect it. Fork it. Leave anytime. The category is infrastructure — like a keyboard, not a lifestyle brand.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Comparison table: transparent, few axes -->
+    <section class="section" id="compare" aria-labelledby="compare-title">
+      <div class="section-head">
+        <p class="kicker">Straight comparison</p>
+        <h2 id="compare-title">What actually matters when you dictate</h2>
+        <p>We don’t try to win every category — only the ones that change your day.</p>
+      </div>
+      <div class="table-wrap glass-card">
+        <table class="cmp-table">
+          <thead>
+            <tr>
+              <th scope="col">What you care about</th>
+              <th scope="col">MacWispr</th>
+              <th scope="col">Wispr Flow</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="feat">Price for core dictation</td>
+              <td>$0 forever</td>
+              <td>Paid (~$12–15/mo)</td>
+            </tr>
+            <tr>
+              <td class="feat">Where audio runs</td>
+              <td>Your Mac (local)</td>
+              <td>Their cloud</td>
+            </tr>
+            <tr>
+              <td class="feat">Typical feel</td>
+              <td>&lt;0.5s</td>
+              <td>~2–3s network tax</td>
+            </tr>
+            <tr>
+              <td class="feat">Account required</td>
+              <td>No</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td class="feat">Word limits</td>
+              <td>None</td>
+              <td>Free tier caps</td>
+            </tr>
+            <tr>
+              <td class="feat">Source</td>
+              <td>MIT open source</td>
+              <td>Closed</td>
+            </tr>
+            <tr>
+              <td class="feat">Platform</td>
+              <td>Mac / Apple Silicon</td>
+              <td>Cross-platform</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Social proof / sentiment -->
+    <section class="section" id="proof" aria-labelledby="proof-title">
+      <div class="section-head">
+        <p class="kicker">What people keep saying</p>
+        <h2 id="proof-title">The timeline already voted with cancellations</h2>
+        <p>Paraphrased public sentiment — the recurring themes, not the ads.</p>
+      </div>
+      <div class="quote-grid">
+        <figure class="quote-card glass-card">
+          <blockquote>“A $2B valuation doesn’t look convincing when the core feature becomes free.”</blockquote>
+          <figcaption>Valuation vs free tools</figcaption>
+        </figure>
+        <figure class="quote-card glass-card">
+          <blockquote>“Cancelled my paid plan. Free, local, open source on my Mac.”</blockquote>
+          <figcaption>Power users switching</figcaption>
+        </figure>
+        <figure class="quote-card glass-card">
+          <blockquote>“Local is faster. Local is private. Free. No marketing spam.”</blockquote>
+          <figcaption>Why local alternatives spread</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Objection handling: pain → fix -->
+    <section class="section" id="fix" aria-labelledby="fix-title">
+      <div class="section-head">
+        <p class="kicker">How we solve it</p>
+        <h2 id="fix-title">Same job. Better defaults.</h2>
+        <p>One clear promise: free, local speech-to-text for Mac — without the SaaS tax.</p>
+      </div>
+      <div class="fix-list">
+        <article class="fix-card glass-card">
+          <div>
+            <span class="fix-tag pain">Pain</span>
+            <h3>Subscription fatigue</h3>
+            <p>Another AI bill for talking. Free tiers wall you off mid-week.</p>
+          </div>
+          <div class="fix-arrow" aria-hidden="true">→</div>
+          <div class="fix-good">
+            <span class="fix-tag fix">Fix</span>
+            <h3>$0. MIT. No meter.</h3>
+            <p>Core STT is free forever. Optional BYOK polish if you want it — never required.</p>
+          </div>
+        </article>
+        <article class="fix-card glass-card">
+          <div>
+            <span class="fix-tag pain">Pain</span>
+            <h3>Cloud lag in real work</h3>
+            <p>Fine in demos. Deadly in Cursor, Slack, Mail when you’re in flow.</p>
+          </div>
+          <div class="fix-arrow" aria-hidden="true">→</div>
+          <div class="fix-good">
+            <span class="fix-tag fix">Fix</span>
+            <h3>&lt;0.5s on-device</h3>
+            <p>Qwen3-ASR via MLX on Apple Silicon. Your GPU. No region hop.</p>
+          </div>
+        </article>
+        <article class="fix-card glass-card">
+          <div>
+            <span class="fix-tag pain">Pain</span>
+            <h3>Voice leaves the machine</h3>
+            <p>Wrong default for private thoughts, client notes, and code.</p>
+          </div>
+          <div class="fix-arrow" aria-hidden="true">→</div>
+          <div class="fix-good">
+            <span class="fix-tag fix">Fix</span>
+            <h3>Local by default</h3>
+            <p>Audio stays for local ASR. Telemetry opt-in only — never transcripts. <a href="/privacy">Privacy contract</a>.</p>
+          </div>
+        </article>
+        <article class="fix-card glass-card">
+          <div>
+            <span class="fix-tag pain">Pain</span>
+            <h3>Offline dead zones</h3>
+            <p>Flights and bad Wi‑Fi kill cloud tools when you need them most.</p>
+          </div>
+          <div class="fix-arrow" aria-hidden="true">→</div>
+          <div class="fix-good">
+            <span class="fix-tag fix">Fix</span>
+            <h3>Works offline</h3>
+            <p>Model lives on the Mac. Airplane mode is a feature, not a ticket.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- DESIRE + ACTION -->
+    <section class="section" id="start" aria-labelledby="start-title">
+      <div class="close-box glass-card">
+        <p class="kicker">The bet</p>
+        <h2 id="start-title">David doesn’t need $2B. You need a better default.</h2>
+        <p>
+          We’re not outspending a giant on ads. We’re out-defaulting them:
+          free, local, open source — so open source wins the category that should never have been rented.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download for Mac · $0</a>
+          <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr">Star on GitHub</a>
+          <a class="btn btn-ghost glass" href="/">See the speed race</a>
+        </div>
+        <p class="close-note">macOS 14+ · Apple Silicon · 3-step install · no account</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="/assets/logo-mark.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
+      <div>
+        <strong>f*ckwisprflow.com</strong>
+        <span>MacWispr · open source vs $2B</span>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/why" aria-current="page">Why</a>
+    </div>
+    <p class="footer-note">Not affiliated with Wispr Flow. No Windows builds. On purpose. © <span id="y"></span></p>
+  </footer>
+
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
