@@ -74,13 +74,15 @@ xcrun notarytool store-credentials "MacWispr-notary" \
 
 ```bash
 source .env.signing   # or export MACWISPR_SIGN_IDENTITY / MACWISPR_NOTARY_PROFILE
-export MACWISPR_VERSION=1.2.2   # bump for each release
+export MACWISPR_VERSION=1.2.3   # bump for each release; ship from main only
 ./scripts/build-app.sh          # signs via sign-and-notarize.sh
 ./scripts/build-dmg.sh
 # Sparkle-sign the zip, update website/appcast.xml length + edSignature, then:
-./scripts/release.sh v1.2.2
+./scripts/release.sh v1.2.3
 wrangler pages deploy website --project-name=fuckwisprflow
 ```
+
+Notary waits can take minutes to days (especially first-time / large apps). See [RELEASE_1.2.3.md](./RELEASE_1.2.3.md).
 
 Or skip notarization while testing (common when Keychain profile is missing):
 

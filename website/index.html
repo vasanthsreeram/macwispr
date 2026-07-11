@@ -78,7 +78,7 @@
         "isAccessibleForFree": true,
         "license": "https://github.com/vasanthsreeram/macwispr/blob/main/LICENSE",
         "downloadUrl": "https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg",
-        "softwareVersion": "1.2.2",
+        "softwareVersion": "1.2.3",
         "url": "https://fuckwisprflow.com/",
         "image": "https://fuckwisprflow.com/assets/share-og.png",
         "description": "Free on-device dictation for Apple Silicon Macs. Local ASR under 0.5s with no cloud upload for transcription.",
@@ -202,7 +202,7 @@
   <main>
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <p class="eyebrow">Free · local · open source · Mac</p>
+        <p class="eyebrow">v1.2.3 · free · local · open source · Mac</p>
         <h1 id="hero-title">
           <span class="line">Don’t type.</span>
           <span class="line grad-text">Just speak.</span>
@@ -213,12 +213,13 @@
         </p>
         <div class="hero-actions">
           <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download for Mac · free forever</a>
-          <a class="btn btn-ghost glass" href="#race">Watch the race</a>
+          <a class="btn btn-ghost glass" href="#install">Install help</a>
         </div>
         <div class="hero-chips">
+          <span class="chip yes">v1.2.3</span>
+          <span class="chip yes">Qwen + Parakeet</span>
           <span class="chip yes">macOS 14+</span>
           <span class="chip yes">Apple Silicon</span>
-          <span class="chip yes">MIT</span>
           <span class="chip no">Windows</span>
         </div>
       </div>
@@ -404,29 +405,40 @@
 
     <section class="section install cv-auto" id="install" aria-labelledby="install-title">
       <div class="section-head reveal">
-        <p class="kicker">Setup</p>
-        <h2 id="install-title">Three steps. Mac only.</h2>
+        <p class="kicker">Setup · v1.2.3</p>
+        <h2 id="install-title">Install on Mac (Apple Silicon)</h2>
+        <p class="install-beta-note">
+          First launch may need <strong>right-click → Open</strong> or
+          <strong>System Settings → Privacy &amp; Security → Open Anyway</strong>
+          until notarization is stapled. Then grant Mic + Accessibility.
+        </p>
       </div>
       <ol class="steps">
         <li class="glass-card reveal">
           <span class="step-n">01</span>
           <div>
-            <strong>Download</strong>
-            <p><a href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Latest release</a></p>
+            <strong>Download &amp; install</strong>
+            <p>
+              <a href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Latest DMG (1.2.3)</a>
+              → drag <strong>MacWispr</strong> into <strong>Applications</strong>.
+            </p>
           </div>
         </li>
         <li class="glass-card reveal" data-delay="0.06">
           <span class="step-n">02</span>
           <div>
-            <strong>Drop in Applications</strong>
-            <p>Drag. Then <em>right-click → Open</em> the first time (macOS warns about apps it hasn’t notarized — we’re free, not shady).</p>
+            <strong>Trust the app (first launch)</strong>
+            <p>
+              Finder → Applications: <strong>right-click MacWispr → Open → Open</strong>.
+              Or Privacy &amp; Security → <strong>Open Anyway</strong>.
+            </p>
           </div>
         </li>
         <li class="glass-card reveal" data-delay="0.12">
           <span class="step-n">03</span>
           <div>
-            <strong>Dictate</strong>
-            <p>Mic + Accessibility · <kbd>Option</kbd> <kbd>Space</kbd></p>
+            <strong>Mic + Accessibility · dictate</strong>
+            <p>Allow permissions, then hold <kbd>Option</kbd> <kbd>Space</kbd>. Pick Qwen or Parakeet in the app.</p>
           </div>
         </li>
       </ol>

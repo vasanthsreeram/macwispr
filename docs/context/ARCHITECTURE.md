@@ -1,6 +1,6 @@
 # MacWispr architecture (current)
 
-Last updated: 2026-07-12 · product line **1.2.2+**
+Last updated: 2026-07-12 · product line **1.2.3** (`main`). Fine-tuned LFM polish is **not** on this line — see branch `feat/native-lfm-polish` and [RELEASE_1.2.3.md](./RELEASE_1.2.3.md).
 
 **Stack choice:** stay on **Swift** (AppKit + MLX via `speech-swift` + Sparkle). Size and peak RAM are dominated by metallibs and model weights, not the app language. Full comparison and “why not Rust/Zig/Bun”: [LANGUAGE_STACK.md](./LANGUAGE_STACK.md).
 

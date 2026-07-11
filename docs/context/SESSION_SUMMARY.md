@@ -1,8 +1,9 @@
 # Session summary — MacWispr product evolution
 
-**Branch:** `main`  
-**Shipped line:** **1.2.2** (Developer ID; Sparkle appcast on fuckwisprflow.com)  
-**Agent guide:** [AGENTS.md](../../AGENTS.md)
+**Branch for releases:** `main`  
+**Shipped / shipping line:** **1.2.3** (Parakeet + Qwen; Developer ID Team `UTSTY3J6NS`)  
+**Not in 1.2.3:** fine-tuned LFM polish → branch **`feat/native-lfm-polish` only**  
+**Agent guide:** [AGENTS.md](../../AGENTS.md) · **Release scope:** [RELEASE_1.2.3.md](./RELEASE_1.2.3.md)
 
 This document captures major product milestones so agents do not re-learn them from scratch.
 
@@ -10,7 +11,7 @@ This document captures major product milestones so agents do not re-learn them f
 
 ## Product
 
-**MacWispr** — on-device voice dictation for macOS (Apple Silicon), Qwen3-ASR via MLX. Menu-bar app; hold or toggle dictation; insert text system-wide; optional BYOK cloud STT; opt-in anonymous telemetry.
+**MacWispr** — on-device voice dictation for macOS (Apple Silicon). Menu-bar app; hold or toggle dictation; insert text system-wide; local **Qwen (MLX)** + **Parakeet (Core ML)**; optional BYOK cloud STT; optional transcript polish (Qwen chat / OpenAI on `main`); opt-in anonymous telemetry.
 
 **Requirements:** macOS 14+, arm64, Microphone + Accessibility, full Xcode for metallib builds, ~300MB+ model cache on first local run.
 
@@ -32,6 +33,8 @@ This document captures major product milestones so agents do not re-learn them f
 | **Signing** | Developer ID Team `UTSTY3J6NS`; notarize profile `MacWispr-notary` when Keychain set |
 | **Telemetry** | Privacy-first opt-in PostHog client; live project key in 1.2.2+ builds |
 | **Site** | fuckwisprflow.com (Cloudflare Pages project `fuckwisprflow`) |
+| **1.2.3 ASR** | Parakeet v3 En+EU (Core ML) + Qwen En+Asian; model chip; GPU free on switch (#12) |
+| **LFM polish** | **Not shipped** — stays on `feat/native-lfm-polish` until a later release |
 
 ### Intentionally removed earlier
 
@@ -48,8 +51,8 @@ This document captures major product milestones so agents do not re-learn them f
 - **Minimal Listening HUD** (dot + number; system material capsule)
 - Soft feedback sounds (optional)
 - Hold / Toggle ⌥Space
-- Local MLX + OpenAI / ElevenLabs BYOK
-- Dashboard (time saved / history)
+- Local Qwen (MLX) + Parakeet (Core ML) + OpenAI / ElevenLabs BYOK
+- Dashboard (time saved / history) + Local model quick-switch chip
 - Failure banner + onboarding
 - Sparkle Check for Updates
 - Opt-in telemetry (`Telemetry.swift` + Settings disclosure)

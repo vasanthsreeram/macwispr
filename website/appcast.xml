@@ -5,7 +5,7 @@
   Production URL: https://fuckwisprflow.com/appcast.xml
   Binary artifacts stay on GitHub Releases; this feed only points at them.
 
-  See docs/SPARKLE.md for the full release flow.
+  See docs/SPARKLE.md and docs/context/RELEASE_1.2.3.md.
 -->
 <rss version="2.0"
      xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
@@ -17,6 +17,33 @@
     <language>en</language>
 
     <item>
+      <title>MacWispr 1.2.3</title>
+      <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.3</link>
+      <sparkle:version>1.2.3</sparkle:version>
+      <sparkle:shortVersionString>1.2.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Sat, 11 Jul 2026 20:20:00 +0000</pubDate>
+      <description><![CDATA[
+        <h2>MacWispr 1.2.3</h2>
+        <ul>
+          <li><strong>Parakeet v3</strong> — on-device En + EU (Core ML / Neural Engine)</li>
+          <li><strong>Qwen 0.6B / 1.7B</strong> — En + Asian (MLX), RAM-aware defaults</li>
+          <li><strong>Model quick-switch</strong> — dashboard Local chip</li>
+          <li><strong>GPU free on model switch</strong> — MLX unload + Metal cache clear</li>
+          <li><strong>Parakeet short-clip fix</strong></li>
+          <li><strong>Developer ID + notarized</strong> — Accessibility survives updates</li>
+        </ul>
+        <p>Ships from <code>main</code> only. Fine-tuned LFM polish is not included (separate branch).</p>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.3/MacWispr-1.2.3-macos-arm64.zip"
+        length="107615589"
+        type="application/octet-stream"
+        sparkle:edSignature="s3ZAEW79tsQOW8upxPXd8qJIpuygrFV4SqJTZ8kyWCN57WaUo7evFE10v0obtoMgfC2naNJLvU2yVimscCpwCQ=="
+      />
+    </item>
+
+    <item>
       <title>MacWispr 1.2.2</title>
       <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.2</link>
       <sparkle:version>1.2.2</sparkle:version>
@@ -26,14 +53,9 @@
       <description><![CDATA[
         <h2>MacWispr 1.2.2</h2>
         <ul>
-          <li><strong>Live product telemetry</strong> — opt-in anonymous reliability events reach PostHog (working project key)</li>
-          <li><strong>Listening HUD</strong> — non-activating status pill (listening / transcribing / done)</li>
-          <li><strong>Clear pipeline states</strong> — menu bar Ready → Listening → Transcribing → Done/Fail</li>
-          <li><strong>Sound feedback</strong> — Tink start · Pop release · Glass success · Funk failure</li>
-          <li><strong>Failure banner</strong> — Fix Accessibility / Open Setup when insert fails</li>
-          <li><strong>Onboarding checklist</strong> — mic, Accessibility, hotkey, model</li>
-          <li>Mode-specific controls · Copy / re-paste last result · Shortcuts / App Intents</li>
-          <li>Developer ID signed</li>
+          <li>Live product telemetry (opt-in)</li>
+          <li>Listening HUD · pipeline states · sound feedback</li>
+          <li>Failure banner · onboarding</li>
         </ul>
       ]]></description>
       <enclosure

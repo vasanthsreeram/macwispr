@@ -969,6 +969,16 @@ kbd {
 }
 
 /* Steps */
+.install-beta-note {
+  max-width: 36rem;
+  margin: 0.75rem auto 0;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--muted, rgba(255, 255, 255, 0.72));
+  text-wrap: pretty;
+}
+.install-beta-note strong { color: inherit; font-weight: 650; }
+
 .steps {
   list-style: none;
   padding: 0;

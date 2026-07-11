@@ -16,7 +16,8 @@ Instructions for coding agents working in this repository.
 - Inserts text system-wide (Accessibility required for paste / event tap)
 - Marketing site: [fuckwisprflow.com](https://fuckwisprflow.com)
 - Sparkle updates: appcast at `https://fuckwisprflow.com/appcast.xml`
-- Latest shipped line: **1.2.2** (Developer ID Team `UTSTY3J6NS`)
+- Latest ship line: **1.2.3** from **`main`** only (Developer ID Team `UTSTY3J6NS`; Parakeet + Qwen)
+- **Do not** include branch `feat/native-lfm-polish` (LFM2.5 fine-tuned polish) in 1.2.3 — keep that branch separate until a later release ([docs/context/RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md))
 
 ## Repo map
 
@@ -107,7 +108,7 @@ Catalog: `ASRModelSize.swift` (`displayName` / `shortName`).
 # Local install (Developer ID if .env.signing present; skip notary with unset MACWISPR_NOTARY_PROFILE)
 set -a && source .env.signing && set +a
 unset MACWISPR_NOTARY_PROFILE
-export MACWISPR_VERSION=1.2.2
+export MACWISPR_VERSION=1.2.3
 ./scripts/build-app.sh
 rm -rf /Applications/MacWispr.app && cp -R dist/MacWispr.app /Applications/
 open -a MacWispr
@@ -115,11 +116,14 @@ open -a MacWispr
 
 ## Release (short)
 
-1. Bump `Info.plist` / scripts version if shipping a new version number
-2. `./scripts/build-app.sh` (+ Developer ID / notarize when ready)
-3. `sign_update` on zip → update `website/appcast.xml`
-4. `./scripts/release.sh vX.Y.Z`
-5. `wrangler pages deploy website --project-name=fuckwisprflow`
+**Always ship from `main`.** For 1.2.3 scope and “what is not included,” see [docs/context/RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md).
+
+1. Confirm branch is `main` (not `feat/native-lfm-polish`)
+2. Bump `Info.plist` / scripts version if shipping a new version number
+3. `source .env.signing && export MACWISPR_VERSION=… && ./scripts/build-app.sh` (Developer ID + notary)
+4. `sign_update` on zip → update `website/appcast.xml`
+5. `./scripts/release.sh vX.Y.Z`
+6. `wrangler pages deploy website --project-name=fuckwisprflow`
 
 See `docs/SPARKLE.md` and `docs/context/SIGNING.md`.
 
@@ -132,3 +136,4 @@ See `docs/SPARKLE.md` and `docs/context/SIGNING.md`.
 - Reintroduce a fake Dynamic Island / notch overlay as “system integration”
 - Send transcript content through telemetry
 - Full rewrite in Rust / Zig / Bun / JS unless explicitly requested (see [LANGUAGE_STACK.md](docs/context/LANGUAGE_STACK.md))
+- Merge **`feat/native-lfm-polish`** into a **1.2.3** release (LFM fine-tune stays on that branch)
