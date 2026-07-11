@@ -69,7 +69,12 @@ Direct download:
 https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg
 
 ### What's new in 1.2.3
-- **Free GPU memory on model switch** — switching 1.7B ↔ 0.6B (or local → cloud) now explicitly unloads weights and clears the MLX Metal buffer cache so footprint drops instead of staying stuck near the previous model’s peak (#12)
+- **Parakeet v3 (Core ML)** — on-device **En + EU** model via Neural Engine (alongside Qwen 0.6B / 1.7B for En + Asian)
+- **Model quick-switch** — dashboard chip to change local model without digging through Settings
+- **Clearer model labels** — language coverage first (En+Asian / En+EU), not jargon
+- **Free GPU memory on model switch** — switching sizes or local ↔ cloud unloads MLX weights and clears Metal cache so RAM actually drops (#12)
+- **Parakeet short-clip fix** — correct MultiArray shape on brief dictations
+- **RAM-aware defaults** — sensible Qwen size pick for machine memory
 
 
 ### Site

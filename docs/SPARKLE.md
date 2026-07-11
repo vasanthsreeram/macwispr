@@ -47,9 +47,9 @@ You can re-print the public key later with the same tool if the private key is s
 1. **Build** the app and zip (existing tooling):
 
    ```bash
-   export MACWISPR_VERSION=1.2.2
+   export MACWISPR_VERSION=1.2.3   # ship from main — see context/RELEASE_1.2.3.md
    ./scripts/build-app.sh
-   # produces dist/MacWispr-1.2.2-macos-arm64.zip
+   # produces dist/MacWispr-1.2.3-macos-arm64.zip
    ```
 
    Prefer **Developer ID + notarization** for production so Accessibility TCC survives updates — see [context/SIGNING.md](./context/SIGNING.md).
@@ -58,7 +58,7 @@ You can re-print the public key later with the same tool if the private key is s
 
    ```bash
    SIGN_UPDATE="$(find .build/artifacts -type f -name sign_update 2>/dev/null | head -1)"
-   "$SIGN_UPDATE" dist/MacWispr-1.2.2-macos-arm64.zip
+   "$SIGN_UPDATE" dist/MacWispr-1.2.3-macos-arm64.zip
    # prints: sparkle:edSignature="…" and length=…
    ```
 
@@ -74,7 +74,7 @@ You can re-print the public key later with the same tool if the private key is s
 4. **Publish binary** to GitHub Releases (existing):
 
    ```bash
-   ./scripts/release.sh v1.2.2
+   ./scripts/release.sh v1.2.3
    ```
 
 5. **Deploy appcast** so `https://fuckwisprflow.com/appcast.xml` serves the updated feed (Cloudflare Pages project `fuckwisprflow` — only the small XML, not the multi-hundred-MB zip):
