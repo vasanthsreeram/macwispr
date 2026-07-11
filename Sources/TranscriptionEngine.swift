@@ -5,6 +5,9 @@ actor TranscriptionEngine {
     private var model: Qwen3ASRModel?
     private var isWarmedUp = false
     private(set) var loadedModelId: String?
+    /// Bumped on each load start and on unload so a finishing stale download
+    /// cannot reinstall weights after the user switched provider/size.
+    private var loadGeneration = 0
 
     func loadModel(
         modelId: String,
@@ -15,7 +18,10 @@ actor TranscriptionEngine {
             return
         }
 
-        // Drop previous weights before loading another size.
+        loadGeneration += 1
+        let generation = loadGeneration
+
+        // Drop previous weights before loading another size (no dual residency).
         model = nil
         isWarmedUp = false
         loadedModelId = nil
@@ -25,12 +31,19 @@ actor TranscriptionEngine {
         ) { progress, status in
             progressHandler(progress, status)
         }
+
+        // Superseded by unloadModel() or a newer loadModel() — do not install.
+        guard generation == loadGeneration else {
+            throw CancellationError()
+        }
+
         self.model = loaded
         self.loadedModelId = modelId
         warmUp()
     }
 
     func unloadModel() {
+        loadGeneration += 1
         model = nil
         isWarmedUp = false
         loadedModelId = nil
