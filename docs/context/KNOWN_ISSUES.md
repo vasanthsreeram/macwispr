@@ -33,10 +33,21 @@ Checklist:
 MLX error: Failed to load the default metallib
 ```
 
-Rebuild with packaging that includes metallib:
+**Most common (dev machines):** only **Command Line Tools** are installed. Full **Xcode.app** is required — CLT cannot provide the `metal` compiler, so no metallib is produced and MLX fails at runtime even though `swift build` succeeded.
 
 ```bash
+./scripts/preflight-xcode.sh
+# or:
+xcrun -sdk macosx metal --version
+# If that fails:
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+xcodebuild -runFirstLaunch
 xcodebuild -downloadComponent MetalToolchain   # once if needed
+```
+
+For a packaged app, also rebuild so `mlx.metallib` is embedded:
+
+```bash
 ./scripts/install.sh
 ```
 

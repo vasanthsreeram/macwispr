@@ -3,6 +3,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Full Xcode.app required for Metal / MLX (Command Line Tools alone are not enough).
+"$ROOT/scripts/preflight-xcode.sh"
+
 CLIP="${1:-$ROOT/bench/clips/sample_10s_16k.wav}"
 BENCH="$ROOT/.build/release/BenchLatency"
 

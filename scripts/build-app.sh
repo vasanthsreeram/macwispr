@@ -11,6 +11,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# Metal toolchain required to build mlx.metallib for the packaged app.
+"$ROOT/scripts/preflight-xcode.sh"
+
 APP_NAME="MacWispr"
 VERSION="${MACWISPR_VERSION:-1.2.1}"
 BUILD_DIR="${BUILD_DIR:-$ROOT/.build}"
