@@ -20,6 +20,7 @@ uv run --with 'git+https://github.com/Blaizzy/mlx-audio.git' --with soundfile \
 |-------|---------|-------------:|----:|
 | Parakeet TDT 0.6B **v2** | MLX | **0.081s** | **0.009** |
 | Parakeet TDT 0.6B **v3** | MLX | **0.091s** | **0.009** |
+| Parakeet TDT 0.6B v3 | CoreML speech-swift INT8 (in-app, fixed 30s) | **0.13s** | **0.014** |
 | Parakeet TDT 0.6B v3 | CoreML FluidAudio CLI (warm wall) | ~0.18s | ~0.019 |
 | Parakeet TDT 0.6B v2 | CoreML FluidAudio CLI (warm wall) | ~0.20s | ~0.021 |
 | Nemotron 3.5 streaming 0.6B | MLX-8bit | **0.409s** | **0.043** |

@@ -249,7 +249,13 @@ final class AppState: ObservableObject {
         if let raw = UserDefaults.standard.string(forKey: Self.asrModelSizeKey),
            let size = ASRModelSize(rawValue: raw)
         {
-            asrModelSize = size
+            // Legacy Parakeet-INT4 picker value → single INT8 fixed-shape model.
+            if size == .parakeetInt4 {
+                asrModelSize = .parakeetInt8
+                UserDefaults.standard.set(asrModelSize.rawValue, forKey: Self.asrModelSizeKey)
+            } else {
+                asrModelSize = size
+            }
         } else {
             // First run / no saved choice: 1.7B when RAM > 16 GB, else 0.6B.
             asrModelSize = ASRModelSize.recommendedDefault

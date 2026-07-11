@@ -66,7 +66,7 @@ uv run --with 'git+https://github.com/Blaizzy/mlx-audio.git' --with soundfile \
 
 - **Hold-to-dictate** — Hold `Option+Space`, speak, release to transcribe and insert (toggle mode available)
 - **System-wide insertion** — Pastes into Slack, VS Code, browser, terminal, anywhere
-- **On-device ASR** — **Qwen3-ASR** on GPU (MLX) and **Parakeet TDT v3** on Neural Engine (Core ML INT4/INT8); pick in Settings
+- **On-device ASR** — **Qwen3-ASR** on GPU (MLX) and **Parakeet TDT v3** on Neural Engine (Core ML INT8, fixed 30s window); pick in Settings
 - **RAM-aware default** — Qwen 1.7B when Mac has &gt;16 GB RAM; else Qwen 0.6B (override anytime)
 - **BYOK cloud STT** — Optional OpenAI (`gpt-4o-mini-transcribe`) or ElevenLabs (`scribe_v2`); keys in Keychain only
 - **Transcript polish** — Off, local LLM, or OpenAI (`gpt-4o-mini`)
@@ -206,8 +206,7 @@ xychart-beta
 | **Qwen3-ASR 0.6B 8-bit** | MLX | **~0.4s** (RTF **0.040** on LibriSpeech) | **0.040** | **~25×** | Default on ≤16 GB Macs; 52 languages |
 | Qwen3-ASR 0.6B 4-bit | MLX | ~0.60s | ~0.06 | ~17× | Smaller / slightly worse quality |
 | **Qwen3-ASR 1.7B 8-bit** | MLX | ~0.77–1.78s | ~0.08–0.18 | ~5–13× | Default on &gt;16 GB Macs; highest local Qwen accuracy |
-| **Parakeet TDT v3 INT4** | Core ML / ANE (in-app) | fast (ANE) | — | — | Settings → Model · multilingual |
-| **Parakeet TDT v3 INT8** | Core ML / ANE (in-app) | slightly slower | — | — | Higher-quality Parakeet option |
+| **Parakeet TDT v3 INT8** | Core ML / ANE (in-app) | fast (ANE) | — | — | Settings → Model · fixed 30s mel window · multilingual |
 | ElevenLabs Scribe v2 (BYOK) | Cloud | ~1.6–2.3s | network | — | Optional cloud STT |
 
 ### Accuracy detail (WER)
@@ -271,7 +270,7 @@ Coding agents: see **[AGENTS.md](AGENTS.md)** and [docs/context/ARCHITECTURE.md]
 Sources/
   MacWisprApp.swift          App entry (menu bar + window)
   AppState.swift             State, phases, hotkey wiring, providers, post-processing
-  ASRModelSize.swift         On-device models: Qwen 0.6B/1.7B + Parakeet INT4/INT8
+  ASRModelSize.swift         On-device models: Qwen 0.6B/1.7B + Parakeet INT8
   TranscriptionEngine.swift  Local Qwen3ASR (MLX) + ParakeetASR (Core ML)
   CloudSTTClient.swift       OpenAI + ElevenLabs STT / OpenAI polish
   KeychainStore.swift        BYOK API keys (Keychain only)

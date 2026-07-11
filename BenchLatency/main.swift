@@ -31,12 +31,9 @@ struct BenchLatency {
     ]
 
     /// Parakeet TDT **v3** (multilingual, 25 EU langs) via speech-swift CoreML/ANE.
-    /// Same generation FluidVoice uses for batch dictation (FluidAudio CoreML ports).
+    /// HF now ships fixed-shape INT8 (3000 mel frames). INT4 repo retired.
     /// v2 English-only is only on the MLX path (`bench/bench_mlx_audio.py --models parakeet`).
     static let parakeetModels: [ParakeetSpec] = [
-        ParakeetSpec(
-            label: "Parakeet TDT v3 CoreML INT4 (multilingual)",
-            modelId: ParakeetASRModel.defaultModelId),
         ParakeetSpec(
             label: "Parakeet TDT v3 CoreML INT8 (multilingual)",
             modelId: ParakeetASRModel.int8ModelId),
@@ -49,6 +46,23 @@ struct BenchLatency {
         let rtf: Double
         let load: Double
         let preview: String
+    }
+
+
+    /// Match app-side pad so fixed-shape INT8 encoder accepts short clips.
+    static func prepareParakeetSamples(_ samples: [Float]) -> [Float] {
+        let hop = 160
+        let minSamples = (2001 - 1) * hop
+        let maxSamples = (3000 - 1) * hop
+        if samples.count < minSamples {
+            var padded = samples
+            padded.append(contentsOf: repeatElement(Float(0), count: minSamples - samples.count))
+            return padded
+        }
+        if samples.count > maxSamples {
+            return Array(samples.suffix(maxSamples))
+        }
+        return samples
     }
 
     static func main() async {
@@ -138,14 +152,19 @@ struct BenchLatency {
                     let loadTime = CFAbsoluteTimeGetCurrent() - loadStart
 
                     let warmupStart = CFAbsoluteTimeGetCurrent()
-                    try model.warmUp()
+                    // Avoid model.warmUp() — 1s silence pads to mel shape 200 and
+                    // fails on the fixed 3000-frame INT8 encoder.
+                    _ = try model.transcribeAudio(
+                        prepareParakeetSamples([Float](repeating: 0, count: 16_000)),
+                        sampleRate: 16_000)
                     let warmupTime = CFAbsoluteTimeGetCurrent() - warmupStart
 
                     var times: [Double] = []
                     var lastText = ""
+                    let prepared = prepareParakeetSamples(audio)
                     for i in 1...3 {
                         let t0 = CFAbsoluteTimeGetCurrent()
-                        lastText = try model.transcribeAudio(audio, sampleRate: 16000)
+                        lastText = try model.transcribeAudio(prepared, sampleRate: 16000)
                         let elapsed = CFAbsoluteTimeGetCurrent() - t0
                         times.append(elapsed)
                         print(String(format: "  run %d: %.3fs  (RTF %.3f)", i, elapsed, elapsed / duration))
@@ -183,22 +202,27 @@ struct BenchLatency {
         print("SUMMARY — inference latency for \(String(format: "%.1f", duration))s audio")
         print("═══════════════════════════════════════════════════════════════")
         print("")
-        print(String(format: "%-40s %8s %8s %8s  %s", "Model", "Latency", "RTF", "Load", "Chart"))
+        // Avoid String(format: "%s"/"%@") with Swift String — can SIGSEGV on exit.
+        let header = "Model".padding(toLength: 40, withPad: " ", startingAt: 0)
+        print("\(header)  Latency      RTF     Load  Chart")
         print(String(repeating: "─", count: 88))
 
         for r in results.sorted(by: { $0.best < $1.best }) {
             let barLen = Int((r.best / maxBar) * 20)
             let bar = String(repeating: "█", count: max(1, barLen))
             let marker = r.label == fastest.label ? " ← fastest" : ""
-            print(String(
-                format: "%-40s %6.2fs %8.3f %6.1fs  %@%@",
-                r.label, r.best, r.rtf, r.load, bar, marker))
+            let name = r.label.padding(toLength: 40, withPad: " ", startingAt: 0)
+            let lat = String(format: "%6.2fs", r.best)
+            let rtf = String(format: "%8.3f", r.rtf)
+            let load = String(format: "%6.1fs", r.load)
+            print("\(name)  \(lat) \(rtf) \(load)  \(bar)\(marker)")
         }
 
         print("")
-        print(String(
-            format: "Winner: %@ (%.2fs for %.1fs audio, %.1f× realtime)",
-            fastest.label, fastest.best, duration, duration / fastest.best))
+        let winLat = String(format: "%.2f", fastest.best)
+        let winDur = String(format: "%.1f", duration)
+        let winX = String(format: "%.1f", duration / fastest.best)
+        print("Winner: \(fastest.label) (\(winLat)s for \(winDur)s audio, \(winX)× realtime)")
         print("")
         print("Notes:")
         print("  • Qwen3 = MLX GPU (Metal). Parakeet here = CoreML Neural Engine.")

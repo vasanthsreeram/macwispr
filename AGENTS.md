@@ -8,7 +8,7 @@ Instructions for coding agents working in this repository.
 
 - On-device STT:
   - **Qwen3-ASR** via **MLX** (GPU) — 0.6B / 1.7B 8-bit
-  - **Parakeet TDT v3** via **Core ML** (Neural Engine) — INT4 / INT8
+  - **Parakeet TDT v3** via **Core ML** (Neural Engine) — INT8 fixed 30s mel window
 - Default model: **Qwen 1.7B** when system RAM **> 16 GB**, else **Qwen 0.6B** (user can override; Parakeet is opt-in)
 - Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional polish
 - Global hotkey: **⌥Space** (hold or toggle)
@@ -25,7 +25,7 @@ Instructions for coding agents working in this repository.
 | `scripts/` | build, sign, DMG, release, install |
 | `website/` | Marketing + **Sparkle appcast** (Cloudflare Pages `fuckwisprflow`) |
 | `docs/` | GitHub Pages product page + agent context |
-| `docs/context/` | Architecture, signing, known issues (agent-oriented) |
+| `docs/context/` | Architecture, language/stack choice, signing, known issues (agent-oriented) |
 | `PRIVACY.md` | Public telemetry / privacy contract |
 | `Info.plist` | Bundle ID, version, Sparkle feed URL / public key |
 | `dist/` | Built `.app` / zip / DMG (local; do not commit) |
@@ -116,9 +116,12 @@ open -a MacWispr
 
 See `docs/SPARKLE.md` and `docs/context/SIGNING.md`.
 
+**Stack choice:** stay on **Swift**. Size/RAM are model + MLX-bound, not language-bound. Do not rewrite in Rust/Zig/Bun for “lighter” alone — [docs/context/LANGUAGE_STACK.md](docs/context/LANGUAGE_STACK.md).
+
 ## Do not
 
 - Commit `.env.signing`, `.signing/`, private Sparkle keys, or `dist/`
 - Force-push `main` or rewrite published release tags without explicit user request
 - Reintroduce a fake Dynamic Island / notch overlay as “system integration”
 - Send transcript content through telemetry
+- Full rewrite in Rust / Zig / Bun / JS unless explicitly requested (see [LANGUAGE_STACK.md](docs/context/LANGUAGE_STACK.md))

@@ -105,7 +105,13 @@ actor TranscriptionEngine {
 
     private func warmUpParakeet(_ model: ParakeetASRModel) throws {
         guard !isWarmedUp else { return }
-        try model.warmUp()
+        // Do not call model.warmUp() — it feeds 1s silence, which pads to mel
+        // shape 200 and fails against the fixed 3000-frame encoder.
+        let silence = [Float](repeating: 0, count: 16_000)
+        _ = try model.transcribeAudio(
+            Self.prepareParakeetSamples(silence),
+            sampleRate: 16_000
+        )
         isWarmedUp = true
     }
 
@@ -135,13 +141,45 @@ actor TranscriptionEngine {
 
         case .parakeet(let model):
             if !isWarmedUp { try warmUpParakeet(model) }
-            // Protocol helper or direct API — language is optional (auto-detect).
+            // Fixed-shape Core ML encoders expect mel [1, 128, 3000] only.
+            // speech-swift (macOS 14 pin) still pads short audio to the nearest
+            // EnumeratedShapes length (100/200/…); those smaller shapes crash
+            // against the re-exported INT8 encoder. Pad/trim PCM so the mel
+            // frame count lands in (2000, 3000] and padding selects 3000.
+            let prepared = Self.prepareParakeetSamples(samples)
             return try model.transcribeAudio(
-                samples,
+                prepared,
                 sampleRate: 16000,
                 language: language
             )
         }
+    }
+
+    /// Parakeet mel hop length (matches NeMo / speech-swift MelPreprocessor).
+    private static let parakeetHopLength = 160
+    /// Max mel frames the fixed-shape INT8 encoder accepts (≈30 s @ 16 kHz).
+    private static let parakeetMaxMelFrames = 3000
+    /// Smallest mel frame count whose enumerated pad target is 3000 (not 2000).
+    private static let parakeetMinMelFramesForFullWindow = 2001
+
+    /// Zero-pad or trim 16 kHz PCM so Parakeet’s mel length fits the fixed
+    /// 3000-frame Core ML encoder without hitting a too-small enumerated shape.
+    static func prepareParakeetSamples(_ samples: [Float]) -> [Float] {
+        // MelPreprocessor: nFrames ≈ samples/hop + 1 (reflect-pad STFT).
+        // Keep nFrames in (2000, 3000] so padMelToEnumeratedShape picks 3000.
+        let minSamples = (parakeetMinMelFramesForFullWindow - 1) * parakeetHopLength
+        let maxSamples = (parakeetMaxMelFrames - 1) * parakeetHopLength
+
+        if samples.count < minSamples {
+            var padded = samples
+            padded.append(contentsOf: repeatElement(Float(0), count: minSamples - samples.count))
+            return padded
+        }
+        if samples.count > maxSamples {
+            // Prefer the most recent speech (dictation tail).
+            return Array(samples.suffix(maxSamples))
+        }
+        return samples
     }
 
     var isLoaded: Bool {

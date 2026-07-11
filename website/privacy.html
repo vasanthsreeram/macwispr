@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Privacy — MacWispr</title>
+  <meta name="description" content="MacWispr privacy policy: local-by-default transcription and opt-in, content-free product telemetry." />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#f7f2e8" />
+  <link rel="canonical" href="https://fuckwisprflow.com/privacy" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="MacWispr" />
+  <meta property="og:url" content="https://fuckwisprflow.com/privacy" />
+  <meta property="og:title" content="Privacy — MacWispr" />
+  <meta property="og:description" content="Local-by-default dictation. Opt-in, anonymous telemetry only." />
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/logo-128.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="/styles.v7.css" />
+  <style>
+    .doc-main {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: calc(var(--header-h) + 48px) 24px 80px;
+    }
+    .doc-main h1 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      line-height: 1.1;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+    .doc-lede {
+      color: var(--ink-soft);
+      font-size: 1.1rem;
+      margin: 0 0 36px;
+    }
+    .doc-main h2 {
+      font-size: 1.25rem;
+      margin: 2rem 0 0.75rem;
+      letter-spacing: -0.01em;
+    }
+    .doc-main h3 {
+      font-size: 1.05rem;
+      margin: 1.4rem 0 0.5rem;
+    }
+    .doc-main p, .doc-main li {
+      color: var(--ink-soft);
+      font-size: 1rem;
+      line-height: 1.65;
+    }
+    .doc-main ul { padding-left: 1.2rem; }
+    .doc-main li { margin: 0.35rem 0; }
+    .doc-main table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.95rem;
+    }
+    .doc-main th, .doc-main td {
+      border: 1px solid var(--line-strong);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .doc-main th {
+      background: rgba(255, 253, 248, 0.8);
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .doc-main hr {
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin: 2rem 0;
+    }
+    .doc-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .doc-meta .chip {
+      font-size: 0.85rem;
+    }
+    .doc-note {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 2.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" aria-hidden="true">
+    <div class="aurora"></div>
+  </div>
+
+  <header class="site-header">
+    <div class="header-inner glass">
+      <a class="brand" href="/" aria-label="MacWispr home">
+        <img src="/assets/logo-mark.png" width="32" height="32" alt="" decoding="async" />
+        <span class="brand-text">Mac<span class="soft">Wispr</span></span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/#install">Install</a>
+        <a href="/privacy" aria-current="page">Privacy</a>
+      </nav>
+      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download</a>
+    </div>
+  </header>
+
+  <main class="doc-main">
+    <h1>Privacy</h1>
+    <p class="doc-lede">MacWispr is built to keep your voice and text on your Mac whenever possible.</p>
+    <div class="doc-meta">
+      <span class="chip yes">Local ASR by default</span>
+      <span class="chip yes">Telemetry opt-in</span>
+      <span class="chip yes">No transcript content</span>
+    </div>
+
+    <p>By default, <strong>local</strong> transcription (Qwen3-ASR via MLX) runs entirely on-device. Optional cloud STT (OpenAI / ElevenLabs) only runs if you choose a cloud provider and supply your own API key (BYOK). Keys stay in the macOS Keychain.</p>
+
+    <h2>Optional product telemetry</h2>
+    <p>MacWispr can send <strong>anonymous, content-free</strong> product telemetry so we can measure real-world reliability — for example whether the global hotkey is actually armed after updates, or how often dictation fails by category.</p>
+
+    <h3>Opt-in (off by default)</h3>
+    <p>Telemetry is <strong>off until you turn it on</strong>. Nothing leaves your Mac for product analytics unless you enable it.</p>
+    <table>
+      <tbody>
+        <tr><th>Default</th><td>Off</td></tr>
+        <tr><th>Enable</th><td>Settings → Privacy → <strong>Share anonymous usage data</strong></td></tr>
+        <tr><th>Disable</th><td>Settings → Privacy → turn the same toggle <strong>off</strong></td></tr>
+      </tbody>
+    </table>
+    <p>Turning it off stops all further telemetry sends immediately. Already-sent events are not pulled back from the server (see Retention).</p>
+
+    <h3>Guiding principle</h3>
+    <p>Telemetry is <strong>opt-in</strong>, <strong>anonymous</strong>, and <strong>content-free</strong>. If in doubt, it does not leave the device.</p>
+    <p>We send only explicit, whitelisted events. Autocapture, session recording, and similar PostHog features are not used.</p>
+
+    <hr />
+
+    <h2>What we collect</h2>
+    <p>When telemetry is enabled, MacWispr may send:</p>
+    <table>
+      <thead>
+        <tr><th>Category</th><th>What</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>App / device</strong></td><td>App version, macOS version, CPU architecture (<code>arm64</code> / <code>x86_64</code>)</td></tr>
+        <tr><td><strong>Latency</strong></td><td>Transcription latency in <strong>buckets</strong> only (e.g. <code>&lt;1s</code>, <code>1–3s</code>) — not raw millisecond timings</td></tr>
+        <tr><td><strong>Dictation outcomes</strong></td><td>How many dictations <strong>completed</strong> or <strong>failed</strong></td></tr>
+        <tr><td><strong>Hotkey / Accessibility health</strong></td><td>Boolean flags only: tap installed, Carbon hotkey installed, Accessibility trusted, hotkey armed</td></tr>
+        <tr><td><strong>Coarse config</strong></td><td>Provider (<code>local</code> / <code>cloud</code>), model size class, dictation mode (<code>hold</code> / <code>toggle</code>), insertion mode</td></tr>
+        <tr><td><strong>Failure category</strong></td><td>Enum only: <code>no_audio</code>, <code>mic_denied</code>, <code>paste_no_ax</code>, <code>stt_error</code></td></tr>
+        <tr><td><strong>Install ID</strong></td><td>A <strong>random UUID</strong> generated once and stored locally — never a hardware serial, MAC address, or other device identifier</td></tr>
+      </tbody>
+    </table>
+    <p>These fields exist so we can answer questions like “how often is ⌥Space silently dead after an update?” without ever seeing what you said.</p>
+
+    <h2>What we never collect</h2>
+    <ul>
+      <li>Transcription <strong>text</strong> — ever</li>
+      <li><strong>Audio</strong> samples or recordings</li>
+      <li><strong>Custom vocabulary</strong> words</li>
+      <li><strong>Clipboard</strong> contents</li>
+      <li>API keys / secrets</li>
+      <li>Hardware serials, MAC address, username, email</li>
+      <li>IP-derived identity or other attempts to re-identify you</li>
+      <li>Precise location</li>
+      <li>Raw timestamps or durations that could fingerprint (we bucket)</li>
+    </ul>
+
+    <h2>Where data goes</h2>
+    <table>
+      <tbody>
+        <tr><th>Service</th><td><a href="https://posthog.com" rel="noopener">PostHog</a></td></tr>
+        <tr><th>Region</th><td>United States (PostHog US cloud)</td></tr>
+        <tr><th>Transport</th><td>HTTPS only (explicit batch events; no browser session, no screen recording)</td></tr>
+        <tr><th>Who can see it</th><td>Maintainers of this project, for product reliability metrics</td></tr>
+      </tbody>
+    </table>
+    <p>Telemetry is fail-silent: network or client errors never block dictation. Failed batches are dropped, not retried in a way that interferes with the app.</p>
+
+    <h3>Retention</h3>
+    <p>Events are retained on PostHog under the project’s configured data retention (typically on the order of months for product analytics; exact window may change with plan and settings). When you disable telemetry, MacWispr stops sending new events; historical aggregates already stored on PostHog are not automatically deleted.</p>
+    <p>If you need data removed for a specific install ID, open a GitHub issue or contact the maintainers and include that anonymous ID (shown in Settings when telemetry is enabled, when available).</p>
+
+    <h2>On-device vs cloud transcription</h2>
+    <p>This is separate from product telemetry.</p>
+    <table>
+      <thead>
+        <tr><th>Mode</th><th>Audio / text leave your Mac?</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Local</strong> (default)</td><td>No — ASR runs on Apple Silicon via MLX</td></tr>
+        <tr><td><strong>Cloud BYOK</strong></td><td>Yes — audio (and polish text, if enabled) go to the provider you chose, under <strong>your</strong> API key and their privacy policy</td></tr>
+        <tr><td><strong>Transcript history</strong></td><td>Stored locally under Application Support on your Mac</td></tr>
+      </tbody>
+    </table>
+    <p>Turning telemetry on does <strong>not</strong> change where transcription runs. Local stays local.</p>
+
+    <h2>Summary</h2>
+    <ol>
+      <li><strong>Local by default</strong> for speech-to-text.</li>
+      <li><strong>Telemetry is opt-in</strong> and off until you enable it in Settings.</li>
+      <li>We only send <strong>anonymous, non-content</strong> reliability signals.</li>
+      <li>We <strong>never</strong> send what you said, your audio, keys, or personal identifiers.</li>
+    </ol>
+    <p>This page is the public contract: if something is not listed under “What we collect,” it is not telemetry.</p>
+
+    <p class="doc-note">Source of truth in the repo: <a href="https://github.com/vasanthsreeram/macwispr/blob/main/PRIVACY.md">PRIVACY.md</a>. Last aligned with MacWispr 1.2.x.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="/assets/logo-mark.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
+      <div>
+        <strong>MacWispr</strong>
+        <span>Free local dictation for Mac</span>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+      <a href="https://github.com/vasanthsreeram/macwispr/blob/main/LICENSE">MIT</a>
+      <a href="/privacy">Privacy</a>
+    </div>
+    <p class="footer-note">© <span id="y"></span> MacWispr</p>
+  </footer>
+
+  <script>
+    document.getElementById("y").textContent = String(new Date().getFullYear());
+  </script>
+</body>
+</html>

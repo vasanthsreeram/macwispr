@@ -36,7 +36,7 @@ When telemetry is enabled, MacWispr may send:
 |----------|------|
 | **App / device** | App version, macOS version, CPU architecture (`arm64` / `x86_64`) |
 | **Latency** | Transcription latency in **buckets** only (e.g. `<1s`, `1–3s`, `3–10s`, `>10s`) — not raw millisecond timings that could fingerprint |
-| **Dictation counts** | How many dictations **started**, **completed**, or **failed** |
+| **Dictation outcomes** | How many dictations **completed** or **failed** |
 | **Hotkey / Accessibility health** | Boolean flags only: tap installed, Carbon hotkey installed, Accessibility trusted, hotkey armed |
 | **Coarse config** | Provider (`local` / `cloud`), model size class, dictation mode (`hold` / `toggle`), insertion mode |
 | **Failure category** | Enum only: `no_audio`, `mic_denied`, `paste_no_ax`, `stt_error` (and similar non-content labels) |

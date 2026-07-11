@@ -5,7 +5,9 @@ import ParakeetASR
 enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
     case small = "0.6B"
     case large = "1.7B"
+    /// Legacy raw value (was INT4). Maps to the fixed-shape INT8 encoder.
     case parakeetInt4 = "Parakeet-INT4"
+    /// Primary Parakeet option — Core ML INT8, fixed 30s mel window.
     case parakeetInt8 = "Parakeet-INT8"
 
     var id: String { rawValue }
@@ -27,18 +29,23 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .small: return "Qwen3-ASR 0.6B (MLX 8-bit)"
         case .large: return "Qwen3-ASR 1.7B (MLX 8-bit)"
-        case .parakeetInt4: return "Parakeet TDT v3 (CoreML INT4)"
+        case .parakeetInt4: return "Parakeet TDT v3 (CoreML INT8)"
         case .parakeetInt8: return "Parakeet TDT v3 (CoreML INT8)"
         }
     }
 
-    /// HuggingFace / speech-swift model identifier.
+    /// HuggingFace model identifier used by speech-swift.
+    ///
+    /// The INT4 HF repo was retired; both picker values load the INT8 fixed-shape
+    /// encoder (`1×128×3000` mel frames ≈ 30s). Short clips are padded in
+    /// `TranscriptionEngine` so Core ML accepts them.
     var modelId: String {
         switch self {
         case .small: return "mlx-community/Qwen3-ASR-0.6B-8bit"
         case .large: return "mlx-community/Qwen3-ASR-1.7B-8bit"
-        case .parakeetInt4: return ParakeetASRModel.defaultModelId
-        case .parakeetInt8: return ParakeetASRModel.int8ModelId
+        // Prefer speech-swift’s constant when present; fall back to the HF id.
+        case .parakeetInt4, .parakeetInt8:
+            return ParakeetASRModel.int8ModelId
         }
     }
 
@@ -46,8 +53,8 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .small: return "~500 MB · GPU (MLX) · lighter · best on ≤16 GB"
         case .large: return "~1.5 GB · GPU (MLX) · higher accuracy · best on >16 GB"
-        case .parakeetInt4: return "~Neural Engine · fast multilingual · INT4"
-        case .parakeetInt8: return "~Neural Engine · higher accuracy · INT8"
+        case .parakeetInt4, .parakeetInt8:
+            return "~Neural Engine · INT8 · fixed 30s window · multilingual"
         }
     }
 
@@ -57,10 +64,8 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
             return "Qwen3 on the GPU. Faster and uses less memory — good for 16 GB Macs."
         case .large:
             return "Qwen3 on the GPU. Better accuracy on names, accents, and noise."
-        case .parakeetInt4:
-            return "NVIDIA Parakeet TDT v3 on the Neural Engine (Core ML). Fast multilingual batch dictation."
-        case .parakeetInt8:
-            return "Parakeet TDT v3 INT8 — slightly larger/more accurate than INT4, still on the Neural Engine."
+        case .parakeetInt4, .parakeetInt8:
+            return "NVIDIA Parakeet TDT v3 on the Neural Engine (Core ML INT8). Fixed 30-second mel window; shorter clips are zero-padded automatically."
         }
     }
 
