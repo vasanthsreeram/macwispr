@@ -179,6 +179,8 @@ struct MenuBarView: View {
         }
         .padding(.vertical, 12)
         .frame(width: 300)
+        // Avoid extra material layers inside NSPopover (double glass on Tahoe).
+        .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             AppDelegate.shared?.appState = appState
             appState.refreshOutputMuteState()
