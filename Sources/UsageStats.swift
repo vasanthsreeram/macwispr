@@ -120,6 +120,9 @@ struct UsageStats {
 }
 
 enum HistoryStore {
+    /// Hard cap for in-memory and on-disk history (newest first).
+    static let maxEntries = 2000
+
     private static var fileURL: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
@@ -133,16 +136,24 @@ enum HistoryStore {
         guard let data = try? Data(contentsOf: url) else { return [] }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode([TranscriptionEntry].self, from: data)) ?? []
+        let entries = (try? decoder.decode([TranscriptionEntry].self, from: data)) ?? []
+        return Array(entries.prefix(maxEntries))
     }
 
     static func save(_ entries: [TranscriptionEntry]) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        // Cap disk size — keep newest 2,000 entries
-        let trimmed = Array(entries.prefix(2000))
+        // Compact JSON — less disk churn than pretty-printed full rewrites.
+        encoder.outputFormatting = [.sortedKeys]
+        let trimmed = Array(entries.prefix(maxEntries))
         guard let data = try? encoder.encode(trimmed) else { return }
         try? data.write(to: fileURL, options: .atomic)
+    }
+
+    /// Keep only the newest `maxEntries` in the mutable array (in place).
+    static func trimInPlace(_ entries: inout [TranscriptionEntry]) {
+        if entries.count > maxEntries {
+            entries = Array(entries.prefix(maxEntries))
+        }
     }
 }

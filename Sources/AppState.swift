@@ -63,11 +63,18 @@ final class AppState: ObservableObject {
 
     private var recordingSession = 0
     private var hotkeyHealthTimer: Timer?
+    /// Current health-timer interval (shorter while unarmed so we recover quickly).
+    private var hotkeyHealthInterval: TimeInterval = 2.0
+    private static let hotkeyHealthIntervalUnarmed: TimeInterval = 2.0
+    private static let hotkeyHealthIntervalArmed: TimeInterval = 8.0
     /// History id for the latest dictation (so Dictate edits update the same row).
     private var lastTranscriptionId: UUID?
     /// Bumped when starting a local load or leaving `.local` so a finishing
     /// mid-download load cannot stomp cloud readiness / UI flags.
     private var modelLoadGeneration = 0
+    /// Debounced history persistence — avoids rewriting history.json every dictation.
+    private var historySaveTask: Task<Void, Never>?
+    private static let historySaveDebounceNs: UInt64 = 750_000_000 // 0.75s
     private static let customVocabularyKey = "customVocabulary"
     private static let asrModelSizeKey = "asrModelSize"
     private static let transcriptionProviderKey = "transcriptionProvider"
@@ -385,9 +392,12 @@ final class AppState: ObservableObject {
 
         do {
             let text = try await transcribeSamples(samples)
-            var processed = postProcess(text)
-            processed = await applyPolish(processed)
+            let processed = postProcess(text)
 
+            // Insert raw STT immediately so perceived latency is STT time only.
+            // Polish (if enabled) runs as a follow-up that updates UI/history
+            // and the clipboard — not a second injection into the focused app
+            // (re-typing/replacing would race with cursor movement).
             currentTranscription = processed
 
             let duration = Double(samples.count) / 16000.0
@@ -397,9 +407,11 @@ final class AppState: ObservableObject {
                 duration: duration,
                 wordCount: UsageStats.wordCount(in: processed)
             )
-            lastTranscriptionId = entry.id
+            let entryId = entry.id
+            lastTranscriptionId = entryId
             transcriptionHistory.insert(entry, at: 0)
-            HistoryStore.save(transcriptionHistory)
+            HistoryStore.trimInPlace(&transcriptionHistory)
+            scheduleHistorySave()
 
             // Carbon can detect ⌥Space without AX, but paste/type still needs it.
             // Without feedback, that path is the classic "shortcut does nothing".
@@ -420,6 +432,10 @@ final class AppState: ObservableObject {
             if soundFeedbackEnabled, outcome == .ok {
                 FeedbackSounds.playListeningStopped()
             }
+
+            if polishProvider != .off {
+                await polishAndUpdate(entryId: entryId, raw: processed)
+            }
         } catch {
             currentTranscription = "Error: \(error.localizedDescription)"
             lastTranscriptionId = nil
@@ -427,6 +443,47 @@ final class AppState: ObservableObject {
             if soundFeedbackEnabled {
                 FeedbackSounds.playListeningStopped()
             }
+        }
+    }
+
+    /// Apply polish after raw insertion. Updates UI/history/clipboard only —
+    /// does not re-paste or re-type into the active app (that would double text
+    /// or race the user's cursor).
+    private func polishAndUpdate(entryId: UUID, raw: String) async {
+        let polished = await applyPolish(raw)
+        guard polished != raw else { return }
+
+        // Always upgrade the history row for this dictation when polish finishes.
+        if let index = transcriptionHistory.firstIndex(where: { $0.id == entryId }) {
+            let old = transcriptionHistory[index]
+            transcriptionHistory[index] = TranscriptionEntry(
+                id: old.id,
+                text: polished,
+                timestamp: old.timestamp,
+                duration: old.duration,
+                wordCount: UsageStats.wordCount(in: polished)
+            )
+            scheduleHistorySave()
+        }
+
+        // Only touch the live UI / clipboard if this is still the latest dictation.
+        guard lastTranscriptionId == entryId else { return }
+
+        // Preserve any accessibility warning suffix on currentTranscription.
+        if currentTranscription.hasPrefix(raw) {
+            let suffix = String(currentTranscription.dropFirst(raw.count))
+            currentTranscription = polished + suffix
+        } else {
+            currentTranscription = polished
+        }
+
+        // Refresh clipboard for modes that use it so a manual paste gets polished text.
+        // Type-out already sent raw keystrokes — do not re-inject.
+        switch insertionMode {
+        case .clipboard, .both:
+            textInserter.copyToClipboardOnly(polished)
+        case .typeOut:
+            break
         }
     }
 
@@ -528,10 +585,28 @@ final class AppState: ObservableObject {
             duration: old.duration,
             wordCount: UsageStats.wordCount(in: trimmed)
         )
-        HistoryStore.save(transcriptionHistory)
+        scheduleHistorySave()
 
         if lastTranscriptionId == id {
             currentTranscription = trimmed
+        }
+    }
+
+    /// Cap + debounce full history rewrites (#4 item 4).
+    private func scheduleHistorySave(immediate: Bool = false) {
+        HistoryStore.trimInPlace(&transcriptionHistory)
+        if immediate {
+            historySaveTask?.cancel()
+            historySaveTask = nil
+            HistoryStore.save(transcriptionHistory)
+            return
+        }
+        historySaveTask?.cancel()
+        historySaveTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: Self.historySaveDebounceNs)
+            guard !Task.isCancelled, let self else { return }
+            HistoryStore.save(self.transcriptionHistory)
+            self.historySaveTask = nil
         }
     }
 
@@ -619,7 +694,7 @@ final class AppState: ObservableObject {
 
     func clearHistory() {
         transcriptionHistory = []
-        HistoryStore.save(transcriptionHistory)
+        scheduleHistorySave(immediate: true)
     }
 
     // MARK: - Custom vocabulary (ASR context)
@@ -731,15 +806,39 @@ final class AppState: ObservableObject {
         // Accessory apps rarely become "active", and granting Accessibility
         // after launch doesn't notify us — poll so the global hotkey heals
         // without a relaunch, and so the menu bar status stays honest.
+        // Interval backs off once armed (#4 item 5) to reduce App Nap disruption.
+        startHotkeyHealthTimer(interval: Self.hotkeyHealthIntervalUnarmed)
+    }
+
+    private func startHotkeyHealthTimer(interval: TimeInterval) {
         hotkeyHealthTimer?.invalidate()
-        hotkeyHealthTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        hotkeyHealthInterval = interval
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.hotkeyManager.ensureRegistered()
-                self?.refreshHotkeyHealth()
+                self?.tickHotkeyHealth()
             }
         }
-        if let hotkeyHealthTimer {
-            RunLoop.main.add(hotkeyHealthTimer, forMode: .common)
+        // common modes so menu-bar tracking doesn't starve the timer.
+        RunLoop.main.add(timer, forMode: .common)
+        hotkeyHealthTimer = timer
+    }
+
+    private func tickHotkeyHealth() {
+        // Once armed and no titled window is visible, still re-enable a disabled
+        // tap but skip published-state churn (menu bar isn't showing health UI).
+        let hasVisibleWindow = NSApp.windows.contains {
+            $0.isVisible && $0.styleMask.contains(.titled)
+        }
+        hotkeyManager.ensureRegistered()
+        if hasVisibleWindow || !hotkeyManager.isArmed {
+            refreshHotkeyHealth()
+        }
+
+        let desired = hotkeyManager.isArmed
+            ? Self.hotkeyHealthIntervalArmed
+            : Self.hotkeyHealthIntervalUnarmed
+        if abs(desired - hotkeyHealthInterval) > 0.5 {
+            startHotkeyHealthTimer(interval: desired)
         }
     }
 
