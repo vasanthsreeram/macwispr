@@ -65,6 +65,9 @@ final class AppState: ObservableObject {
     private var hotkeyHealthTimer: Timer?
     /// History id for the latest dictation (so Dictate edits update the same row).
     private var lastTranscriptionId: UUID?
+    /// Bumped when starting a local load or leaving `.local` so a finishing
+    /// mid-download load cannot stomp cloud readiness / UI flags.
+    private var modelLoadGeneration = 0
     private static let customVocabularyKey = "customVocabulary"
     private static let asrModelSizeKey = "asrModelSize"
     private static let transcriptionProviderKey = "transcriptionProvider"
@@ -225,12 +228,13 @@ final class AppState: ObservableObject {
     }
 
     /// Marks cloud providers ready when a key exists; loads local model otherwise.
+    /// Leaving `.local` unloads in-memory ASR weights (disk cache is kept).
     func prepareActiveProvider() async {
         switch transcriptionProvider {
         case .local:
             await loadModel()
         case .openAI:
-            isModelLoading = false
+            await unloadLocalModelForProviderSwitch()
             if hasOpenAIKey {
                 isModelLoaded = true
                 modelLoadStatus = "Ready · OpenAI"
@@ -241,7 +245,7 @@ final class AppState: ObservableObject {
                 modelLoadProgress = 0
             }
         case .elevenLabs:
-            isModelLoading = false
+            await unloadLocalModelForProviderSwitch()
             if hasElevenLabsKey {
                 isModelLoaded = true
                 modelLoadStatus = "Ready · ElevenLabs"
@@ -254,8 +258,19 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Free on-device ASR weights and invalidate any in-flight local load so it
+    /// cannot rewrite readiness flags after the user moved to a cloud provider.
+    private func unloadLocalModelForProviderSwitch() async {
+        modelLoadGeneration += 1
+        isModelLoading = false
+        await transcriptionEngine.unloadModel()
+    }
+
     func loadModel() async {
-        guard !isModelLoading else { return }
+        // Invalidate any prior in-flight load (size switch or overlapping prepare).
+        modelLoadGeneration += 1
+        let generation = modelLoadGeneration
+
         // Allow reload when switching size (isModelLoaded may already be true).
         isModelLoading = true
         isModelLoaded = false
@@ -268,20 +283,36 @@ final class AppState: ObservableObject {
             try await Task.detached {
                 try await engine.loadModel(modelId: modelId) { progress, status in
                     DispatchQueue.main.async { [weak self] in
-                        self?.modelLoadProgress = progress
-                        self?.modelLoadStatus = status.isEmpty
+                        guard let self, self.modelLoadGeneration == generation else { return }
+                        self.modelLoadProgress = progress
+                        self.modelLoadStatus = status.isEmpty
                             ? "Downloading... \(Int(progress * 100))%"
                             : "\(status) (\(Int(progress * 100))%)"
                     }
                 }
             }.value
+
+            // Stale: provider switched away or a newer load superseded us.
+            guard generation == modelLoadGeneration else { return }
+            guard transcriptionProvider == .local else {
+                await engine.unloadModel()
+                return
+            }
+
             isModelLoaded = true
             modelLoadStatus = "Ready"
+        } catch is CancellationError {
+            // loadModel was superseded by unload or a newer load — ignore.
+            guard generation == modelLoadGeneration else { return }
         } catch {
+            guard generation == modelLoadGeneration else { return }
             modelLoadStatus = "Error: \(error.localizedDescription)"
             isModelLoaded = false
         }
-        isModelLoading = false
+
+        if generation == modelLoadGeneration {
+            isModelLoading = false
+        }
     }
 
     func setASRModelSize(_ size: ASRModelSize) {
@@ -293,6 +324,8 @@ final class AppState: ObservableObject {
             isRecording = false
             recordingSession += 1
         }
+        // Only reload on-device weights when local STT is active.
+        guard transcriptionProvider == .local else { return }
         Task { await loadModel() }
     }
 
