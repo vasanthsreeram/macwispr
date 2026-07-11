@@ -181,18 +181,23 @@ Sources/
   SettingsView.swift         Provider, keys, language, vocabulary, About
 
 scripts/
-  build-app.sh               Package MacWispr.app + release zip
+  build-app.sh               Package MacWispr.app + release zip (+ Sparkle.framework)
   install.sh                 Build and install to /Applications
   release.sh                 Tag + publish GitHub Release
 
 docs/
   index.html                 Product website (GitHub Pages)
+  SPARKLE.md                 Auto-update keys, sign_update, appcast deploy
   assets/                    Logo + README images
+
+website/
+  appcast.xml                Sparkle feed template (deploy to fuckwisprflow.com)
 ```
 
 ## Dependencies
 
 - [soniqo/speech-swift](https://github.com/soniqo/speech-swift) — Qwen3-ASR, SpeechVAD, AudioCommon (MLX on Apple Silicon)
+- [sparkle-project/Sparkle](https://github.com/sparkle-project/Sparkle) — in-app **Check for Updates…** (appcast on fuckwisprflow.com). Setup and release signing: [docs/SPARKLE.md](docs/SPARKLE.md).
 
 ## Troubleshooting
 

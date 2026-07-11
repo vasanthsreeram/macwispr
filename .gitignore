@@ -9,3 +9,9 @@ DerivedData/
 .netrc
 qwen_transcript.txt
 *.app
+
+# Sparkle EdDSA private keys — never commit (public key only in Info.plist)
+*.pem
+ed25519-private*
+sparkle_private*
+sparkle-private*

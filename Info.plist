@@ -26,5 +26,18 @@
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>MacWispr needs microphone access for voice dictation (on-device or with your own cloud API keys).</string>
+
+    <!-- Sparkle auto-updates (https://sparkle-project.org/) -->
+    <key>SUFeedURL</key>
+    <string>https://fuckwisprflow.com/appcast.xml</string>
+    <!--
+      SUPublicEDKey: PLACEHOLDER — replace with the public key printed by Sparkle
+      `generate_keys` (one-time). The matching private key must NEVER be committed;
+      keep it in Keychain / secrets manager only. See docs/SPARKLE.md.
+    -->
+    <key>SUPublicEDKey</key>
+    <string>PLACEHOLDER_REPLACE_WITH_generate_keys_PUBLIC_OUTPUT</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
 </dict>
 </plist>
