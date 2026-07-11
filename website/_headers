@@ -1,0 +1,35 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: interest-cohort=(), camera=(), microphone=(), geolocation=()
+  Cross-Origin-Opener-Policy: same-origin
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+  Link: </styles.v3.css>; rel=preload; as=style, </assets/hero-menubar.webp>; rel=preload; as=image; type=image/webp
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/styles.v3.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/app.v3.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/styles.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/app.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/robots.txt
+  Cache-Control: public, max-age=86400
+
+/sitemap.xml
+  Cache-Control: public, max-age=86400
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
