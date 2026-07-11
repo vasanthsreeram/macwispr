@@ -157,6 +157,28 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section("Privacy") {
+                Toggle("Share anonymous usage data", isOn: Binding(
+                    get: { appState.telemetryOptIn },
+                    set: { appState.setTelemetryOptIn($0) }
+                ))
+                Text("Off by default. When on, MacWispr may send anonymous, content-free reliability signals (hotkey health, bucketed latency, failure categories). Never transcription text, audio, vocabulary, clipboard, or API keys.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button("What we collect…") {
+                    appState.showTelemetryDisclosure = true
+                }
+
+                if let privacyURL = PrivacyDoc.url {
+                    Link("Open PRIVACY.md", destination: privacyURL)
+                        .font(.caption)
+                } else if let web = URL(string: "https://github.com/vasanthsreeram/macwispr/blob/main/PRIVACY.md") {
+                    Link("Privacy policy on GitHub", destination: web)
+                        .font(.caption)
+                }
+            }
         }
         .formStyle(.grouped)
         .padding()
@@ -659,6 +681,111 @@ enum AppVersion {
         }
         return "1.2.1"
     }()
+}
+
+/// Resolves PRIVACY.md from the app bundle, repo checkout, or GitHub.
+enum PrivacyDoc {
+    static var url: URL? {
+        if let bundled = Bundle.main.url(forResource: "PRIVACY", withExtension: "md") {
+            return bundled
+        }
+        // Dev / `swift run` from repo root.
+        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let candidate = cwd.appendingPathComponent("PRIVACY.md")
+        if FileManager.default.fileExists(atPath: candidate.path) {
+            return candidate
+        }
+        return nil
+    }
+}
+
+// MARK: - First-run / Settings telemetry disclosure (#7)
+
+/// Exact collect / never-collect manifest for the opt-in disclosure sheet.
+struct TelemetryDisclosureSheet: View {
+    @EnvironmentObject var appState: AppState
+    /// When true, "Not now" only dismisses without changing opt-in (re-open from Settings).
+    var isRevisit: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Anonymous usage data")
+                .font(.title2.weight(.semibold))
+
+            Text("MacWispr can send **anonymous, content-free** reliability signals so we can fix issues like a silently dead ⌥Space hotkey after updates. Telemetry is **opt-in** and off by default.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            GroupBox("We collect") {
+                VStack(alignment: .leading, spacing: 6) {
+                    bullet("App version, macOS version, CPU architecture")
+                    bullet("Transcription latency (bucketed: <1s, 1–3s, 3–10s, >10s)")
+                    bullet("Dictation event counts (completed / failed)")
+                    bullet("Hotkey / Accessibility health flags (booleans only)")
+                    bullet("Coarse config: provider, model size, hold/toggle, insertion mode")
+                    bullet("Failure category enum (no_audio, mic_denied, paste_no_ax, stt_error)")
+                    bullet("A random install ID stored only on this Mac")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
+            }
+
+            GroupBox("We never collect") {
+                VStack(alignment: .leading, spacing: 6) {
+                    bullet("Transcription text")
+                    bullet("Audio samples or recordings")
+                    bullet("Custom vocabulary words")
+                    bullet("Clipboard contents")
+                    bullet("API keys or secrets")
+                    bullet("Hardware identifiers, username, email, or precise location")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
+            }
+
+            if let privacyURL = PrivacyDoc.url {
+                Link("Read PRIVACY.md", destination: privacyURL)
+                    .font(.callout)
+            } else if let web = URL(string: "https://github.com/vasanthsreeram/macwispr/blob/main/PRIVACY.md") {
+                Link("Read PRIVACY.md on GitHub", destination: web)
+                    .font(.callout)
+            }
+
+            HStack {
+                Button("Not now") {
+                    if isRevisit {
+                        appState.showTelemetryDisclosure = false
+                        Telemetry.shared.markDisclosureSeen()
+                    } else {
+                        appState.acknowledgeTelemetryDisclosure(optIn: false)
+                    }
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Spacer()
+
+                Button(appState.telemetryOptIn && isRevisit ? "Keep sharing" : "Share anonymous data") {
+                    appState.acknowledgeTelemetryDisclosure(optIn: true)
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(.top, 4)
+        }
+        .padding(24)
+        .frame(width: 480)
+    }
+
+    private func bullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text("•")
+                .foregroundStyle(.secondary)
+            Text(text)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
 }
 
 extension NSImage {
