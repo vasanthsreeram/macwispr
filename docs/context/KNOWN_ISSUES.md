@@ -41,6 +41,19 @@ rm -rf ~/Library/Caches/qwen3-speech/models/aufklarer/Parakeet-TDT-v3-CoreML-INT
 
 Upstream speech-swift main now discovers shapes and defaults to `…-INT8-30s`, but requires **macOS 15** — MacWispr stays on a macOS 14-compatible pin until a platform bump.
 
+## Menu bar popover looks double / ghosted / “Liquid Glass” layered
+
+**Symptom:** Clicking the menu-bar icon shows a glitchy popover (text drawn twice, translucent overlapping rows).
+
+**Cause (fixed in current main):**
+1. `MacWisprApp.body` re-ran `StatusBarController.install` on scene invalidation.
+2. Every click replaced `NSPopover.contentViewController` with a new `NSHostingController`.
+3. `popover.animates = true` plus host swap stacked materials under Liquid Glass.
+
+**Fix:** install once; keep a single hosting controller for process life; `animates = false`; solid `windowBackgroundColor` behind `MenuBarView`; size from fitting size.
+
+If you still see ghosts, quit fully (`pkill -x MacWispr`) and reopen `/Applications/MacWispr.app`.
+
 ## Floating HUD looks wrong / still has long text
 
 Current design is **minimal**: glowing phase dot + elapsed digits only (no “Listening…” / “release to…” copy).
