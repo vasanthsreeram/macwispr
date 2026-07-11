@@ -88,18 +88,14 @@ https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-mac
 EOF
 )
 
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "warning: working tree dirty — publishing assets only (skipping tag push if already tagged)" >&2
-fi
-
+# Tag the current HEAD commit even if the worktree is dirty (dist/ and local
+# site edits often leave the tree unclean; the tag points at HEAD, not the index).
 if ! git rev-parse "$TAG" >/dev/null 2>&1; then
-  if [[ -z "$(git status --porcelain)" ]]; then
-    git tag -a "$TAG" -m "MacWispr $TAG"
-    git push origin "$TAG"
-  else
-    echo "error: cannot create tag with dirty tree" >&2
-    exit 1
+  if [[ -n "$(git status --porcelain)" ]]; then
+    echo "warning: dirty worktree — tagging HEAD $(git rev-parse --short HEAD) only" >&2
   fi
+  git tag -a "$TAG" -m "MacWispr $TAG"
+  git push origin "$TAG"
 else
   git push origin "$TAG" 2>/dev/null || true
 fi
