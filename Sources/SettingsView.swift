@@ -540,31 +540,63 @@ struct SettingsView: View {
                         .background(.quaternary)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
-                Text("You can also use Hold to Speak / Start Listening in the menu bar panel.")
+                Text("Menu bar shows only the control for your current mode (Hold button or Start/Stop).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Also available via Shortcuts / Spotlight: Start, Stop, Toggle dictation.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Sound Feedback") {
+            Section("Sound & HUD") {
                 Toggle("Play sounds when listening starts and stops", isOn: Binding(
                     get: { appState.soundFeedbackEnabled },
                     set: { appState.setSoundFeedbackEnabled($0) }
                 ))
-                Text("Start chime when listening begins. End chime only after transcription finishes (not when you release the key).")
+                Text("Tink on start · Pop on release · Glass on success · Funk on failure.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Show listening HUD", isOn: Binding(
+                    get: { appState.listeningHUDEnabled },
+                    set: { appState.setListeningHUDEnabled($0) }
+                ))
+                Text("Floating status pill while listening / transcribing (does not steal focus).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
                 if appState.soundFeedbackEnabled {
+                    if appState.outputMuted {
+                        Label(
+                            "Mac sound is muted (or volume is zero). Unmute to hear chimes.",
+                            systemImage: "speaker.slash.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
                     HStack(spacing: 12) {
                         Button("Preview start") {
+                            appState.refreshOutputMuteState()
                             FeedbackSounds.playListeningStarted()
                         }
                         Button("Preview stop") {
+                            appState.refreshOutputMuteState()
                             FeedbackSounds.playListeningStopped()
                         }
+                        Button("Recheck mute") {
+                            appState.refreshOutputMuteState()
+                        }
+                        .font(.caption)
                     }
                 }
+
+                Button("Show setup checklist again…") {
+                    appState.reopenOnboarding()
+                }
+                .font(.caption)
             }
+            .onAppear { appState.refreshOutputMuteState() }
 
             Section("Permissions") {
                 HStack {
@@ -687,7 +719,7 @@ enum AppVersion {
         {
             return short
         }
-        return "1.2.1"
+        return "1.2.2"
     }()
 }
 

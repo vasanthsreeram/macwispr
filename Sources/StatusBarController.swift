@@ -28,9 +28,9 @@ final class StatusBarController: NSObject {
         if statusItem == nil {
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             if let button = item.button {
-                button.image = Self.symbolImage(recording: false)
+                button.image = Self.symbolImage(phase: .setup)
                 button.imagePosition = .imageOnly
-                button.toolTip = "MacWispr — click for controls"
+                button.toolTip = "MacWispr — Hold ⌥Space to dictate"
                 button.target = self
                 button.action = #selector(statusItemClicked(_:))
                 button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -46,27 +46,63 @@ final class StatusBarController: NSObject {
             popover = pop
         }
         refreshPopoverContent()
+        applyPhase(appState.dictationPhase, detail: appState.phaseDetail, state: appState)
 
         cancellables.removeAll()
-        appState.$isRecording
+
+        appState.$dictationPhase
+            .combineLatest(appState.$phaseDetail, appState.$recordingElapsed, appState.$isModelLoading)
             .receive(on: RunLoop.main)
-            .sink { [weak self] recording in
-                self?.statusItem?.button?.image = Self.symbolImage(recording: recording)
-                self?.statusItem?.button?.toolTip = recording
-                    ? "MacWispr — listening…"
-                    : "MacWispr — click for controls"
+            .sink { [weak self] phase, detail, _, _ in
+                guard let self, let state = self.appState else { return }
+                self.applyPhase(phase, detail: detail, state: state)
             }
             .store(in: &cancellables)
 
         appState.$isModelLoaded
             .receive(on: RunLoop.main)
-            .sink { [weak self] loaded in
-                self?.statusItem?.button?.appearsDisabled = false
-                if !loaded {
-                    self?.statusItem?.button?.toolTip = "MacWispr — loading model…"
-                }
+            .sink { [weak self] _ in
+                guard let self, let state = self.appState else { return }
+                self.applyPhase(state.dictationPhase, detail: state.phaseDetail, state: state)
             }
             .store(in: &cancellables)
+    }
+
+    private func applyPhase(_ phase: DictationPhase, detail: String, state: AppState) {
+        guard let button = statusItem?.button else { return }
+        button.image = Self.symbolImage(phase: phase)
+        button.appearsDisabled = false
+
+        switch phase {
+        case .listening:
+            button.imagePosition = .imageLeading
+            button.title = " \(state.recordingElapsedLabel)"
+            button.toolTip = detail.isEmpty ? "MacWispr — listening…" : detail
+        case .transcribing:
+            button.imagePosition = .imageOnly
+            button.title = ""
+            button.toolTip = detail.isEmpty ? "MacWispr — transcribing…" : detail
+        case .success:
+            button.imagePosition = .imageOnly
+            button.title = ""
+            button.toolTip = detail.isEmpty ? "MacWispr — inserted" : detail
+        case .failed:
+            button.imagePosition = .imageOnly
+            button.title = ""
+            button.toolTip = detail.isEmpty ? "MacWispr — something went wrong" : detail
+        case .setup:
+            button.imagePosition = .imageOnly
+            button.title = ""
+            if state.isModelLoading {
+                button.toolTip = "MacWispr — \(state.modelLoadStatus.isEmpty ? "loading model…" : state.modelLoadStatus)"
+            } else {
+                button.toolTip = "MacWispr — setup needed: \(state.readinessLabel)"
+            }
+        case .ready:
+            button.imagePosition = .imageOnly
+            button.title = ""
+            button.toolTip = "MacWispr — Hold ⌥Space to dictate"
+        }
     }
 
     private func refreshPopoverContent() {
@@ -75,7 +111,7 @@ final class StatusBarController: NSObject {
             .environmentObject(appState)
             .frame(width: 300)
         popover.contentViewController = NSHostingController(rootView: root)
-        popover.contentSize = NSSize(width: 300, height: 420)
+        popover.contentSize = NSSize(width: 300, height: 440)
     }
 
     @objc private func statusItemClicked(_ sender: Any?) {
@@ -85,7 +121,7 @@ final class StatusBarController: NSObject {
             popover.performClose(nil)
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            // Activate so buttons inside the popover receive clicks.
+            // Activate so buttons inside the popover receive clicks (popover only).
             NSApp.activate(ignoringOtherApps: true)
         }
     }
@@ -94,8 +130,20 @@ final class StatusBarController: NSObject {
         popover?.performClose(nil)
     }
 
-    private static func symbolImage(recording: Bool) -> NSImage? {
-        let name = recording ? "waveform.circle.fill" : "waveform.circle"
+    private static func symbolImage(phase: DictationPhase) -> NSImage? {
+        let name: String
+        switch phase {
+        case .listening:
+            name = "waveform.circle.fill"
+        case .transcribing:
+            name = "ellipsis.circle.fill"
+        case .success:
+            name = "checkmark.circle.fill"
+        case .failed, .setup:
+            name = "waveform.circle"
+        case .ready:
+            name = "waveform.circle"
+        }
         let image = NSImage(systemSymbolName: name, accessibilityDescription: "MacWispr")
         image?.isTemplate = true
         return image

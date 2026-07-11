@@ -1,17 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  MacWispr Sparkle appcast (template / sample).
+  MacWispr Sparkle appcast.
 
   Production URL: https://fuckwisprflow.com/appcast.xml
   Binary artifacts stay on GitHub Releases; this feed only points at them.
-
-  Before shipping for real:
-    1. Generate EdDSA keys once: Sparkle bin/generate_keys
-    2. Put the PUBLIC key in Info.plist as SUPublicEDKey (never commit the private key)
-    3. After each release zip is built, sign it:
-         sign_update dist/MacWispr-X.Y.Z-macos-arm64.zip
-    4. Fill sparkle:edSignature and length below with sign_update output
-    5. Deploy this file to fuckwisprflow.com
 
   See docs/SPARKLE.md for the full release flow.
 -->
@@ -24,31 +16,26 @@
     <description>MacWispr updates (Sparkle)</description>
     <language>en</language>
 
-    <!--
-      TEMPLATE ITEM — replace version / URL / length / edSignature per release.
-      URL pattern matches scripts/build-app.sh + GitHub Releases:
-        https://github.com/vasanthsreeram/macwispr/releases/download/vX.Y.Z/MacWispr-X.Y.Z-macos-arm64.zip
-    -->
     <item>
-      <title>MacWispr 1.2.1</title>
-      <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.1</link>
-      <sparkle:version>1.2.1</sparkle:version>
-      <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
+      <title>MacWispr 1.2.2</title>
+      <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.2</link>
+      <sparkle:version>1.2.2</sparkle:version>
+      <sparkle:shortVersionString>1.2.2</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <pubDate>Fri, 11 Jul 2025 00:00:00 +0000</pubDate>
+      <pubDate>Fri, 11 Jul 2026 15:31:00 +0000</pubDate>
       <description><![CDATA[
-        <h2>MacWispr 1.2.1</h2>
-        <p>Template appcast entry. Replace signature and length after running <code>sign_update</code>.</p>
+        <h2>MacWispr 1.2.2</h2>
         <ul>
-          <li>Hotkey reliability improvements</li>
-          <li>See GitHub release notes for full changelog</li>
+          <li><strong>Sound feedback</strong> — Tink when listening starts, Pop when you release</li>
+          <li><strong>Mute detection</strong> — warns in the menu bar if Mac sound is muted</li>
+          <li>More reliable chimes · Developer ID signed</li>
         </ul>
       ]]></description>
       <enclosure
-        url="https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.1/MacWispr-1.2.1-macos-arm64.zip"
-        length="0"
+        url="https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.2/MacWispr-1.2.2-macos-arm64.zip"
+        length="107485376"
         type="application/octet-stream"
-        sparkle:edSignature="PLACEHOLDER_RUN_sign_update_AND_PASTE_SIGNATURE_HERE"
+        sparkle:edSignature="E2toN9kKAXWFJb/aNqjUMRWtp45iSDFU+OJJPAjY2Bw/OkBusL783AiWu7/Qy9anTj6e7jNhAf0iQOfuAPZMAw=="
       />
     </item>
   </channel>

@@ -68,13 +68,14 @@ Voice dictation for macOS (Apple Silicon) — on-device by default, optional BYO
 Direct download:
 https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg
 
-### What's new in 1.2.1
-- **Hotkey reliability** — Carbon \`RegisterEventHotKey\` alongside the CGEvent tap (detection can survive a dropped Accessibility grant)
-- **Honest “armed” status** — menu bar only shows ⌥Space ready when tap or Carbon is live (not monitors-only)
-- **Live re-arm** — polls Accessibility and re-registers without relaunch; Fix / Repair Hotkey in UI
-- **Paste without AX is no longer silent** — transcription is copied; UI warns that Accessibility is required to auto-paste
-- **Mic permission** requested on launch; empty-audio feedback if capture fails
-- **Release tooling** for Developer ID + hardened runtime + notarization (\`docs/context/SIGNING.md\`) — durable TCC is the real end-state for “shortcut died after update”
+### What's new in 1.2.2
+- **Listening HUD** — floating non-activating status pill (listening / transcribing / done)
+- **Sound feedback** — Tink on start, Pop on release, Glass on success, Funk on failure
+- **Mute detection** — warns when Mac output is muted so chimes aren’t silent by accident
+- **Failure banner** — clear errors with Fix Accessibility / Open Setup
+- **Onboarding checklist** — mic, Accessibility, hotkey, model, sound
+- Menu bar: elapsed timer, Copy / Re-paste last transcript
+- Developer ID signed builds for durable Accessibility across updates
 
 ### Site
 - https://fuckwisprflow.com/
