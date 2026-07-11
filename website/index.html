@@ -2,82 +2,235 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>f*ckwisprflow — MacWispr is free &amp; under 0.5s</title>
-  <meta name="description" content="MacWispr: free on-device dictation. Local models &lt;0.5s. Wispr Flow-style cloud is ~2–3s. Open source for Mac." />
-  <meta property="og:title" content="f*ckwisprflow — MacWispr" />
-  <meta property="og:description" content="Local &lt;0.5s. Cloud ~2–3s. Free. Open source." />
-  <meta property="og:image" content="/assets/logo.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>MacWispr — Free Local Dictation for Mac (&lt;0.5s)</title>
+  <meta name="description" content="Free on-device speech-to-text for Mac. Local ASR under 0.5s on Apple Silicon. No account, no cloud queue, no Windows. Open source MIT." />
+  <meta name="keywords" content="MacWispr, free dictation Mac, local speech to text, Apple Silicon ASR, Wispr Flow alternative, offline dictation macOS, voice typing Mac" />
+  <meta name="author" content="MacWispr" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="theme-color" content="#f7f2e8" />
+  <meta name="color-scheme" content="light" />
+  <link rel="canonical" href="https://fuckwisprflow.com/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="MacWispr" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:url" content="https://fuckwisprflow.com/" />
+  <meta property="og:title" content="MacWispr — Free local dictation for Mac" />
+  <meta property="og:description" content="On-device ASR under 0.5s. Free. Mac only. No cloud queue." />
+  <meta property="og:image" content="https://fuckwisprflow.com/assets/share-og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="MacWispr — free local dictation for Mac" />
+
+  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="icon" type="image/png" href="/assets/logo-128.png" />
+  <meta name="twitter:title" content="MacWispr — Free local dictation for Mac" />
+  <meta name="twitter:description" content="On-device ASR under 0.5s. Free. Mac only." />
+  <meta name="twitter:image" content="https://fuckwisprflow.com/assets/share-og.png" />
+
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/logo-128.png" />
+  <link rel="icon" type="image/png" sizes="256x256" href="/assets/logo-256.png" />
   <link rel="apple-touch-icon" href="/assets/logo-256.png" />
+
+  <!-- Critical resource hints -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="dns-prefetch" href="https://github.com" />
+
+  <!-- Non-blocking fonts: only needed weights -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  </noscript>
+
+  <link rel="stylesheet" href="/styles.v3.css" />
+  <link rel="preload" as="image" href="/assets/hero-menubar.webp" type="image/webp" fetchpriority="high" />
+  <link rel="preload" as="image" href="/assets/dash.webp" type="image/webp" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://fuckwisprflow.com/#website",
+        "url": "https://fuckwisprflow.com/",
+        "name": "MacWispr",
+        "alternateName": ["f*ckwisprflow", "fuckwisprflow", "Mac Wispr"],
+        "description": "Free local dictation for Mac. On-device speech-to-text under 0.5 seconds.",
+        "inLanguage": "en-US",
+        "publisher": { "@id": "https://fuckwisprflow.com/#software" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://fuckwisprflow.com/#software",
+        "name": "MacWispr",
+        "applicationCategory": "UtilitiesApplication",
+        "applicationSubCategory": "Speech Recognition",
+        "operatingSystem": "macOS 14+",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "isAccessibleForFree": true,
+        "license": "https://github.com/vasanthsreeram/macwispr/blob/main/LICENSE",
+        "downloadUrl": "https://github.com/vasanthsreeram/macwispr/releases/latest",
+        "softwareVersion": "1.2.1",
+        "url": "https://fuckwisprflow.com/",
+        "image": "https://fuckwisprflow.com/assets/share-og.png",
+        "description": "Free on-device dictation for Apple Silicon Macs. Local ASR under 0.5s with no cloud upload for transcription.",
+        "featureList": [
+          "On-device speech recognition",
+          "Under 0.5 second latency",
+          "Option+Space hotkey",
+          "No account required",
+          "MIT licensed"
+        ],
+        "author": {
+          "@type": "Person",
+          "name": "Vasanth Sreeram",
+          "url": "https://github.com/vasanthsreeram"
+        },
+        "codeRepository": "https://github.com/vasanthsreeram/macwispr"
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is MacWispr free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. MacWispr is free and MIT licensed. No trial cliff, no subscription."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does MacWispr work offline?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Local ASR runs on-device on Apple Silicon. Audio does not leave your Mac for local transcription."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does MacWispr support Windows?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. MacWispr is Mac only — built for macOS 14+ and Apple Silicon."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
-  <div class="noise" aria-hidden="true"></div>
+  <!-- Living background (decorative) -->
+  <div class="stage" aria-hidden="true">
+    <div class="aurora"></div>
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="orb o3"></div>
+    <div class="grid-fade"></div>
+    <canvas id="spark" class="spark" width="1" height="1"></canvas>
+    <div class="vignette"></div>
+    <div class="noise"></div>
+  </div>
+
+  <div class="progress" id="scroll-progress" aria-hidden="true"></div>
 
   <div class="ticker" role="note">
     <div class="ticker-track">
-      <span>LOCAL &lt;0.5s · WISPR FLOW ~2–3s · FREE · ON-DEVICE · $0 ·</span>
-      <span>LOCAL &lt;0.5s · WISPR FLOW ~2–3s · FREE · ON-DEVICE · $0 ·</span>
+      <span>&lt;0.5s LOCAL · ~2–3s WISPR FLOW · FREE · MAC ONLY · NO WINDOWS · $0 ·</span>
+      <span aria-hidden="true">&lt;0.5s LOCAL · ~2–3s WISPR FLOW · FREE · MAC ONLY · NO WINDOWS · $0 ·</span>
     </div>
   </div>
 
   <header class="site-header">
-    <a class="brand" href="/">
-      <img src="/assets/logo.png" width="36" height="36" alt="MacWispr" />
-      <span class="brand-text">f*ck<span class="soft">wispr</span>flow</span>
-    </a>
-    <nav class="nav">
-      <a href="#race">Race</a>
-      <a href="#features">Features</a>
-      <a href="#compare">Compare</a>
-      <a href="#install">Install</a>
-    </nav>
-    <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download free</a>
+    <div class="header-inner glass">
+      <a class="brand" href="/" aria-label="MacWispr home">
+        <img src="/assets/logo-mark.png" width="32" height="32" alt="" decoding="async" />
+        <span class="brand-text">f*ck<span class="soft">wispr</span>flow</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#race">Race</a>
+        <a href="#compare">Compare</a>
+        <a href="#install">Install</a>
+      </nav>
+      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest">Download</a>
+    </div>
   </header>
 
   <main>
-    <section class="hero">
-      <p class="eyebrow">MacWispr · free · &lt;0.5s local</p>
-      <h1>
-        Don’t type.<br />
-        Just speak.<br />
-        <em class="hero-em">Beat the cloud tax.</em>
-      </h1>
-      <p class="lede">
-        MacWispr runs on your GPU — <strong>under 0.5s</strong>.
-        Wispr Flow-style cloud paths sit around <strong>2–3s</strong> with network overhead they can’t delete.
-      </p>
-      <div class="hero-actions">
-        <a class="btn btn-dark" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg" download>Download · $0</a>
-        <a class="btn btn-ghost" href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">MacWispr · free · on-device</p>
+        <h1 id="hero-title">
+          <span class="line">Don’t type.</span>
+          <span class="line grad-text">Just speak.</span>
+        </h1>
+        <p class="lede">
+          Local ASR on Apple Silicon. <strong>&lt;0.5s</strong>.
+          Wispr Flow pays the network tax at <strong>~2–3s</strong>.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest">Download for Mac · $0</a>
+          <a class="btn btn-ghost glass" href="#race">Watch the race</a>
+        </div>
+        <div class="hero-chips">
+          <span class="chip yes">macOS 14+</span>
+          <span class="chip yes">Apple Silicon</span>
+          <span class="chip no">Windows</span>
+        </div>
       </div>
-      <p class="fineprint">Apple Silicon · macOS 14+ · MIT · bench on local Qwen3-ASR</p>
+
+      <div class="hero-stage">
+        <div class="float-card menubar-card">
+          <picture>
+            <source srcset="/assets/hero-menubar.webp" type="image/webp" />
+            <img src="/assets/menubar.png" alt="MacWispr menu bar status" width="680" height="440" fetchpriority="high" decoding="async" />
+          </picture>
+        </div>
+        <div class="float-card dash-card">
+          <picture>
+            <source srcset="/assets/dash.webp" type="image/webp" />
+            <img src="/assets/dashboard.png" alt="MacWispr dashboard showing local transcription" width="960" height="600" decoding="async" />
+          </picture>
+        </div>
+        <div class="hero-glow" aria-hidden="true"></div>
+      </div>
     </section>
 
-    <section class="section race-section" id="race">
-      <div class="section-head">
-        <h2>Same line. Who finishes first?</h2>
-        <p>MacWispr &lt;0.5s · Wispr Flow ~2–3s</p>
+    <!-- Comparison first: race + side-by-side -->
+    <section class="section race-section cv-auto" id="race" aria-labelledby="race-title">
+      <div class="section-head reveal">
+        <p class="kicker">Live race</p>
+        <h2 id="race-title">Who finishes first?</h2>
+        <p>&lt;0.5s local vs ~2–3s cloud</p>
       </div>
 
-      <div class="race-demo" id="race-demo" aria-live="polite">
-        <div class="race-wave-wrap" id="race-wave-wrap">
-          <div class="race-wave" id="race-wave"></div>
+      <div class="race-demo glass-card reveal" id="race-demo" aria-live="polite">
+        <div class="race-wave-wrap is-idle" id="race-wave-wrap">
+          <div class="flow-pill" aria-hidden="true">
+            <div class="race-wave" id="race-wave"></div>
+          </div>
           <div class="race-wave-label" id="race-wave-label">Listening…</div>
         </div>
 
         <div class="race-lanes">
           <div class="lane lane-local" id="lane-local">
             <div class="lane-head">
-              <img src="/assets/logo.png" width="28" height="28" alt="" />
-              <div>
+              <img src="/assets/logo-mark.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
+              <div class="lane-titles">
                 <strong>MacWispr</strong>
-                <span class="lane-tag ok">on-device · &lt;0.5s</span>
+                <span class="lane-tag ok">&lt;0.5s</span>
               </div>
               <span class="lane-badge" id="local-badge">—</span>
             </div>
@@ -87,10 +240,10 @@
 
           <div class="lane lane-cloud" id="lane-cloud">
             <div class="lane-head">
-              <img class="wf-logo" src="/assets/wisprflow-logo.png" width="28" height="28" alt="Wispr Flow logo" />
-              <div>
+              <img class="wf-logo" src="/assets/wisprflow-logo.svg" width="28" height="28" alt="" decoding="async" loading="lazy" />
+              <div class="lane-titles">
                 <strong>Wispr Flow</strong>
-                <span class="lane-tag dim">cloud · ~2–3s</span>
+                <span class="lane-tag dim">~2–3s</span>
               </div>
               <span class="lane-badge wait" id="cloud-badge">—</span>
             </div>
@@ -100,165 +253,166 @@
         </div>
 
         <div class="race-footer">
-          <p class="race-caption" id="race-caption">Local finishes while Wispr Flow is still on the network.</p>
-          <button type="button" class="vd-replay" id="race-replay">Replay race</button>
+          <p class="race-caption" id="race-caption">Local done. Cloud still waiting.</p>
+          <button type="button" class="vd-replay" id="race-replay">Replay</button>
         </div>
       </div>
-      <p class="disclaimer race-note">
-        Times illustrated from our local ASR benches (&lt;0.5s) vs typical cloud round-trips (~2–3s). Not a lab certification of Wispr Flow.
-      </p>
     </section>
 
-    <section class="section" id="features">
-      <div class="section-head"><h2>What you get</h2></div>
-      <div class="feature-grid tight">
-        <article class="feature">
-          <div class="f-icon">⚡</div>
-          <h3>&lt;0.5s local</h3>
-          <p>Qwen3-ASR on Metal. No upload tax.</p>
+    <section class="section compare cv-auto" id="compare" aria-labelledby="compare-title">
+      <div class="section-head reveal">
+        <p class="kicker">Versus</p>
+        <h2 id="compare-title">Side by side</h2>
+      </div>
+      <div class="vs-grid reveal">
+        <div class="vs-col us glass-card">
+          <div class="vs-head">
+            <img src="/assets/logo-mark.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
+            <strong>MacWispr</strong>
+          </div>
+          <ul>
+            <li><strong>&lt;0.5s</strong> local</li>
+            <li><strong>Your Mac</strong></li>
+            <li><strong>$0</strong></li>
+            <li><strong>Mac only</strong></li>
+            <li><strong>MIT</strong></li>
+          </ul>
+        </div>
+        <div class="vs-col them glass-card">
+          <div class="vs-head">
+            <img class="wf-logo" src="/assets/wisprflow-logo.svg" width="28" height="28" alt="" decoding="async" loading="lazy" />
+            <strong>Wispr Flow</strong>
+          </div>
+          <ul>
+            <li>~2–3s cloud</li>
+            <li>Their servers</li>
+            <li>Paid</li>
+            <li>Cross-platform</li>
+            <li>Closed</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section bento-section cv-auto" id="features" aria-labelledby="features-title">
+      <div class="section-head reveal">
+        <p class="kicker">Why</p>
+        <h2 id="features-title">Less cloud. More Mac.</h2>
+      </div>
+
+      <div class="bento">
+        <article class="bento-card bento-wide glass-card reveal">
+          <div class="bento-copy">
+            <span class="bento-label">On-device</span>
+            <h3>&lt;0.5s on your GPU</h3>
+            <p>No upload. No queue. No waiting on someone else’s servers.</p>
+          </div>
+          <div class="bento-visual">
+            <picture>
+              <source srcset="/assets/dash.webp" type="image/webp" />
+              <img src="/assets/dashboard.png" alt="" width="960" height="600" loading="lazy" decoding="async" />
+            </picture>
+          </div>
         </article>
-        <article class="feature">
-          <div class="f-icon">🎙️</div>
-          <h3>Hold ⌥Space</h3>
-          <p>Speak, release, paste anywhere.</p>
+
+        <article class="bento-card glass-card reveal" data-delay="0.05">
+          <span class="bento-label">Hotkey</span>
+          <h3>Option Space</h3>
+          <p>Hold. Speak. Release. Text lands where you are.</p>
+          <div class="key-row">
+            <kbd>Option</kbd><span class="plus">+</span><kbd>Space</kbd>
+          </div>
         </article>
-        <article class="feature">
-          <div class="f-icon">✨</div>
-          <h3>Auto-clean</h3>
-          <p>Fillers out. Grammar tidied.</p>
+
+        <article class="bento-card glass-card reveal" data-delay="0.1">
+          <span class="bento-label">Price</span>
+          <h3 class="price-big">$0</h3>
+          <p>Forever free. MIT. No trial cliff.</p>
         </article>
-        <article class="feature">
-          <div class="f-icon">🔑</div>
-          <h3>BYOK optional</h3>
-          <p>OpenAI / ElevenLabs if you want.</p>
+
+        <article class="bento-card bento-mac glass-card reveal" data-delay="0.05">
+          <span class="bento-label">Platform</span>
+          <h3>Mac only. Windows can wait outside.</h3>
+          <p>Built for Apple Silicon. If you need a power brick to open Chrome, this isn’t for you. Yet.</p>
+          <div class="mac-pills">
+            <span class="chip yes">macOS 14+</span>
+            <span class="chip yes">Apple Silicon</span>
+            <span class="chip no">Windows</span>
+          </div>
         </article>
-        <article class="feature">
-          <div class="f-icon">🔒</div>
-          <h3>Private default</h3>
-          <p>No account. Audio stays local.</p>
-        </article>
-        <article class="feature">
-          <div class="f-icon">⏱</div>
-          <h3>Time saved</h3>
-          <p>Weekly words + minutes dodged.</p>
+
+        <article class="bento-card glass-card reveal" data-delay="0.1">
+          <span class="bento-label">Privacy</span>
+          <h3>Stays on the machine</h3>
+          <p>No account. Audio doesn’t leave your Mac for local ASR.</p>
         </article>
       </div>
     </section>
 
-    <section class="section compare" id="compare">
-      <div class="section-head"><h2>Quick compare</h2></div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th></th>
-              <th class="hl">MacWispr</th>
-              <th>Wispr Flow</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Latency</td>
-              <td class="hl"><strong>&lt;0.5s</strong> local</td>
-              <td>~2–3s cloud RTT</td>
-            </tr>
-            <tr>
-              <td>Path</td>
-              <td class="hl"><strong>On-device</strong></td>
-              <td>Upload → cloud → download</td>
-            </tr>
-            <tr>
-              <td>Price</td>
-              <td class="hl"><strong>$0</strong></td>
-              <td>Subscription</td>
-            </tr>
-            <tr>
-              <td>Account</td>
-              <td class="hl">No</td>
-              <td>Yes</td>
-            </tr>
-            <tr>
-              <td>Source</td>
-              <td class="hl">MIT</td>
-              <td>Closed</td>
-            </tr>
-            <tr>
-              <td>Offline</td>
-              <td class="hl">Yes*</td>
-              <td>No</td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- WPM math lower on the page -->
+    <section class="section speed-flex cv-auto" id="demo" aria-labelledby="demo-title">
+      <div class="section-head reveal">
+        <p class="kicker">The math</p>
+        <h2 id="demo-title">Even at 80 wpm, your fingers lose.</h2>
       </div>
-      <p class="disclaimer">*After model download. Parody comparison for MacWispr — not affiliated with Wispr Flow.</p>
-    </section>
 
-    <section class="section pricing" id="pricing">
-      <div class="price-card featured solo">
-        <div class="price-badge">The whole plan</div>
-        <h3>MacWispr</h3>
-        <div class="price"><span class="currency">$</span>0<span class="period">/forever</span></div>
-        <p class="price-blurb">Full app. Local models. Optional BYOK.</p>
-        <a class="btn btn-dark full" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg" download>Download free</a>
+      <div class="speed-board">
+        <div class="speed-card speed-keys glass-card reveal" id="speed-keys">
+          <span class="speed-label">Keyboard</span>
+          <span class="speed-num">80 <em>wpm</em></span>
+          <p class="speed-ghost" id="speed-typed" aria-hidden="true"></p>
+          <span class="speed-tag">pretty fast</span>
+        </div>
+        <div class="speed-vs reveal" aria-hidden="true">
+          <span class="vs-ring">2x</span>
+        </div>
+        <div class="speed-card speed-mouth glass-card reveal" id="speed-mouth" data-delay="0.08">
+          <span class="speed-label">Mouth</span>
+          <span class="speed-num hot">150 <em>wpm</em></span>
+          <p class="speed-live" id="speed-spoken" aria-hidden="true"></p>
+          <span class="speed-tag win">done</span>
+        </div>
       </div>
     </section>
 
-    <section class="section install" id="install">
-      <div class="section-head"><h2>Install</h2></div>
+    <section class="section install cv-auto" id="install" aria-labelledby="install-title">
+      <div class="section-head reveal">
+        <p class="kicker">Setup</p>
+        <h2 id="install-title">Three steps. Mac only.</h2>
+      </div>
       <ol class="steps">
-        <li>
-          <span class="step-n">1</span>
+        <li class="glass-card reveal">
+          <span class="step-n">01</span>
           <div>
             <strong>Download</strong>
-            <p><a href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">MacWispr.dmg</a> — direct download.</p>
+            <p><a href="https://github.com/vasanthsreeram/macwispr/releases/latest">Latest release</a></p>
           </div>
         </li>
-        <li>
-          <span class="step-n">2</span>
+        <li class="glass-card reveal" data-delay="0.06">
+          <span class="step-n">02</span>
           <div>
-            <strong>Applications</strong>
-            <p>Open the DMG → drag MacWispr into Applications. Right-click → Open once if needed.</p>
+            <strong>Drop in Applications</strong>
+            <p>Unzip. Drag. Done.</p>
           </div>
         </li>
-        <li>
-          <span class="step-n">3</span>
+        <li class="glass-card reveal" data-delay="0.12">
+          <span class="step-n">03</span>
           <div>
             <strong>Dictate</strong>
-            <p>Mic + Accessibility. Hold <kbd>⌥ Space</kbd>.</p>
+            <p>Mic + Accessibility · <kbd>Option</kbd> <kbd>Space</kbd></p>
           </div>
         </li>
       </ol>
     </section>
 
-    <section class="section faq" id="faq">
-      <div class="section-head"><h2>FAQ</h2></div>
-      <div class="faq-list">
-        <details open>
-          <summary>Affiliated with Wispr Flow?</summary>
-          <p>No. Free alternative + comedy domain.</p>
-        </details>
-        <details>
-          <summary>Why &lt;0.5s vs ~2–3s?</summary>
-          <p>Local ASR on Apple Silicon. Cloud pays upload + remote inference + download every take.</p>
-        </details>
-        <details>
-          <summary>Private?</summary>
-          <p>Default on-device. No MacWispr account.</p>
-        </details>
-        <details>
-          <summary>Platforms?</summary>
-          <p>macOS Apple Silicon only (for now).</p>
-        </details>
-      </div>
-    </section>
-
-    <section class="section cta-final">
-      <div class="cta-box">
-        <h2>Speak. Don’t subscribe.</h2>
-        <p class="lede-sm">Free · local · under half a second.</p>
+    <section class="section cta-final cv-auto" aria-labelledby="cta-title">
+      <div class="cta-box glass-card reveal">
+        <div class="cta-glow" aria-hidden="true"></div>
+        <h2 id="cta-title">Speak. Free. Mac only.</h2>
+        <p class="cta-note">Windows users: we believe in you. Just not enough to ship a .exe.</p>
         <div class="hero-actions center">
-          <a class="btn btn-dark" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg" download>Download for Mac</a>
-          <a class="btn btn-ghost" href="https://github.com/vasanthsreeram/macwispr">Star on GitHub</a>
+          <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest">Download for Mac</a>
+          <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
         </div>
       </div>
     </section>
@@ -266,22 +420,25 @@
 
   <footer class="site-footer">
     <div class="footer-brand">
-      <img src="/assets/logo.png" width="28" height="28" alt="MacWispr" />
+      <img src="/assets/logo-mark.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
       <div>
         <strong>f*ckwisprflow.com</strong>
-        <span>MacWispr propaganda</span>
+        <span>MacWispr · Mac only</span>
       </div>
     </div>
     <div class="footer-links">
       <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
       <a href="https://github.com/vasanthsreeram/macwispr/releases">Releases</a>
       <a href="https://github.com/vasanthsreeram/macwispr/blob/main/LICENSE">MIT</a>
+      <a href="/sitemap.xml">Sitemap</a>
     </div>
-    <p class="footer-note">
-      Not affiliated with Wispr Flow. Parody &amp; comparison. © <span id="y"></span>
-    </p>
+    <p class="footer-note">Not affiliated with Wispr Flow. No Windows builds. On purpose. © <span id="y"></span></p>
   </footer>
 
-  <script src="/script.js"></script>
+  <!-- Motion libs: defer so HTML paints first; app.js boots after -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js" defer></script>
+  <script src="/app.v3.js" defer></script>
 </body>
 </html>
