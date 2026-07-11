@@ -31,7 +31,31 @@ it does not remove the AX requirement for insertion.
 
 ## Durable fix (do this once)
 
-1. **Apple Developer Program** membership ($99/yr).
+### Easiest: CLI helper (recommended)
+
+Apple still requires **one browser click** to issue the cert (they will not mint
+Developer ID offline). Everything else is terminal:
+
+```bash
+./scripts/setup-signing.sh
+# 1. Script generates CSR + opens Apple's cert page
+# 2. Choose "Developer ID Application", upload the CSR it shows in Finder
+# 3. Download the .cer — drop it in .signing/ or ~/Downloads/
+# 4. Script imports it, stores notary credentials, writes .env.signing
+source .env.signing && ./scripts/build-app.sh
+```
+
+Team ID for this project: `UTSTY3J6NS`.
+
+If you already downloaded the `.cer`:
+
+```bash
+./scripts/setup-signing.sh --import ~/Downloads/developerID_application.cer
+```
+
+### Manual equivalent
+
+1. **Apple Developer Program** membership (active).
 2. Create a **Developer ID Application** certificate in
    [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/certificates/list).
 3. Install the cert + private key in the build machine keychain (export/import `.p12` if needed).
@@ -40,15 +64,14 @@ it does not remove the AX requirement for insertion.
 ```bash
 xcrun notarytool store-credentials "MacWispr-notary" \
   --apple-id "you@example.com" \
-  --team-id "YOURTEAMID" \
+  --team-id "UTSTY3J6NS" \
   --password "app-specific-password"
 ```
 
 5. Ship releases with:
 
 ```bash
-export MACWISPR_SIGN_IDENTITY="Developer ID Application: Your Name (YOURTEAMID)"
-export MACWISPR_NOTARY_PROFILE="MacWispr-notary"
+source .env.signing   # or export MACWISPR_SIGN_IDENTITY / MACWISPR_NOTARY_PROFILE
 export MACWISPR_VERSION=1.2.1
 ./scripts/build-app.sh          # signs via sign-and-notarize.sh
 ./scripts/build-dmg.sh
@@ -58,7 +81,7 @@ export MACWISPR_VERSION=1.2.1
 Or skip notarization while testing:
 
 ```bash
-export MACWISPR_SIGN_IDENTITY="Developer ID Application: Your Name (YOURTEAMID)"
+export MACWISPR_SIGN_IDENTITY="Developer ID Application: Your Name (UTSTY3J6NS)"
 export MACWISPR_SKIP_NOTARIZE=1
 ./scripts/sign-and-notarize.sh dist/MacWispr.app
 ```

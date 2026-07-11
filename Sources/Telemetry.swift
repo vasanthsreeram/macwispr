@@ -45,9 +45,9 @@ enum TelemetryInsertionOutcome: String {
 final class Telemetry: @unchecked Sendable {
     static let shared = Telemetry()
 
-    // TODO: Replace with a real PostHog project API key before shipping telemetry builds.
-    // Placeholder is intentionally non-functional so accidental opt-in cannot exfiltrate data.
-    private static let postHogAPIKey = "phc_TODO_REPLACE_WITH_REAL_POSTHOG_API_KEY"
+    // PostHog project API key (client write key — safe to embed; not a personal/secret key).
+    // Project: Default project (id 157741) on us.posthog.com
+    private static let postHogAPIKey = "phc_Hy1J2gWvIB7PHg32igMdmwAjXjTlkEXbw8vWW9Nr0zj"
     private static let postHogBatchURL = URL(string: "https://us.i.posthog.com/batch/")!
 
     private static let installIDKey = "telemetryInstallID"

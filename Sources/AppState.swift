@@ -26,6 +26,23 @@ enum DictationMode: String, CaseIterable, Identifiable {
     }
 }
 
+/// Eyes-free pipeline state for menu bar, HUD, and sounds.
+enum DictationPhase: Equatable {
+    case setup
+    case ready
+    case listening
+    case transcribing
+    case success
+    case failed
+
+    var isBusy: Bool {
+        switch self {
+        case .listening, .transcribing: return true
+        default: return false
+        }
+    }
+}
+
 @MainActor
 final class AppState: ObservableObject {
     static private(set) var shared: AppState?
@@ -55,6 +72,8 @@ final class AppState: ObservableObject {
     @Published var isLLMLoading = false
     @Published var llmLoadStatus: String = ""
     @Published var soundFeedbackEnabled = true
+    /// Default output is muted / volume ~0 — chimes will be silent until unmuted.
+    @Published var outputMuted = false
     @Published var dictationMode: DictationMode = .hold
     @Published var typingWPM: Double = UsageStats.defaultTypingWPM
     /// Custom vocabulary / domain terms fed to Qwen3-ASR as system context.
@@ -67,6 +86,20 @@ final class AppState: ObservableObject {
     @Published var telemetryOptIn = false
     /// First-run (or first Settings visit) disclosure sheet for telemetry.
     @Published var showTelemetryDisclosure = false
+    /// Pipeline phase for menu bar / HUD (Ready → Listening → Transcribing → Done/Fail).
+    @Published var dictationPhase: DictationPhase = .setup
+    /// Short human label for the current phase (tooltips, HUD).
+    @Published var phaseDetail: String = ""
+    /// Seconds since listening started (updates while recording).
+    @Published var recordingElapsed: TimeInterval = 0
+    /// Clean last transcript (no ⚠️ suffixes) for Copy / Re-paste.
+    @Published var lastCleanTranscription: String = ""
+    /// Transient failure banner (AX, empty mic, STT) — not mixed into history text.
+    @Published var lastFailureMessage: String? = nil
+    /// When true, show the non-activating listening HUD.
+    @Published var listeningHUDEnabled = true
+    /// First-run setup checklist until the user dismisses it.
+    @Published var showOnboarding = false
 
     let transcriptionEngine = TranscriptionEngine()
     let textPolisher = TextPolisher()
@@ -76,6 +109,9 @@ final class AppState: ObservableObject {
 
     private var recordingSession = 0
     private var hotkeyHealthTimer: Timer?
+    private var recordingElapsedTimer: Timer?
+    private var recordingStartedAt: Date?
+    private var phaseResetTask: Task<Void, Never>?
     /// Current health-timer interval (shorter while unarmed so we recover quickly).
     private var hotkeyHealthInterval: TimeInterval = 2.0
     private static let hotkeyHealthIntervalUnarmed: TimeInterval = 2.0
@@ -92,6 +128,8 @@ final class AppState: ObservableObject {
     private static let asrModelSizeKey = "asrModelSize"
     private static let transcriptionProviderKey = "transcriptionProvider"
     private static let polishProviderKey = "polishProvider"
+    private static let listeningHUDKey = "listeningHUDEnabled"
+    private static let onboardingCompletedKey = "hasCompletedOnboarding"
 
     /// Ready to accept mic input for the active transcription provider.
     var isReadyToDictate: Bool {
@@ -118,6 +156,30 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Formatted mm:ss (or s.s under a minute) for listening elapsed time.
+    var recordingElapsedLabel: String {
+        let t = max(0, recordingElapsed)
+        if t < 60 {
+            return String(format: "0:%02d", Int(t))
+        }
+        let m = Int(t) / 60
+        let s = Int(t) % 60
+        return String(format: "%d:%02d", m, s)
+    }
+
+    /// Mic granted (or not yet determined counts as pending setup).
+    var microphoneAuthorized: Bool {
+        if #available(macOS 14.0, *) {
+            let status = AVCaptureDevice.authorizationStatus(for: .audio)
+            return status == .authorized
+        }
+        return true
+    }
+
+    var needsSetup: Bool {
+        !isReadyToDictate || !accessibilityTrusted || !hotkeyArmed
+    }
+
     init() {
         AppState.shared = self
         transcriptionHistory = HistoryStore.load()
@@ -127,6 +189,10 @@ final class AppState: ObservableObject {
         if UserDefaults.standard.object(forKey: "soundFeedbackEnabled") != nil {
             soundFeedbackEnabled = UserDefaults.standard.bool(forKey: "soundFeedbackEnabled")
         }
+        if UserDefaults.standard.object(forKey: Self.listeningHUDKey) != nil {
+            listeningHUDEnabled = UserDefaults.standard.bool(forKey: Self.listeningHUDKey)
+        }
+        refreshOutputMuteState()
         if let raw = UserDefaults.standard.string(forKey: "insertionMode"),
            let mode = InsertionMode(rawValue: raw)
         {
@@ -166,7 +232,9 @@ final class AppState: ObservableObject {
         if !Telemetry.shared.hasSeenDisclosure {
             showTelemetryDisclosure = true
         }
+        showOnboarding = !UserDefaults.standard.bool(forKey: Self.onboardingCompletedKey)
         refreshKeyPresence()
+        syncIdlePhase()
         setupHotkey()
         Task { await prepareActiveProvider() }
         if polishProvider == .local {
@@ -175,6 +243,7 @@ final class AppState: ObservableObject {
         // After hotkey registration settles, emit the first hotkey_health snapshot.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             self?.emitHotkeyHealthIfNeeded()
+            self?.syncIdlePhase()
         }
     }
 
@@ -256,6 +325,7 @@ final class AppState: ObservableObject {
             _ = audioRecorder.stopRecording()
             isRecording = false
             recordingSession += 1
+            stopElapsedTimer()
         }
         transcriptionProvider = provider
         UserDefaults.standard.set(provider.rawValue, forKey: Self.transcriptionProviderKey)
@@ -289,6 +359,7 @@ final class AppState: ObservableObject {
                 modelLoadStatus = "Add OpenAI API key in Settings"
                 modelLoadProgress = 0
             }
+            syncIdlePhase()
         case .elevenLabs:
             await unloadLocalModelForProviderSwitch()
             if hasElevenLabsKey {
@@ -300,6 +371,7 @@ final class AppState: ObservableObject {
                 modelLoadStatus = "Add ElevenLabs API key in Settings"
                 modelLoadProgress = 0
             }
+            syncIdlePhase()
         }
     }
 
@@ -346,6 +418,7 @@ final class AppState: ObservableObject {
 
             isModelLoaded = true
             modelLoadStatus = "Ready"
+            syncIdlePhase()
         } catch is CancellationError {
             // loadModel was superseded by unload or a newer load — ignore.
             guard generation == modelLoadGeneration else { return }
@@ -353,10 +426,13 @@ final class AppState: ObservableObject {
             guard generation == modelLoadGeneration else { return }
             modelLoadStatus = "Error: \(error.localizedDescription)"
             isModelLoaded = false
+            setPhase(.failed, detail: modelLoadStatus)
+            schedulePhaseResetToIdle()
         }
 
         if generation == modelLoadGeneration {
             isModelLoading = false
+            if isModelLoaded { syncIdlePhase() }
         }
     }
 
@@ -368,6 +444,7 @@ final class AppState: ObservableObject {
             _ = audioRecorder.stopRecording()
             isRecording = false
             recordingSession += 1
+            stopElapsedTimer()
         }
         // Only reload on-device weights when local STT is active.
         guard transcriptionProvider == .local else { return }
@@ -379,6 +456,74 @@ final class AppState: ObservableObject {
         UserDefaults.standard.set(mode.rawValue, forKey: "dictationMode")
     }
 
+    func setListeningHUDEnabled(_ enabled: Bool) {
+        listeningHUDEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.listeningHUDKey)
+        if !enabled {
+            ListeningHUDController.shared.hide()
+        }
+    }
+
+    func completeOnboarding() {
+        UserDefaults.standard.set(true, forKey: Self.onboardingCompletedKey)
+        showOnboarding = false
+    }
+
+    func reopenOnboarding() {
+        showOnboarding = true
+    }
+
+    // MARK: - Phase / elapsed
+
+    func syncIdlePhase() {
+        guard !dictationPhase.isBusy else { return }
+        if isReadyToDictate {
+            setPhase(.ready, detail: readinessLabel)
+        } else if isModelLoading {
+            setPhase(.setup, detail: modelLoadStatus.isEmpty ? "Loading model…" : modelLoadStatus)
+        } else {
+            setPhase(.setup, detail: readinessLabel)
+        }
+    }
+
+    private func setPhase(_ phase: DictationPhase, detail: String) {
+        dictationPhase = phase
+        phaseDetail = detail
+        ListeningHUDController.shared.sync(with: self)
+    }
+
+    private func schedulePhaseResetToIdle(after seconds: TimeInterval = 2.4) {
+        phaseResetTask?.cancel()
+        phaseResetTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard !Task.isCancelled, let self else { return }
+            guard !self.dictationPhase.isBusy else { return }
+            self.lastFailureMessage = nil
+            self.syncIdlePhase()
+        }
+    }
+
+    private func startElapsedTimer() {
+        recordingStartedAt = Date()
+        recordingElapsed = 0
+        recordingElapsedTimer?.invalidate()
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, let start = self.recordingStartedAt else { return }
+                self.recordingElapsed = Date().timeIntervalSince(start)
+                ListeningHUDController.shared.sync(with: self)
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        recordingElapsedTimer = timer
+    }
+
+    private func stopElapsedTimer() {
+        recordingElapsedTimer?.invalidate()
+        recordingElapsedTimer = nil
+        recordingStartedAt = nil
+    }
+
     // MARK: - Recording
 
     func startRecording() {
@@ -386,7 +531,10 @@ final class AppState: ObservableObject {
             // Pressing the hotkey during model load / missing key used to no-op
             // silently, which reads as "the hotkey is broken". Give audible feedback
             // and retry preparing the active provider.
-            if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
+            presentFailure(
+                "Not ready — \(readinessLabel)",
+                openSetup: true
+            )
             if transcriptionProvider == .local, !isModelLoading {
                 Task { await loadModel() }
             } else {
@@ -395,18 +543,26 @@ final class AppState: ObservableObject {
             return
         }
         guard !isRecording else { return }
+        phaseResetTask?.cancel()
+        lastFailureMessage = nil
         isRecording = true
         currentTranscription = ""
         recordingSession += 1
         let session = recordingSession
+        setPhase(.listening, detail: dictationMode == .hold
+                 ? "Listening… release to stop"
+                 : "Listening… press again to stop")
+        startElapsedTimer()
 
+        refreshOutputMuteState()
         if soundFeedbackEnabled {
             FeedbackSounds.playListeningStarted()
         }
 
         Task { @MainActor in
+            // Let the start chime begin before AVAudioEngine claims the input path.
             if soundFeedbackEnabled {
-                try? await Task.sleep(nanoseconds: 90_000_000)
+                try? await Task.sleep(nanoseconds: 120_000_000)
             }
             guard isRecording, recordingSession == session else { return }
             audioRecorder.startRecording()
@@ -417,17 +573,22 @@ final class AppState: ObservableObject {
         guard isRecording else { return }
         isRecording = false
         recordingSession += 1
+        stopElapsedTimer()
         let samples = audioRecorder.stopRecording()
 
-        // End sound plays only after transcription finishes (not on mic release).
+        // Pop when mic stops (successful capture). Empty/error uses failure chime via presentFailure.
+        if soundFeedbackEnabled, !samples.isEmpty {
+            refreshOutputMuteState()
+            FeedbackSounds.playListeningStopped()
+        }
+
         guard !samples.isEmpty else {
-            // Very short holds / denied mic produce zero samples — without
-            // feedback this feels like "the shortcut is broken".
-            currentTranscription = "No audio captured — hold longer, or check Microphone permission."
-            if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
             reportEmptyAudioFailure()
+            presentFailure("No audio captured — hold longer, or check Microphone permission.")
             return
         }
+
+        setPhase(.transcribing, detail: "Transcribing…")
 
         let audioDuration = Double(samples.count) / 16000.0
         let sttStarted = Date()
@@ -438,8 +599,8 @@ final class AppState: ObservableObject {
 
             // Insert raw STT immediately so perceived latency is STT time only.
             // Polish (if enabled) runs as a follow-up that updates UI/history
-            // and the clipboard — not a second injection into the focused app
-            // (re-typing/replacing would race with cursor movement).
+            // and the clipboard — not a second injection into the focused app.
+            lastCleanTranscription = processed
             currentTranscription = processed
 
             let duration = audioDuration
@@ -456,25 +617,27 @@ final class AppState: ObservableObject {
             scheduleHistorySave()
 
             // Carbon can detect ⌥Space without AX, but paste/type still needs it.
-            // Without feedback, that path is the classic "shortcut does nothing".
             let outcome = textInserter.insert(text: processed, mode: insertionMode)
             let telemetryOutcome: TelemetryInsertionOutcome
             switch outcome {
             case .ok:
                 telemetryOutcome = .ok
+                let words = UsageStats.wordCount(in: processed)
+                setPhase(.success, detail: words > 0 ? "Inserted \(words) words" : "Inserted")
+                if soundFeedbackEnabled { FeedbackSounds.playSuccess() }
+                schedulePhaseResetToIdle()
             case .clipboardOnly(let reason):
                 telemetryOutcome = .clipboardOnly
-                currentTranscription = "\(processed)\n\n⚠️ \(reason)"
                 accessibilityTrusted = false
                 hotkeyArmed = hotkeyManager.isArmed
-                if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
+                presentFailure(reason, preferAccessibilityFix: true)
             case .failed(let reason):
                 telemetryOutcome = .failed
-                currentTranscription = "\(processed)\n\n⚠️ \(reason)"
-                if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
-                // Complete paste/type failure with no AX path is a known reliability class.
                 if !AXIsProcessTrusted() {
                     Telemetry.shared.reportDictationFailed(reason: .pasteNoAX)
+                    presentFailure(reason, preferAccessibilityFix: true)
+                } else {
+                    presentFailure(reason)
                 }
             }
 
@@ -484,21 +647,64 @@ final class AppState: ObservableObject {
                 insertionOutcome: telemetryOutcome
             )
 
-            if soundFeedbackEnabled, outcome == .ok {
-                FeedbackSounds.playListeningStopped()
-            }
-
             if polishProvider != .off {
                 await polishAndUpdate(entryId: entryId, raw: processed)
             }
         } catch {
-            currentTranscription = "Error: \(error.localizedDescription)"
             lastTranscriptionId = nil
             Telemetry.shared.reportDictationFailed(reason: .sttError)
-            // Still signal that processing ended.
-            if soundFeedbackEnabled {
-                FeedbackSounds.playListeningStopped()
-            }
+            presentFailure("Transcription failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Surface a failure without burying it in history text; update phase + HUD.
+    func presentFailure(
+        _ message: String,
+        preferAccessibilityFix: Bool = false,
+        openSetup: Bool = false
+    ) {
+        lastFailureMessage = message
+        setPhase(.failed, detail: message)
+        if soundFeedbackEnabled {
+            FeedbackSounds.playFailure()
+        }
+        FailureBannerController.shared.show(
+            message: message,
+            showAccessibilityFix: preferAccessibilityFix || !AXIsProcessTrusted(),
+            openSetup: openSetup
+        )
+        schedulePhaseResetToIdle(after: 3.5)
+    }
+
+    func dismissFailureBanner() {
+        lastFailureMessage = nil
+        FailureBannerController.shared.hide()
+        if !dictationPhase.isBusy {
+            syncIdlePhase()
+        }
+    }
+
+    /// Copy last clean transcript to the pasteboard (no focus steal).
+    func copyLastTranscription() {
+        let text = lastCleanTranscription.isEmpty ? currentTranscription : lastCleanTranscription
+        guard !text.isEmpty else { return }
+        textInserter.copyToClipboardOnly(text)
+    }
+
+    /// Re-run insertion for the last clean transcript.
+    func repasteLastTranscription() {
+        let text = lastCleanTranscription.isEmpty ? currentTranscription : lastCleanTranscription
+        guard !text.isEmpty else { return }
+        let outcome = textInserter.insert(text: text, mode: insertionMode)
+        switch outcome {
+        case .ok:
+            setPhase(.success, detail: "Re-inserted")
+            if soundFeedbackEnabled { FeedbackSounds.playSuccess() }
+            schedulePhaseResetToIdle()
+        case .clipboardOnly(let reason):
+            presentFailure(reason, preferAccessibilityFix: true)
+        case .failed(let reason):
+            presentFailure(reason)
         }
     }
 
@@ -525,13 +731,8 @@ final class AppState: ObservableObject {
         // Only touch the live UI / clipboard if this is still the latest dictation.
         guard lastTranscriptionId == entryId else { return }
 
-        // Preserve any accessibility warning suffix on currentTranscription.
-        if currentTranscription.hasPrefix(raw) {
-            let suffix = String(currentTranscription.dropFirst(raw.count))
-            currentTranscription = polished + suffix
-        } else {
-            currentTranscription = polished
-        }
+        lastCleanTranscription = polished
+        currentTranscription = polished
 
         // Refresh clipboard for modes that use it so a manual paste gets polished text.
         // Type-out already sent raw keystrokes — do not re-inject.
@@ -795,6 +996,14 @@ final class AppState: ObservableObject {
     func setSoundFeedbackEnabled(_ enabled: Bool) {
         soundFeedbackEnabled = enabled
         UserDefaults.standard.set(enabled, forKey: "soundFeedbackEnabled")
+        if enabled {
+            refreshOutputMuteState()
+        }
+    }
+
+    /// Re-read system output mute / near-zero volume for the chime mute banner.
+    func refreshOutputMuteState() {
+        outputMuted = FeedbackSounds.isOutputMuted()
     }
 
     func clearHistory() {
@@ -954,6 +1163,9 @@ final class AppState: ObservableObject {
         if hotkeyArmed != armed { hotkeyArmed = armed }
         if accessibilityTrusted != ax { accessibilityTrusted = ax }
         emitHotkeyHealthIfNeeded()
+        if !dictationPhase.isBusy {
+            syncIdlePhase()
+        }
     }
 
     /// Emit `hotkey_health` on transitions; Telemetry dedupes unchanged snapshots (#8).

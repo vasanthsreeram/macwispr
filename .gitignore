@@ -16,3 +16,7 @@ ed25519-private*
 sparkle_private*
 sparkle-private*
 .wrangler/
+
+# Local Developer ID / notary env (scripts/setup-signing.sh)
+.signing/
+.env.signing

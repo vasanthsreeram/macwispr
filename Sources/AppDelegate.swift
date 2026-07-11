@@ -35,13 +35,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             openDashboardWhenReady(attempts: 30)
         }
 
-        // First-run telemetry disclosure: open the dashboard so the sheet can present.
+        // First-run onboarding / telemetry: open the dashboard so sheets can present.
         // Skip during automated self-test / when dashboard already requested.
         if !CommandLine.arguments.contains("--self-test"),
-           !CommandLine.arguments.contains("--open-dashboard"),
-           !Telemetry.shared.hasSeenDisclosure
+           !CommandLine.arguments.contains("--open-dashboard")
         {
-            openDashboardWhenReady(attempts: 30)
+            let needsOnboarding = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+            if needsOnboarding || !Telemetry.shared.hasSeenDisclosure {
+                openDashboardWhenReady(attempts: 30)
+            }
         }
 
         // Automated smoke test: --self-test

@@ -69,7 +69,7 @@ struct DashboardView: View {
                     ContentUnavailableView(
                         "No dictations this week",
                         systemImage: "mic.badge.plus",
-                        description: Text("Hold ⌥Space and speak — stats show up here.")
+                        description: Text("Hold ⌥Space, speak, release — text lands in the focused app. Time saved appears here after your first dictation.")
                     )
                     .frame(height: 180)
                 } else {

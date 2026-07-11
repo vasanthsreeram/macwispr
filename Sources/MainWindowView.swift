@@ -27,12 +27,17 @@ struct MainWindowView: View {
                         .font(.title2)
                         .foregroundStyle(appState.isRecording ? .red : .accentColor)
                 }
-                .disabled(!appState.isReadyToDictate)
+                .disabled((!appState.isReadyToDictate && !appState.isRecording)
+                          || appState.dictationPhase == .transcribing)
                 .help(appState.isRecording ? "Stop recording" : "Start recording")
             }
         }
         .sheet(isPresented: $appState.showTelemetryDisclosure) {
             TelemetryDisclosureSheet(isRevisit: Telemetry.shared.hasSeenDisclosure)
+                .environmentObject(appState)
+        }
+        .sheet(isPresented: $appState.showOnboarding) {
+            OnboardingView()
                 .environmentObject(appState)
         }
     }
@@ -180,14 +185,24 @@ struct MainWindowView: View {
     private var activeView: some View {
         VStack(spacing: 20) {
             VStack(spacing: 8) {
-                Image(systemName: appState.isRecording ? "waveform" : "mic.fill")
+                Image(systemName: dictateSymbol)
                     .font(.system(size: 48))
-                    .foregroundStyle(appState.isRecording ? .red : .accentColor)
-                    .symbolEffect(.variableColor.iterative, isActive: appState.isRecording)
+                    .foregroundStyle(dictateColor)
+                    .symbolEffect(
+                        .variableColor.iterative,
+                        isActive: appState.dictationPhase == .listening
+                            || appState.dictationPhase == .transcribing
+                    )
 
-                Text(appState.isRecording ? "Listening..." : "Ready to dictate")
+                Text(dictateTitle)
                     .font(.title3)
-                    .foregroundStyle(appState.isRecording ? .primary : .secondary)
+                    .foregroundStyle(appState.dictationPhase == .ready ? .secondary : .primary)
+
+                if appState.dictationPhase == .listening {
+                    Text(appState.recordingElapsedLabel)
+                        .font(.title2.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
 
                 Text(appState.dictationMode.help)
                     .font(.caption)
@@ -195,32 +210,36 @@ struct MainWindowView: View {
                     .multilineTextAlignment(.center)
             }
 
-            Picker("Mode", selection: Binding(
-                get: { appState.dictationMode },
-                set: { appState.setDictationMode($0) }
-            )) {
-                ForEach(DictationMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
+            // Mode switch lives in Settings; show current mode only.
+            Text("Mode: \(appState.dictationMode.rawValue) · change in Settings → Hotkeys")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+
+            switch appState.dictationMode {
+            case .hold:
+                HoldToSpeakButton()
+                    .frame(maxWidth: 360)
+            case .toggle:
+                Button {
+                    appState.toggleRecording()
+                } label: {
+                    Label(
+                        appState.isRecording ? "Stop & Transcribe" : "Start Listening",
+                        systemImage: appState.isRecording ? "stop.circle.fill" : "mic.circle.fill"
+                    )
+                    .frame(maxWidth: 360)
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .tint(appState.isRecording ? .red : .accentColor)
             }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 280)
 
-            HoldToSpeakButton()
-                .frame(maxWidth: 360)
-
-            Button {
-                appState.toggleRecording()
-            } label: {
-                Label(
-                    appState.isRecording ? "Stop & Transcribe" : "Start Listening",
-                    systemImage: appState.isRecording ? "stop.circle.fill" : "mic.circle.fill"
-                )
-                .frame(maxWidth: 360)
+            if let failure = appState.lastFailureMessage {
+                Label(failure, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: 400)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .tint(appState.isRecording ? .red : .accentColor)
 
             if !appState.currentTranscription.isEmpty || isEditingTranscription {
                 GroupBox {
@@ -292,6 +311,38 @@ struct MainWindowView: View {
                 }
                 .padding(4)
             }
+        }
+    }
+
+    private var dictateTitle: String {
+        switch appState.dictationPhase {
+        case .listening: return "Listening…"
+        case .transcribing: return "Transcribing…"
+        case .success: return appState.phaseDetail.isEmpty ? "Done" : appState.phaseDetail
+        case .failed: return "Couldn't finish"
+        case .setup: return appState.readinessLabel
+        case .ready: return "Ready to dictate"
+        }
+    }
+
+    private var dictateSymbol: String {
+        switch appState.dictationPhase {
+        case .listening: return "waveform"
+        case .transcribing: return "ellipsis.circle"
+        case .success: return "checkmark.circle.fill"
+        case .failed: return "exclamationmark.triangle.fill"
+        case .setup, .ready: return "mic.fill"
+        }
+    }
+
+    private var dictateColor: Color {
+        switch appState.dictationPhase {
+        case .listening: return .red
+        case .transcribing: return .blue
+        case .success: return .green
+        case .failed: return .orange
+        case .setup: return .secondary
+        case .ready: return .accentColor
         }
     }
 }
