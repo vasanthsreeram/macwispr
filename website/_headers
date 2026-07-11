@@ -7,15 +7,15 @@
 
 /
   Cache-Control: public, max-age=0, must-revalidate
-  Link: </styles.v4.css>; rel=preload; as=style, </assets/hero-menubar.webp>; rel=preload; as=image; type=image/webp
+  Link: </styles.v5.css>; rel=preload; as=style, </assets/hero-menubar.webp>; rel=preload; as=image; type=image/webp
 
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
 
-/styles.v4.css
+/styles.v5.css
   Cache-Control: public, max-age=31536000, immutable
 
-/app.v4.js
+/app.v5.js
   Cache-Control: public, max-age=31536000, immutable
 
 /styles.css

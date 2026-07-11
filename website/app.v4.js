@@ -14,7 +14,7 @@ const hasLenis = typeof Lenis !== "undefined";
 
 /* Pause SMIL marquee animations when motion is reduced */
 if (reduced) {
-  document.querySelectorAll(".polish-marquee animate").forEach((anim) => {
+  document.querySelectorAll(".bg-marquee animate").forEach((anim) => {
     try {
       anim.endElement();
     } catch (_) {
@@ -22,7 +22,7 @@ if (reduced) {
     }
     anim.remove();
   });
-  document.querySelectorAll(".polish-marquee text").forEach((textEl) => {
+  document.querySelectorAll(".bg-marquee text").forEach((textEl) => {
     textEl.setAttribute("x", "-900");
   });
 }
