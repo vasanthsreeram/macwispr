@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Voice dictation for macOS</strong><br/>
-  On-device <a href="https://huggingface.co/collections/Qwen/qwen3-asr">Qwen3-ASR</a> (MLX) by default — or bring your own OpenAI / ElevenLabs key for cloud STT.<br/>
+  On-device <a href="https://huggingface.co/collections/Qwen/qwen3-asr">Qwen3-ASR</a> (MLX) or <strong>Parakeet TDT</strong> (Core&nbsp;ML / Neural Engine) — or bring your own OpenAI / ElevenLabs key for cloud STT.<br/>
   A free, open-source alternative to Wispr Flow.
 </p>
 
@@ -66,21 +66,22 @@ uv run --with 'git+https://github.com/Blaizzy/mlx-audio.git' --with soundfile \
 
 - **Hold-to-dictate** — Hold `Option+Space`, speak, release to transcribe and insert (toggle mode available)
 - **System-wide insertion** — Pastes into Slack, VS Code, browser, terminal, anywhere
-- **On-device MLX inference** — Qwen3-ASR on Apple Silicon GPU (default, private)
+- **On-device ASR** — **Qwen3-ASR** on GPU (MLX) and **Parakeet TDT v3** on Neural Engine (Core ML INT4/INT8); pick in Settings
+- **RAM-aware default** — Qwen 1.7B when Mac has &gt;16 GB RAM; else Qwen 0.6B (override anytime)
 - **BYOK cloud STT** — Optional OpenAI (`gpt-4o-mini-transcribe`) or ElevenLabs (`scribe_v2`); keys in Keychain only
 - **Transcript polish** — Off, local LLM, or OpenAI (`gpt-4o-mini`)
-- **Menu bar app** — Always ready from the waveform icon
-- **Minimal listening HUD** — Floating capsule with glowing phase dot + elapsed timer only (no long status copy)
-- **Soft feedback sounds** — Quiet system chimes on start/stop/success/fail (optional; mute-aware)
-- **Weekly Time Saved dashboard** — Word count + estimated typing time saved
+- **Menu bar app** — Live status (red mic + timer while listening; Done shows STT latency)
+- **Listening banner** — Optional floating “Listening / Done” under the menu bar (not a fake Dynamic Island)
+- **Configurable chimes** — Per-event system sound + volume in Settings (start / stop / done / error)
+- **Weekly Time Saved dashboard** — Word count + estimated typing time saved (baseline up to 200 WPM)
 - **Sparkle auto-updates** — Check for Updates via appcast on fuckwisprflow.com
 - **Opt-in telemetry** — Anonymous, content-free reliability events (off by default; see [PRIVACY.md](PRIVACY.md))
 - **Filler word removal** — Strips “uh”, “um”, “like”, “you know”, etc.
 - **Auto-capitalize** — First letter capitalized automatically
-- **52 languages** — Auto-detect or pin a language
+- **52 languages** — Auto-detect or pin a language (Qwen / cloud; Parakeet is multilingual EU set)
 - **Transcription history** — Browse and copy past results (persisted locally)
 - **Multiple insertion modes** — Clipboard paste, simulated typing, or both
-- **Custom vocabulary** — Names/jargon bias for local + cloud providers
+- **Custom vocabulary** — Names/jargon bias for Qwen + cloud (not applied to Parakeet)
 
 ## Weekly Time Saved dashboard
 
@@ -112,7 +113,7 @@ Menu bar also shows this week’s words + time saved at a glance:
 | OS | macOS 14.0+ (Sonoma or later) |
 | Chip | Apple Silicon (M1 / M2 / M3 / M4 / M5) |
 | **Xcode** | **Full [Xcode.app](https://developer.apple.com/xcode/) is required** — **Command Line Tools alone are not enough.** MLX needs the Metal shader compiler (`metal`). With only CLT, `swift build` can succeed but the app fails at runtime with `Failed to load the default metallib`. Install Xcode, then `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`. |
-| Disk | ~500 MB–1.5 GB for local models (first run); cloud BYOK needs no local ASR download |
+| Disk | ~500 MB–1.5 GB+ for local models on first use (Qwen and/or Parakeet); cloud BYOK needs no local ASR download |
 | Permissions | Microphone + Accessibility |
 
 Preflight (also run automatically by `./bench.sh`, `./scripts/install.sh`, and `./scripts/build-app.sh`):
@@ -169,7 +170,7 @@ RTF under 1.0 means faster than realtime.
 |--------|----------------------:|----:|--------------------------:|------|
 | **Parakeet TDT v2** MLX | **0.081s** | **0.009** | **0.72%** | Fastest + best clean-EN WER |
 | **Parakeet TDT v3** MLX | **0.091s** | **0.009** | **0.92%** | Multilingual batch (FluidVoice-class) |
-| **Qwen3-ASR 0.6B 8-bit** MLX | **~0.4s** (RTF 0.040 on LS) | **0.040** | **0.92%** | **MacWispr default** — 52 langs |
+| **Qwen3-ASR 0.6B 8-bit** MLX | **~0.4s** (RTF 0.040 on LS) | **0.040** | **0.92%** | App option — 52 langs; default on ≤16 GB |
 | Nemotron 3.5 0.6B 8-bit MLX | **0.409s** | **0.043** | **1.64%** | Streaming / multi-locale |
 | Parakeet v3 CoreML (FluidAudio CLI) | ~0.18s wall | ~0.019 | — | ANE path; warm process wall time |
 
@@ -202,9 +203,11 @@ xychart-beta
 | Parakeet TDT 0.6B v3 | CoreML / ANE (FluidAudio CLI) | ~0.18s wall | ~0.019 | ~53× | Warm process wall; cold first load ~208s (one-time compile) |
 | Parakeet TDT 0.6B v2 | CoreML / ANE (FluidAudio CLI) | ~0.20s wall | ~0.021 | ~48× | English-only CoreML |
 | **Nemotron 3.5 streaming 0.6B** | MLX-8bit (`mlx-community`) | **0.409s** | **0.043** | **~23×** | Cache-aware streaming; ~40 locales |
-| **Qwen3-ASR 0.6B 8-bit** (app default) | MLX | **~0.4s** (RTF **0.040** on LibriSpeech) | **0.040** | **~25×** | MacWispr default; 52 languages |
+| **Qwen3-ASR 0.6B 8-bit** | MLX | **~0.4s** (RTF **0.040** on LibriSpeech) | **0.040** | **~25×** | Default on ≤16 GB Macs; 52 languages |
 | Qwen3-ASR 0.6B 4-bit | MLX | ~0.60s | ~0.06 | ~17× | Smaller / slightly worse quality |
-| Qwen3-ASR 1.7B 8-bit | MLX | ~0.77–1.78s | ~0.08–0.18 | ~5–13× | Highest local Qwen accuracy |
+| **Qwen3-ASR 1.7B 8-bit** | MLX | ~0.77–1.78s | ~0.08–0.18 | ~5–13× | Default on &gt;16 GB Macs; highest local Qwen accuracy |
+| **Parakeet TDT v3 INT4** | Core ML / ANE (in-app) | fast (ANE) | — | — | Settings → Model · multilingual |
+| **Parakeet TDT v3 INT8** | Core ML / ANE (in-app) | slightly slower | — | — | Higher-quality Parakeet option |
 | ElevenLabs Scribe v2 (BYOK) | Cloud | ~1.6–2.3s | network | — | Optional cloud STT |
 
 ### Accuracy detail (WER)
@@ -215,7 +218,7 @@ Normalizer: lowercase + strip punctuation. Measured **2026-07-12** with `bench/b
 | Model | Aggregate WER ↓ | Mean WER | Errors / words | Subs / Ins / Del | RTF |
 |-------|----------------:|---------:|---------------:|-----------------:|----:|
 | **Parakeet TDT 0.6B v2** (English) | **0.72%** | 1.71% | **7 / 977** | 5 / 0 / 2 | **0.011** |
-| **Qwen3-ASR 0.6B 8-bit** (app default) | **0.92%** | 2.14% | **9 / 977** | 8 / 0 / 1 | 0.040 |
+| **Qwen3-ASR 0.6B 8-bit** | **0.92%** | 2.14% | **9 / 977** | 8 / 0 / 1 | 0.040 |
 | **Parakeet TDT 0.6B v3** (multilingual) | **0.92%** | 2.18% | **9 / 977** | 8 / 0 / 1 | **0.011** |
 | Nemotron 3.5 streaming 0.6B 8-bit | 1.64% | 3.22% | 16 / 977 | 13 / 1 / 2 | 0.043 |
 
@@ -268,20 +271,21 @@ Coding agents: see **[AGENTS.md](AGENTS.md)** and [docs/context/ARCHITECTURE.md]
 Sources/
   MacWisprApp.swift          App entry (menu bar + window)
   AppState.swift             State, phases, hotkey wiring, providers, post-processing
-  TranscriptionEngine.swift  Local Qwen3ASR load, warmup, inference
+  ASRModelSize.swift         On-device models: Qwen 0.6B/1.7B + Parakeet INT4/INT8
+  TranscriptionEngine.swift  Local Qwen3ASR (MLX) + ParakeetASR (Core ML)
   CloudSTTClient.swift       OpenAI + ElevenLabs STT / OpenAI polish
   KeychainStore.swift        BYOK API keys (Keychain only)
   TranscriptionProvider.swift  Local / OpenAI / ElevenLabs + polish modes
   TextPolisher.swift         Optional on-device LLM polish
   AudioRecorder.swift        Mic capture, resample to 16 kHz
   HotkeyManager.swift        Global Option+Space (tap + Carbon + monitors)
-  ListeningHUDController.swift  Minimal HUD: glowing dot + timer
-  FeedbackSounds.swift       Soft system chimes
+  ListeningHUDController.swift  Optional banner under menu bar (Listening / Done + latency)
+  FeedbackSounds.swift       Configurable system chimes + volume
   FailureBannerController.swift / OnboardingView.swift
   Telemetry.swift            Opt-in PostHog batch client
   TextInserter.swift         Clipboard paste or simulated typing
   SparkleUpdater.swift       Check for Updates
-  SettingsView.swift         Provider, keys, privacy, About
+  SettingsView.swift         Simplified General / Transcription / Hotkeys / About
 
 scripts/
   build-app.sh               Package MacWispr.app + Sparkle + sign
@@ -301,7 +305,7 @@ website/
 
 ## Dependencies
 
-- [soniqo/speech-swift](https://github.com/soniqo/speech-swift) — Qwen3-ASR, SpeechVAD, AudioCommon (MLX on Apple Silicon)
+- [soniqo/speech-swift](https://github.com/soniqo/speech-swift) — Qwen3-ASR (MLX), **ParakeetASR** (Core ML), SpeechVAD, AudioCommon
 - [sparkle-project/Sparkle](https://github.com/sparkle-project/Sparkle) — in-app **Check for Updates…** (appcast on fuckwisprflow.com). Setup and release signing: [docs/SPARKLE.md](docs/SPARKLE.md).
 
 ## Troubleshooting
