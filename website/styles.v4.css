@@ -828,66 +828,26 @@ img.wf-logo {
   transform: translateY(-1px);
 }
 
-/* Polish marquee (raw vs clean curved paths) */
-.polish-section {
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-}
-.polish-frame {
-  position: relative;
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 1.1rem 0.85rem 0.55rem;
-  border-radius: 28px;
-  overflow: hidden;
-  background:
-    radial-gradient(ellipse 80% 55% at 50% 100%, rgba(59, 110, 245, 0.07), transparent 65%),
-    radial-gradient(ellipse 60% 40% at 20% 20%, rgba(232, 93, 76, 0.06), transparent 55%),
-    rgba(255, 253, 248, 0.72);
-}
-.polish-legend {
+/* Faint curved marquee in living background */
+.bg-marquee {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.28;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.85rem 1.35rem;
-  margin: 0 0 0.35rem;
-  padding: 0 0.5rem;
-}
-.polish-leg {
-  display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
+  justify-content: center;
+  overflow: hidden;
+  mask-image: radial-gradient(ellipse 85% 70% at 50% 40%, #000 10%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 40%, #000 10%, transparent 78%);
 }
-.polish-leg i {
-  display: block;
-  width: 22px;
-  height: 4px;
-  border-radius: 999px;
-}
-.polish-leg-raw i {
-  background: transparent;
-  border-top: 2px dashed rgba(20, 18, 15, 0.35);
-  height: 0;
-  width: 26px;
-}
-.polish-leg-clean i {
-  height: 8px;
-  width: 28px;
-  background: linear-gradient(90deg, #e85d4c, #3b6ef5, #1a9a5c);
-  box-shadow: 0 2px 8px rgba(59, 110, 245, 0.25);
-}
-.polish-marquee {
-  display: block;
-  width: 100%;
+.bg-marquee-svg {
+  width: min(140vw, 1600px);
   height: auto;
-  max-height: min(52vw, 420px);
-  margin: 0 auto;
-  overflow: visible;
+  min-height: 70vh;
+  max-width: none;
+  transform: translateY(-4%) scale(1.05);
 }
 
 /* Bento */
@@ -1186,8 +1146,7 @@ kbd {
   .bento-card,
   .bento-wide { grid-column: span 2; }
   .section { padding: 2.5rem 0; }
-  .polish-frame { padding: 0.9rem 0.45rem 0.35rem; border-radius: 22px; }
-  .polish-marquee { max-height: min(58vw, 360px); }
+  .bg-marquee { opacity: 0.18; }
   .orb { filter: blur(50px); opacity: 0.4; }
 }
 
@@ -1235,9 +1194,8 @@ kbd {
   .bento { grid-template-columns: 1fr; gap: 0.65rem; }
   .bento-card,
   .bento-wide { grid-column: span 1; min-height: 0; }
-  .polish-legend { gap: 0.55rem 1rem; }
-  .polish-leg { font-size: 0.7rem; }
-  .polish-marquee { max-height: min(70vw, 300px); }
+  .bg-marquee { opacity: 0.14; }
+  .bg-marquee-svg { min-height: 55vh; width: min(160vw, 1400px); }
   .bento-card { padding: 1.15rem 1.05rem; }
   .bento-card:hover,
   .speed-card:hover,
@@ -1285,9 +1243,8 @@ kbd {
   .bento-card:hover,
   .speed-card:hover,
   .steps li:hover { transform: none; }
-  /* Freeze curved marquee text in a readable mid-path position */
-  .polish-marquee animate { display: none; }
-  .polish-marquee text { x: -900; }
+  .bg-marquee animate { display: none; }
+  .bg-marquee { opacity: 0.12; }
 }
 
 /* Low-power / coarse pointer: kill heavy continuous effects */
