@@ -28,6 +28,7 @@ let package = Package(
             name: "BenchLatency",
             dependencies: [
                 .product(name: "Qwen3ASR", package: "speech-swift"),
+                .product(name: "ParakeetASR", package: "speech-swift"),
                 .product(name: "AudioCommon", package: "speech-swift"),
             ],
             path: "BenchLatency"

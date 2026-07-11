@@ -3,44 +3,140 @@ import AudioToolbox
 import AVFoundation
 import CoreAudio
 
-/// Soft audio cues for hold-to-dictate: start listening / stop listening.
+// MARK: - Preferences
+
+/// One of the built-in macOS alert sounds under `/System/Library/Sounds`.
+enum SystemChime: String, CaseIterable, Identifiable, Codable {
+    case none = "None"
+    case basso = "Basso"
+    case blow = "Blow"
+    case bottle = "Bottle"
+    case frog = "Frog"
+    case funk = "Funk"
+    case glass = "Glass"
+    case hero = "Hero"
+    case morse = "Morse"
+    case ping = "Ping"
+    case pop = "Pop"
+    case purr = "Purr"
+    case sosumi = "Sosumi"
+    case submarine = "Submarine"
+    case tink = "Tink"
+
+    var id: String { rawValue }
+
+    var displayName: String { rawValue }
+
+    /// Whether this choice maps to a real AIFF file (not silent).
+    var isSilent: Bool { self == .none }
+
+    /// File name without extension, or nil when silent.
+    var systemSoundName: String? {
+        isSilent ? nil : rawValue
+    }
+
+    static var playable: [SystemChime] {
+        allCases
+    }
+}
+
+/// User-configurable chimes + volume for dictation feedback.
+enum FeedbackSoundPreferences {
+    private static let volumeKey = "feedbackSoundVolume"
+    private static let startKey = "feedbackSoundStart"
+    private static let stopKey = "feedbackSoundStop"
+    private static let successKey = "feedbackSoundSuccess"
+    private static let failureKey = "feedbackSoundFailure"
+    private static let notReadyKey = "feedbackSoundNotReady"
+
+    /// 0…1, applied on top of a soft base so max isn’t ear-splitting.
+    static var volume: Double {
+        get {
+            if UserDefaults.standard.object(forKey: volumeKey) == nil { return 0.45 }
+            return min(1, max(0, UserDefaults.standard.double(forKey: volumeKey)))
+        }
+        set {
+            UserDefaults.standard.set(min(1, max(0, newValue)), forKey: volumeKey)
+        }
+    }
+
+    static var startChime: SystemChime {
+        get { load(startKey, default: .tink) }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: startKey) }
+    }
+
+    static var stopChime: SystemChime {
+        get { load(stopKey, default: .pop) }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: stopKey) }
+    }
+
+    static var successChime: SystemChime {
+        get { load(successKey, default: .glass) }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: successKey) }
+    }
+
+    static var failureChime: SystemChime {
+        get { load(failureKey, default: .funk) }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: failureKey) }
+    }
+
+    static var notReadyChime: SystemChime {
+        get { load(notReadyKey, default: .basso) }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: notReadyKey) }
+    }
+
+    private static func load(_ key: String, default def: SystemChime) -> SystemChime {
+        guard let raw = UserDefaults.standard.string(forKey: key),
+              let chime = SystemChime(rawValue: raw)
+        else { return def }
+        return chime
+    }
+
+    /// Map 0…1 UI volume → NSSound volume (capped so full isn’t harsh).
+    static func playbackVolume() -> Float {
+        // Soft ceiling ~0.55 so “100%” is comfortable next to a laptop mic.
+        Float(volume) * 0.55
+    }
+}
+
+// MARK: - Playback
+
+/// Soft audio cues for hold-to-dictate.
 ///
 /// Important: `NSSound` instances must be retained until playback finishes,
 /// otherwise the sound is deallocated immediately and you hear nothing.
 enum FeedbackSounds {
     private static let lock = NSLock()
-    /// Keep sounds alive while they play (NSSound is not retain-on-play).
     private static var playing: [NSSound] = []
     private static var players: [AVAudioPlayer] = []
 
-    /// Higher, short tick — "listening started".
     static func playListeningStarted() {
-        playSystemSound(named: "Tink", volume: 0.85)
+        play(FeedbackSoundPreferences.startChime)
     }
 
-    /// Soft pop — "listening stopped" (mic released / hold ended).
     static func playListeningStopped() {
-        playSystemSound(named: "Pop", volume: 0.9)
+        play(FeedbackSoundPreferences.stopChime)
     }
 
-    /// Low thud — hotkey pressed but the app can't record yet (model loading).
     static func playNotReady() {
-        playSystemSound(named: "Basso", volume: 0.75)
+        play(FeedbackSoundPreferences.notReadyChime)
     }
 
-    /// Soft success after text was inserted into the target app.
     static func playSuccess() {
-        playSystemSound(named: "Glass", volume: 0.55)
+        play(FeedbackSoundPreferences.successChime)
     }
 
-    /// Distinct failure (paste/AX/STT) — not the same as "release mic".
     static func playFailure() {
-        playSystemSound(named: "Funk", volume: 0.7)
+        play(FeedbackSoundPreferences.failureChime)
     }
 
-    // MARK: - Output mute (so users know why chimes are silent)
+    /// Preview a specific chime at the current volume setting.
+    static func preview(_ chime: SystemChime) {
+        play(chime)
+    }
 
-    /// True when the default output device is muted or its volume is effectively zero.
+    // MARK: - Output mute
+
     static func isOutputMuted() -> Bool {
         var deviceID = AudioDeviceID(0)
         var size = UInt32(MemoryLayout<AudioDeviceID>.size)
@@ -54,7 +150,6 @@ enum FeedbackSounds {
               deviceID != kAudioObjectUnknown
         else { return false }
 
-        // Hardware mute switch / software mute
         var mute: UInt32 = 0
         size = UInt32(MemoryLayout<UInt32>.size)
         address = AudioObjectPropertyAddress(
@@ -69,7 +164,6 @@ enum FeedbackSounds {
             return true
         }
 
-        // Volume at (or near) zero
         var volume: Float32 = 1
         size = UInt32(MemoryLayout<Float32>.size)
         address = AudioObjectPropertyAddress(
@@ -87,10 +181,16 @@ enum FeedbackSounds {
         return false
     }
 
-    // MARK: - Playback
+    // MARK: - Internals
+
+    private static func play(_ chime: SystemChime) {
+        guard let name = chime.systemSoundName else { return }
+        let volume = FeedbackSoundPreferences.playbackVolume()
+        guard volume > 0.001 else { return }
+        playSystemSound(named: name, volume: volume)
+    }
 
     private static func playSystemSound(named name: String, volume: Float) {
-        // Always hop to main — NSSound / AVAudioPlayer are picky about threads.
         if Thread.isMainThread {
             playOnMain(named: name, volume: volume)
         } else {
@@ -104,7 +204,6 @@ enum FeedbackSounds {
         let path = "/System/Library/Sounds/\(name).aiff"
         let url = URL(fileURLWithPath: path)
 
-        // 1) NSSound by name — most reliable for system UI sounds on macOS.
         if let sound = NSSound(named: NSSound.Name(name))
             ?? (FileManager.default.fileExists(atPath: path)
                 ? NSSound(contentsOf: url, byReference: true)
@@ -125,7 +224,6 @@ enum FeedbackSounds {
             return
         }
 
-        // 2) AVAudioPlayer fallback
         if FileManager.default.fileExists(atPath: path) {
             do {
                 let player = try AVAudioPlayer(contentsOf: url)
@@ -149,7 +247,6 @@ enum FeedbackSounds {
             }
         }
 
-        // 3) Last resort: fixed system beep
         AudioServicesPlaySystemSound(1104)
     }
 }

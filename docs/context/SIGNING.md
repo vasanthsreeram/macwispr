@@ -10,10 +10,12 @@ grant to the app’s **code signature identity**.
 | Ad-hoc (`codesign -s -`) | *none* | **Invalidated** when the binary hash changes |
 | Developer ID Application | stable TEAMID | **Persists** across updates of the same bundle ID |
 
-Ad-hoc builds (everything MacWispr has shipped so far) re-key TCC on every
-release. Users must re-enable **System Settings → Privacy & Security →
-Accessibility → MacWispr**. Most will not — they report “the shortcut stopped
-working.”
+Ad-hoc builds re-key TCC on every release. Users must re-enable **System
+Settings → Privacy & Security → Accessibility → MacWispr**. Most will not —
+they report “the shortcut stopped working.”
+
+**1.2.2+ shipping path:** Developer ID Application (Team `UTSTY3J6NS`) so the
+Accessibility grant **persists** across updates of the same bundle ID.
 
 ### What still needs Accessibility even after Carbon hotkey work
 
@@ -26,7 +28,7 @@ working.”
 
 So: Carbon fixes **detection**. Paste is still dead without AX. From the
 user’s seat that is still “shortcut does nothing” (hotkey → listen → text on
-clipboard only, nothing typed). 1.2.1 surfaces that as an explicit warning;
+clipboard only, nothing typed). 1.2.x surfaces that via failure banner / warning;
 it does not remove the AX requirement for insertion.
 
 ## Durable fix (do this once)
@@ -72,19 +74,25 @@ xcrun notarytool store-credentials "MacWispr-notary" \
 
 ```bash
 source .env.signing   # or export MACWISPR_SIGN_IDENTITY / MACWISPR_NOTARY_PROFILE
-export MACWISPR_VERSION=1.2.1
+export MACWISPR_VERSION=1.2.2   # bump for each release
 ./scripts/build-app.sh          # signs via sign-and-notarize.sh
 ./scripts/build-dmg.sh
-./scripts/release.sh v1.2.1
+# Sparkle-sign the zip, update website/appcast.xml length + edSignature, then:
+./scripts/release.sh v1.2.2
+wrangler pages deploy website --project-name=fuckwisprflow
 ```
 
-Or skip notarization while testing:
+Or skip notarization while testing (common when Keychain profile is missing):
 
 ```bash
 export MACWISPR_SIGN_IDENTITY="Developer ID Application: Your Name (UTSTY3J6NS)"
 export MACWISPR_SKIP_NOTARIZE=1
 ./scripts/sign-and-notarize.sh dist/MacWispr.app
+# or build-app.sh with the same env
 ```
+
+If notarytool says `No Keychain password item found for profile: MacWispr-notary`,
+re-run `store-credentials` (above) or keep `MACWISPR_SKIP_NOTARIZE=1` for local builds.
 
 ## Verify a build
 

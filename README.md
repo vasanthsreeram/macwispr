@@ -53,21 +53,28 @@ swift build -c release
 .build/release/MacWispr
 ```
 
-Benchmark model latency:
+Benchmark latency + accuracy (WER):
 
 ```bash
 ./bench.sh
+# WER on LibriSpeech subset:
+uv run --with 'git+https://github.com/Blaizzy/mlx-audio.git' --with soundfile \
+  python bench/bench_wer.py --max-files 50 --models default
 ```
 
 ## Features
 
-- **Hold-to-dictate** — Hold `Option+Space`, speak, release to transcribe and insert
+- **Hold-to-dictate** — Hold `Option+Space`, speak, release to transcribe and insert (toggle mode available)
 - **System-wide insertion** — Pastes into Slack, VS Code, browser, terminal, anywhere
 - **On-device MLX inference** — Qwen3-ASR on Apple Silicon GPU (default, private)
 - **BYOK cloud STT** — Optional OpenAI (`gpt-4o-mini-transcribe`) or ElevenLabs (`scribe_v2`); keys in Keychain only
 - **Transcript polish** — Off, local LLM, or OpenAI (`gpt-4o-mini`)
 - **Menu bar app** — Always ready from the waveform icon
+- **Minimal listening HUD** — Floating capsule with glowing phase dot + elapsed timer only (no long status copy)
+- **Soft feedback sounds** — Quiet system chimes on start/stop/success/fail (optional; mute-aware)
 - **Weekly Time Saved dashboard** — Word count + estimated typing time saved
+- **Sparkle auto-updates** — Check for Updates via appcast on fuckwisprflow.com
+- **Opt-in telemetry** — Anonymous, content-free reliability events (off by default; see [PRIVACY.md](PRIVACY.md))
 - **Filler word removal** — Strips “uh”, “um”, “like”, “you know”, etc.
 - **Auto-capitalize** — First letter capitalized automatically
 - **52 languages** — Auto-detect or pin a language
@@ -126,45 +133,123 @@ xcrun -sdk macosx metal --version
 
 ## Benchmark
 
-MacWispr ships an in-process latency benchmark that loads each model once, warms up Metal kernels, and times inference at 16 kHz (same as the app).
+MacWispr includes harnesses for **latency** and **accuracy (WER)** against its default **Qwen3-ASR** stack and the engines FluidVoice-class apps use (**Parakeet TDT v2/v3**, **Nemotron 3.5**). Weights are official [`mlx-community`](https://huggingface.co/mlx-community) ports via [mlx-audio](https://github.com/Blaizzy/mlx-audio), plus optional FluidAudio CoreML.
 
 ```bash
+# Latency — Qwen (MLX) + Parakeet v3 (CoreML via speech-swift)
 ./bench.sh
+
+# Latency — cross-engine (adds Nemotron / Parakeet MLX)
+./bench/bench_compare.sh
+
+# Latency — mlx-community only
+uv run --with 'git+https://github.com/Blaizzy/mlx-audio.git' \
+  python bench/bench_mlx_audio.py bench/clips/speech_12s_16k.wav --models default
+
+# Accuracy (WER) — LibriSpeech test-clean subset
+uv run --with 'git+https://github.com/Blaizzy/mlx-audio.git' --with soundfile \
+  python bench/bench_wer.py --max-files 50 --models default
+# full set: --max-files 0    | also Qwen 1.7B: --models all
 ```
 
-### Results on Apple M5 (32 GB)
+Details and flags: [bench/README.md](bench/README.md). Snapshot of the latest local run: [bench/results/SUMMARY.md](bench/results/SUMMARY.md).
 
-10 seconds of speech, best of 3 runs after warmup:
+**Method**
+
+| Kind | Method |
+|------|--------|
+| Latency | load once → warmup → 3 timed runs → **best** latency; RTF = latency ÷ audio duration |
+| Accuracy | LibriSpeech **test-clean** subset; aggregate WER = total edits ÷ total ref words (lowercase, strip punctuation) |
+
+RTF under 1.0 means faster than realtime.
+
+### At a glance (Apple M5, 32 GB)
+
+| Engine | Latency (~9.6 s clip) | RTF | LibriSpeech WER (50 utts) | Role |
+|--------|----------------------:|----:|--------------------------:|------|
+| **Parakeet TDT v2** MLX | **0.081s** | **0.009** | **0.72%** | Fastest + best clean-EN WER |
+| **Parakeet TDT v3** MLX | **0.091s** | **0.009** | **0.92%** | Multilingual batch (FluidVoice-class) |
+| **Qwen3-ASR 0.6B 8-bit** MLX | **~0.4s** (RTF 0.040 on LS) | **0.040** | **0.92%** | **MacWispr default** — 52 langs |
+| Nemotron 3.5 0.6B 8-bit MLX | **0.409s** | **0.043** | **1.64%** | Streaming / multi-locale |
+| Parakeet v3 CoreML (FluidAudio CLI) | ~0.18s wall | ~0.019 | — | ANE path; warm process wall time |
+
+```
+Speed (lower latency better)          Accuracy on clean EN (lower WER better)
+Parakeet v2   █ 0.08s                 Parakeet v2   █ 0.72%
+Parakeet v3   █ 0.09s                 Qwen 0.6B     ██ 0.92%
+Nemotron      █████ 0.41s             Parakeet v3   ██ 0.92%
+Qwen 0.6B     █████ ~0.4s             Nemotron      ████ 1.64%
+```
+
+**Takeaway:** On clean English, **all four open engines are under ~2% WER** on our 50-utt set. Parakeet wins raw speed (~4× Qwen RTF); Qwen **ties Parakeet v3 on WER** while covering more languages and remaining the product default.
+
+### Latency detail
+
+Same speech clip (~9.6 s, 16 kHz mono, `bench/clips/speech_12s_16k.wav`). Measured 2026-07-11/12 on Apple M5 32 GB.
 
 ```mermaid
 xychart-beta
-    title "Inference latency — lower is better"
-    x-axis ["0.6B 4-bit", "0.6B 8-bit", "1.7B 4-bit", "1.7B 8-bit"]
-    y-axis "Seconds" 0 --> 2
-    bar [0.60, 0.65, 1.20, 1.78]
+    title "Inference latency on ~9.6s speech — lower is better"
+    x-axis ["Parakeet v2 MLX", "Parakeet v3 MLX", "Parakeet v3 CoreML", "Nemotron 8bit", "Qwen 0.6B"]
+    y-axis "Seconds" 0 --> 0.5
+    bar [0.081, 0.091, 0.18, 0.409, 0.40]
 ```
 
-| Model | Latency (10s audio) | RTF | Speed vs realtime | Verdict |
-|-------|--------------------:|----:|------------------:|---------|
-| 0.6B MLX-4bit | **0.60s** | **0.060** | **16.7×** | Fast baseline |
-| **0.6B MLX-8bit** (app default) | **~0.32–0.65s** | **~0.03–0.07** | **~15–30×** | Default in 1.2 — quality/speed balance |
-| 1.7B MLX-4bit | ~1.20s | 0.120 | 8.3× | Higher accuracy, 2× slower |
-| 1.7B MLX-8bit | ~0.77–1.78s | ~0.08–0.18 | ~5–13× | Best local accuracy |
-| ElevenLabs Scribe v2 (BYOK) | ~1.6–2.3s | network | — | Cloud; strong multilingual |
-| HF PyTorch 0.6B (MPS) | 39s | 1.31 | 0.8× | Slower than realtime — not viable |
-| HF PyTorch 1.7B (MPS) | 20s | 0.68 | 1.5× | Wrong runtime stack |
+| Model | Backend | Latency | RTF | Speed | Notes |
+|-------|---------|--------:|----:|------:|-------|
+| **Parakeet TDT 0.6B v2** | MLX (`mlx-community`) | **0.081s** | **0.009** | **~118×** | English-only; fastest pure MLX |
+| **Parakeet TDT 0.6B v3** | MLX (`mlx-community`) | **0.091s** | **0.009** | **~105×** | Multilingual (25 EU langs) |
+| Parakeet TDT 0.6B v3 | CoreML / ANE (FluidAudio CLI) | ~0.18s wall | ~0.019 | ~53× | Warm process wall; cold first load ~208s (one-time compile) |
+| Parakeet TDT 0.6B v2 | CoreML / ANE (FluidAudio CLI) | ~0.20s wall | ~0.021 | ~48× | English-only CoreML |
+| **Nemotron 3.5 streaming 0.6B** | MLX-8bit (`mlx-community`) | **0.409s** | **0.043** | **~23×** | Cache-aware streaming; ~40 locales |
+| **Qwen3-ASR 0.6B 8-bit** (app default) | MLX | **~0.4s** (RTF **0.040** on LibriSpeech) | **0.040** | **~25×** | MacWispr default; 52 languages |
+| Qwen3-ASR 0.6B 4-bit | MLX | ~0.60s | ~0.06 | ~17× | Smaller / slightly worse quality |
+| Qwen3-ASR 1.7B 8-bit | MLX | ~0.77–1.78s | ~0.08–0.18 | ~5–13× | Highest local Qwen accuracy |
+| ElevenLabs Scribe v2 (BYOK) | Cloud | ~1.6–2.3s | network | — | Optional cloud STT |
 
-RTF (real-time factor) = inference time ÷ audio duration. **RTF < 1.0 means faster than realtime.**
+### Accuracy detail (WER)
+
+LibriSpeech **test-clean** subset: **50 utterances**, ~376 s audio, **977** reference words.  
+Normalizer: lowercase + strip punctuation. Measured **2026-07-12** with `bench/bench_wer.py`.
+
+| Model | Aggregate WER ↓ | Mean WER | Errors / words | Subs / Ins / Del | RTF |
+|-------|----------------:|---------:|---------------:|-----------------:|----:|
+| **Parakeet TDT 0.6B v2** (English) | **0.72%** | 1.71% | **7 / 977** | 5 / 0 / 2 | **0.011** |
+| **Qwen3-ASR 0.6B 8-bit** (app default) | **0.92%** | 2.14% | **9 / 977** | 8 / 0 / 1 | 0.040 |
+| **Parakeet TDT 0.6B v3** (multilingual) | **0.92%** | 2.18% | **9 / 977** | 8 / 0 / 1 | **0.011** |
+| Nemotron 3.5 streaming 0.6B 8-bit | 1.64% | 3.22% | 16 / 977 | 13 / 1 / 2 | 0.043 |
 
 ```
-0.6B MLX-4bit  ████                          0.60s  ← fastest
-0.6B MLX-8bit  ████▌                         0.65s
-1.7B MLX-4bit  ████████                      1.20s
-1.7B MLX-8bit  ████████████                  1.78s
-HF 0.6B (MPS)  ████████████████████████████  39.0s  (not usable)
+Parakeet v2   ██░░░░░░░░  0.72%   ← best accuracy (this EN subset)
+Qwen 0.6B     ███░░░░░░░  0.92%   ← MacWispr default
+Parakeet v3   ███░░░░░░░  0.92%   ← same error count as Qwen, ~4× faster
+Nemotron      █████░░░░░  1.64%   ← still strong; streaming-oriented
 ```
 
-Run `./bench.sh` on your own Mac to get numbers for your chip. See [bench/README.md](bench/README.md) for details.
+> **Caveat:** 50 utterances is a **local iteration set** (first files in the 1–30 s duration window), not a full leaderboard. For publication-grade numbers: `--max-files 0` (full 2620-utt test-clean). External full-set tables: [soniqo.audio/benchmarks](https://soniqo.audio/benchmarks).
+
+### How to read this
+
+| Question | Answer on M5 |
+|----------|----------------|
+| Fastest open ASR? | **Parakeet TDT** (~100× realtime; ~0.08–0.09 s on ~10 s speech) |
+| Most accurate on clean EN? | **Parakeet v2** (0.72% WER); Qwen 0.6B and Parakeet v3 tie at **0.92%** |
+| v2 vs v3? | **v2** English-only, best EN WER; **v3** multilingual at the same WER as Qwen 0.6B here |
+| Is Nemotron competitive? | Yes for streaming size/speed; **1.64% WER** vs ~0.9% for Qwen/Parakeet on this set |
+| Why ship Qwen as default? | Matches Parakeet v3 accuracy on this EN set, **52 languages**, strong dictation defaults; still ~25× realtime |
+| FluidVoice “Fluid Intelligence”? | Closed ~3.5 GB local enhancer (not open weights). MacWispr polish: **Qwen3-0.6B-Chat CoreML** or OpenAI BYOK |
+
+### Qwen3 family only (in-app size ladder)
+
+Earlier M5 family ladder (~10 s audio, speech-swift MLX, best of 3 after Metal warmup):
+
+| Model | Latency | RTF | Verdict |
+|-------|--------:|----:|---------|
+| 0.6B MLX-4bit | **0.60s** | **0.060** | Fast / smaller |
+| **0.6B MLX-8bit** (app default) | **~0.4s** (see mlx-audio RTF 0.040 above) | **~0.04** | Default quality/speed balance |
+| 1.7B MLX-4bit | ~1.20s | 0.120 | Higher accuracy, slower |
+| 1.7B MLX-8bit | ~0.77–1.78s | ~0.08–0.18 | Best local Qwen accuracy |
+| HF PyTorch 0.6B (MPS) | 39s | 1.31 | Not viable for dictation |
 
 ### Optimizations in MacWispr
 
@@ -173,34 +258,45 @@ Run `./bench.sh` on your own Mac to get numbers for your chip. See [bench/README
 - **Dynamic max tokens** — scales with utterance length instead of always using 448
 - **Model stays loaded** — no reload between dictations
 
+Run the harnesses on your own Mac — absolute ms and WER vary by chip, power mode, thermal state, and utterance set.
+
 ## Architecture
+
+Coding agents: see **[AGENTS.md](AGENTS.md)** and [docs/context/ARCHITECTURE.md](docs/context/ARCHITECTURE.md).
 
 ```
 Sources/
   MacWisprApp.swift          App entry (menu bar + window)
-  AppState.swift             State, hotkey wiring, providers, post-processing
+  AppState.swift             State, phases, hotkey wiring, providers, post-processing
   TranscriptionEngine.swift  Local Qwen3ASR load, warmup, inference
   CloudSTTClient.swift       OpenAI + ElevenLabs STT / OpenAI polish
   KeychainStore.swift        BYOK API keys (Keychain only)
   TranscriptionProvider.swift  Local / OpenAI / ElevenLabs + polish modes
   TextPolisher.swift         Optional on-device LLM polish
   AudioRecorder.swift        Mic capture, resample to 16 kHz
-  HotkeyManager.swift        Global Option+Space via NSEvent
+  HotkeyManager.swift        Global Option+Space (tap + Carbon + monitors)
+  ListeningHUDController.swift  Minimal HUD: glowing dot + timer
+  FeedbackSounds.swift       Soft system chimes
+  FailureBannerController.swift / OnboardingView.swift
+  Telemetry.swift            Opt-in PostHog batch client
   TextInserter.swift         Clipboard paste or simulated typing
-  SettingsView.swift         Provider, keys, language, vocabulary, About
+  SparkleUpdater.swift       Check for Updates
+  SettingsView.swift         Provider, keys, privacy, About
 
 scripts/
-  build-app.sh               Package MacWispr.app + release zip (+ Sparkle.framework)
+  build-app.sh               Package MacWispr.app + Sparkle + sign
   install.sh                 Build and install to /Applications
   release.sh                 Tag + publish GitHub Release
+  sign-and-notarize.sh       Developer ID + optional notary
 
 docs/
   index.html                 Product website (GitHub Pages)
   SPARKLE.md                 Auto-update keys, sign_update, appcast deploy
+  context/                   Agent-oriented architecture / issues / signing
   assets/                    Logo + README images
 
 website/
-  appcast.xml                Sparkle feed template (deploy to fuckwisprflow.com)
+  appcast.xml                Sparkle feed (deploy to fuckwisprflow.com)
 ```
 
 ## Dependencies
