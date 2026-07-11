@@ -7,10 +7,16 @@
 
 /
   Cache-Control: public, max-age=0, must-revalidate
-  Link: </styles.v6.css>; rel=preload; as=style
+  Link: </styles.v7.css>; rel=preload; as=style
 
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
+
+/styles.v7.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/app.v7.js
+  Cache-Control: public, max-age=31536000, immutable
 
 /styles.v6.css
   Cache-Control: public, max-age=31536000, immutable
