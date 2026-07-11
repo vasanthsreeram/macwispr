@@ -8,7 +8,9 @@ let package = Package(
         .macOS(.v14)
     ],
     dependencies: [
-        .package(url: "https://github.com/soniqo/speech-swift", branch: "main")
+        .package(url: "https://github.com/soniqo/speech-swift", branch: "main"),
+        // Sparkle auto-updates (binary XCFramework via SPM). Private EdDSA key never goes in git.
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0"),
     ],
     targets: [
         .executableTarget(
@@ -18,6 +20,7 @@ let package = Package(
                 .product(name: "Qwen3Chat", package: "speech-swift"),
                 .product(name: "SpeechVAD", package: "speech-swift"),
                 .product(name: "AudioCommon", package: "speech-swift"),
+                .product(name: "Sparkle", package: "Sparkle"),
             ],
             path: "Sources"
         ),
