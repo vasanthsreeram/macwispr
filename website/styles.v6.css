@@ -315,14 +315,18 @@ html.motion-on .reveal.is-in {
 .hero {
   width: min(var(--max), calc(100% - 1.5rem));
   margin: 0 auto;
-  padding: 2.5rem 0 3rem;
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 2rem 2.5rem;
+  padding: 3.5rem 0 3.25rem;
+  display: flex;
+  justify-content: center;
   align-items: center;
-  min-height: min(78vh, 720px);
+  min-height: min(58vh, 560px);
+  text-align: center;
 }
-.hero-copy { text-align: left; max-width: 34rem; }
+.hero-copy {
+  text-align: center;
+  max-width: 40rem;
+  margin: 0 auto;
+}
 .eyebrow {
   display: inline-flex;
   font-size: 0.85rem;
@@ -352,15 +356,16 @@ h1 .line { display: block; }
   color: transparent;
 }
 .lede {
-  margin: 0 0 1.5rem;
+  margin: 0 auto 1.5rem;
   color: var(--ink-soft);
   font-size: clamp(1.2rem, 2.2vw, 1.4rem);
   line-height: 1.45;
-  max-width: 30rem;
+  max-width: 32rem;
 }
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.65rem;
   margin-bottom: 1.1rem;
 }
@@ -368,6 +373,7 @@ h1 .line { display: block; }
 .hero-chips, .mac-pills {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.4rem;
 }
 .chip {
@@ -391,58 +397,6 @@ h1 .line { display: block; }
   border-color: rgba(232, 93, 76, 0.18);
   text-decoration: line-through;
   text-decoration-thickness: 1.5px;
-}
-
-/* Product stage */
-.hero-stage {
-  position: relative;
-  min-height: 340px;
-  display: grid;
-  place-items: center;
-}
-.hero-glow {
-  position: absolute;
-  width: 80%;
-  height: 60%;
-  top: 20%;
-  left: 10%;
-  background: radial-gradient(circle, rgba(255, 200, 140, 0.55), transparent 70%);
-  filter: blur(30px);
-  z-index: 0;
-}
-.float-card {
-  position: relative;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(255,255,255,0.75);
-  background: #fff;
-  z-index: 1;
-  will-change: transform;
-}
-.dash-card {
-  width: 100%;
-  max-width: 480px;
-  transform: rotate(2deg);
-}
-.dash-card img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-.menubar-card {
-  position: absolute;
-  top: 6%;
-  left: 2%;
-  width: min(78%, 340px);
-  z-index: 2;
-  transform: rotate(-3deg);
-  box-shadow: var(--shadow);
-}
-.menubar-card img {
-  width: 100%;
-  height: auto;
-  display: block;
 }
 
 /* Sections */
@@ -1103,22 +1057,12 @@ kbd {
 /* ---------- Mobile ---------- */
 @media (max-width: 960px) {
   .hero {
-    grid-template-columns: 1fr;
     min-height: 0;
     padding: 1.75rem 0 2rem;
-    gap: 1.75rem;
-    text-align: center;
   }
   .hero-copy {
-    text-align: center;
     max-width: 100%;
-    margin: 0 auto;
   }
-  .lede { margin-left: auto; margin-right: auto; }
-  .hero-actions { justify-content: center; }
-  .hero-chips { justify-content: center; }
-  .hero-stage { min-height: 280px; order: -1; }
-  .dash-card { max-width: 400px; }
   .bento-wide {
     grid-column: span 6;
     grid-template-columns: 1fr;
@@ -1165,9 +1109,6 @@ kbd {
   .lede { font-size: 1.15rem; }
   .hero-actions { flex-direction: column; align-items: stretch; }
   .btn { min-height: 48px; width: 100%; }
-  .hero-stage { min-height: 240px; }
-  .menubar-card { width: 72%; top: 4%; left: 4%; }
-  .dash-card { max-width: 100%; transform: rotate(1deg); }
 
   .section { width: min(var(--max), calc(100% - 1.1rem)); padding: 2rem 0; }
   .section-head { margin-bottom: 1.25rem; }
