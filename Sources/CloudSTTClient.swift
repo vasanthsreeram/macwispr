@@ -171,24 +171,23 @@ enum CloudSTTClient {
     ) async throws -> (Data, Int) {
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
+        body.reserveCapacity(estimateMultipartSize(fields: fields, boundary: boundary))
 
         for field in fields {
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append(utf8: "--\(boundary)\r\n")
             switch field {
             case .text(let name, let value):
-                body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
-                body.append("\(value)\r\n".data(using: .utf8)!)
+                body.append(utf8: "Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n")
+                body.append(utf8: value)
+                body.append(utf8: "\r\n")
             case .file(let name, let filename, let mimeType, let data):
-                body.append(
-                    "Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n"
-                        .data(using: .utf8)!
-                )
-                body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+                body.append(utf8: "Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n")
+                body.append(utf8: "Content-Type: \(mimeType)\r\n\r\n")
                 body.append(data)
-                body.append("\r\n".data(using: .utf8)!)
+                body.append(utf8: "\r\n")
             }
         }
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        body.append(utf8: "--\(boundary)--\r\n")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -202,6 +201,28 @@ enum CloudSTTClient {
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
         return (data, status)
+    }
+
+    /// Pre-size the body so large WAV/PCM blobs don't trigger repeated reallocs.
+    private static func estimateMultipartSize(fields: [MultipartField], boundary: String) -> Int {
+        var size = boundary.utf8.count + 8 // closing boundary + CRLFs
+        for field in fields {
+            size += boundary.utf8.count + 64 // "--" + headers overhead
+            switch field {
+            case .text(let name, let value):
+                size += name.utf8.count + value.utf8.count + 48
+            case .file(let name, let filename, let mimeType, let data):
+                size += name.utf8.count + filename.utf8.count + mimeType.utf8.count + data.count + 96
+            }
+        }
+        return size
+    }
+}
+
+private extension Data {
+    mutating func append(utf8 string: String) {
+        // Append UTF-8 bytes directly without an intermediate Data(utf8) heap object.
+        append(contentsOf: string.utf8)
     }
 }
 
