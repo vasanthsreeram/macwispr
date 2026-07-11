@@ -7,7 +7,7 @@ cd "$ROOT"
 
 VERSION="${1:-}"
 if [[ -z "$VERSION" ]]; then
-  echo "Usage: $0 v1.2.1 [--rebuild]" >&2
+  echo "Usage: $0 v1.2.3 [--rebuild]" >&2
   exit 1
 fi
 VERSION="${VERSION#v}"
@@ -68,15 +68,9 @@ Voice dictation for macOS (Apple Silicon) — on-device by default, optional BYO
 Direct download:
 https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg
 
-### What's new in 1.2.2
-- **Live product telemetry** — opt-in anonymous reliability events now ship with a real PostHog project key (hotkey health, dictation completed/failed). No transcript/audio ever leaves the device.
-- **Listening HUD** — floating non-activating status pill (listening / transcribing / done)
-- **Sound feedback** — Tink on start, Pop on release, Glass on success, Funk on failure
-- **Mute detection** — warns when Mac output is muted so chimes aren’t silent by accident
-- **Failure banner** — clear errors with Fix Accessibility / Open Setup
-- **Onboarding checklist** — mic, Accessibility, hotkey, model, sound
-- Menu bar: elapsed timer, Copy / Re-paste last transcript
-- Developer ID signed builds for durable Accessibility across updates
+### What's new in 1.2.3
+- **Free GPU memory on model switch** — switching 1.7B ↔ 0.6B (or local → cloud) now explicitly unloads weights and clears the MLX Metal buffer cache so footprint drops instead of staying stuck near the previous model’s peak (#12)
+
 
 ### Site
 - https://fuckwisprflow.com/

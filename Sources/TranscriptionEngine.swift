@@ -21,10 +21,9 @@ actor TranscriptionEngine {
         loadGeneration += 1
         let generation = loadGeneration
 
-        // Drop previous weights before loading another size (no dual residency).
-        model = nil
-        isWarmedUp = false
-        loadedModelId = nil
+        // Explicit unload frees weights + MLX Metal buffer cache. Merely nilling
+        // the reference leaves multi‑GB GPU footprint resident (issue #12).
+        releaseModel()
 
         let loaded = try await Qwen3ASRModel.fromPretrained(
             modelId: modelId
@@ -32,8 +31,9 @@ actor TranscriptionEngine {
             progressHandler(progress, status)
         }
 
-        // Superseded by unloadModel() or a newer loadModel() — do not install.
+        // Superseded by unloadModel() or a newer loadModel() — free orphaned load.
         guard generation == loadGeneration else {
+            loaded.unload()
             throw CancellationError()
         }
 
@@ -44,6 +44,14 @@ actor TranscriptionEngine {
 
     func unloadModel() {
         loadGeneration += 1
+        releaseModel()
+    }
+
+    /// Drop weights and return Metal buffers via speech-swift `unload()` → `Memory.clearCache()`.
+    private func releaseModel() {
+        if let model {
+            model.unload()
+        }
         model = nil
         isWarmedUp = false
         loadedModelId = nil
