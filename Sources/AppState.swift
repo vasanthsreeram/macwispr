@@ -65,6 +65,9 @@ final class AppState: ObservableObject {
     private var hotkeyHealthTimer: Timer?
     /// History id for the latest dictation (so Dictate edits update the same row).
     private var lastTranscriptionId: UUID?
+    /// Debounced history persistence — avoids rewriting history.json every dictation.
+    private var historySaveTask: Task<Void, Never>?
+    private static let historySaveDebounceNs: UInt64 = 750_000_000 // 0.75s
     private static let customVocabularyKey = "customVocabulary"
     private static let asrModelSizeKey = "asrModelSize"
     private static let transcriptionProviderKey = "transcriptionProvider"
@@ -366,7 +369,8 @@ final class AppState: ObservableObject {
             )
             lastTranscriptionId = entry.id
             transcriptionHistory.insert(entry, at: 0)
-            HistoryStore.save(transcriptionHistory)
+            HistoryStore.trimInPlace(&transcriptionHistory)
+            scheduleHistorySave()
 
             // Carbon can detect ⌥Space without AX, but paste/type still needs it.
             // Without feedback, that path is the classic "shortcut does nothing".
@@ -495,10 +499,28 @@ final class AppState: ObservableObject {
             duration: old.duration,
             wordCount: UsageStats.wordCount(in: trimmed)
         )
-        HistoryStore.save(transcriptionHistory)
+        scheduleHistorySave()
 
         if lastTranscriptionId == id {
             currentTranscription = trimmed
+        }
+    }
+
+    /// Cap + debounce full history rewrites (#4 item 4).
+    private func scheduleHistorySave(immediate: Bool = false) {
+        HistoryStore.trimInPlace(&transcriptionHistory)
+        if immediate {
+            historySaveTask?.cancel()
+            historySaveTask = nil
+            HistoryStore.save(transcriptionHistory)
+            return
+        }
+        historySaveTask?.cancel()
+        historySaveTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: Self.historySaveDebounceNs)
+            guard !Task.isCancelled, let self else { return }
+            HistoryStore.save(self.transcriptionHistory)
+            self.historySaveTask = nil
         }
     }
 
@@ -586,7 +608,7 @@ final class AppState: ObservableObject {
 
     func clearHistory() {
         transcriptionHistory = []
-        HistoryStore.save(transcriptionHistory)
+        scheduleHistorySave(immediate: true)
     }
 
     // MARK: - Custom vocabulary (ASR context)
