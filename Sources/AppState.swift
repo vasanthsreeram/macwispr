@@ -1,11 +1,20 @@
 import SwiftUI
 import Combine
+import AVFoundation
 
 enum DictationMode: String, CaseIterable, Identifiable {
     case hold = "Hold"
     case toggle = "Toggle"
 
     var id: String { rawValue }
+
+    /// Coarse telemetry token (hold / toggle) — never free-form.
+    var telemetryValue: String {
+        switch self {
+        case .hold: return "hold"
+        case .toggle: return "toggle"
+        }
+    }
 
     var help: String {
         switch self {
@@ -54,6 +63,10 @@ final class AppState: ObservableObject {
     @Published var hotkeyArmed = false
     /// AXIsProcessTrusted() polled with hotkey health.
     @Published var accessibilityTrusted = false
+    /// Privacy Settings: share anonymous usage data (default OFF).
+    @Published var telemetryOptIn = false
+    /// First-run (or first Settings visit) disclosure sheet for telemetry.
+    @Published var showTelemetryDisclosure = false
 
     let transcriptionEngine = TranscriptionEngine()
     let textPolisher = TextPolisher()
@@ -138,12 +151,37 @@ final class AppState: ObservableObject {
         if let saved = UserDefaults.standard.stringArray(forKey: Self.customVocabularyKey) {
             customVocabulary = saved
         }
+        telemetryOptIn = Telemetry.shared.isOptedIn
+        // First-run disclosure: show once until the user acknowledges the manifest.
+        if !Telemetry.shared.hasSeenDisclosure {
+            showTelemetryDisclosure = true
+        }
         refreshKeyPresence()
         setupHotkey()
         Task { await prepareActiveProvider() }
         if polishProvider == .local {
             Task { await loadLLM() }
         }
+        // After hotkey registration settles, emit the first hotkey_health snapshot.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            self?.emitHotkeyHealthIfNeeded()
+        }
+    }
+
+    // MARK: - Telemetry opt-in (#7)
+
+    func setTelemetryOptIn(_ enabled: Bool) {
+        Telemetry.shared.setOptIn(enabled)
+        telemetryOptIn = Telemetry.shared.isOptedIn
+        if enabled {
+            emitHotkeyHealthIfNeeded()
+        }
+    }
+
+    func acknowledgeTelemetryDisclosure(optIn: Bool) {
+        Telemetry.shared.markDisclosureSeen()
+        showTelemetryDisclosure = false
+        setTelemetryOptIn(optIn)
     }
 
     // MARK: - BYOK keys
@@ -347,17 +385,21 @@ final class AppState: ObservableObject {
             // feedback this feels like "the shortcut is broken".
             currentTranscription = "No audio captured — hold longer, or check Microphone permission."
             if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
+            reportEmptyAudioFailure()
             return
         }
 
+        let audioDuration = Double(samples.count) / 16000.0
+        let sttStarted = Date()
         do {
             let text = try await transcribeSamples(samples)
+            let sttLatency = Date().timeIntervalSince(sttStarted)
             var processed = postProcess(text)
             processed = await applyPolish(processed)
 
             currentTranscription = processed
 
-            let duration = Double(samples.count) / 16000.0
+            let duration = audioDuration
             let entry = TranscriptionEntry(
                 text: processed,
                 timestamp: Date(),
@@ -371,18 +413,31 @@ final class AppState: ObservableObject {
             // Carbon can detect ⌥Space without AX, but paste/type still needs it.
             // Without feedback, that path is the classic "shortcut does nothing".
             let outcome = textInserter.insert(text: processed, mode: insertionMode)
+            let telemetryOutcome: TelemetryInsertionOutcome
             switch outcome {
             case .ok:
-                break
+                telemetryOutcome = .ok
             case .clipboardOnly(let reason):
+                telemetryOutcome = .clipboardOnly
                 currentTranscription = "\(processed)\n\n⚠️ \(reason)"
                 accessibilityTrusted = false
                 hotkeyArmed = hotkeyManager.isArmed
                 if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
             case .failed(let reason):
+                telemetryOutcome = .failed
                 currentTranscription = "\(processed)\n\n⚠️ \(reason)"
                 if soundFeedbackEnabled { FeedbackSounds.playNotReady() }
+                // Complete paste/type failure with no AX path is a known reliability class.
+                if !AXIsProcessTrusted() {
+                    Telemetry.shared.reportDictationFailed(reason: .pasteNoAX)
+                }
             }
+
+            reportDictationCompleted(
+                sttLatency: sttLatency,
+                audioDuration: audioDuration,
+                insertionOutcome: telemetryOutcome
+            )
 
             if soundFeedbackEnabled, outcome == .ok {
                 FeedbackSounds.playListeningStopped()
@@ -390,11 +445,61 @@ final class AppState: ObservableObject {
         } catch {
             currentTranscription = "Error: \(error.localizedDescription)"
             lastTranscriptionId = nil
+            Telemetry.shared.reportDictationFailed(reason: .sttError)
             // Still signal that processing ended.
             if soundFeedbackEnabled {
                 FeedbackSounds.playListeningStopped()
             }
         }
+    }
+
+    /// Bucketed lifecycle event — no content, no raw timings (#9).
+    private func reportDictationCompleted(
+        sttLatency: TimeInterval,
+        audioDuration: TimeInterval,
+        insertionOutcome: TelemetryInsertionOutcome
+    ) {
+        let providerToken: String
+        let modelSizeToken: String
+        switch transcriptionProvider {
+        case .local:
+            providerToken = "local"
+            modelSizeToken = asrModelSize.rawValue
+        case .openAI:
+            providerToken = "cloud"
+            modelSizeToken = "openai"
+        case .elevenLabs:
+            providerToken = "cloud"
+            modelSizeToken = "elevenlabs"
+        }
+
+        let insertionToken: String
+        switch insertionMode {
+        case .clipboard: insertionToken = "clipboard"
+        case .typeOut: insertionToken = "type_out"
+        case .both: insertionToken = "both"
+        }
+
+        Telemetry.shared.reportDictationCompleted(
+            provider: providerToken,
+            modelSize: modelSizeToken,
+            mode: dictationMode.telemetryValue,
+            insertionMode: insertionToken,
+            sttLatencySeconds: sttLatency,
+            audioDurationSeconds: audioDuration,
+            insertionOutcome: insertionOutcome
+        )
+    }
+
+    private func reportEmptyAudioFailure() {
+        let micDenied: Bool
+        if #available(macOS 14.0, *) {
+            let status = AVCaptureDevice.authorizationStatus(for: .audio)
+            micDenied = (status == .denied || status == .restricted)
+        } else {
+            micDenied = false
+        }
+        Telemetry.shared.reportDictationFailed(reason: micDenied ? .micDenied : .noAudio)
     }
 
     func setInsertionMode(_ mode: InsertionMode) {
@@ -716,6 +821,17 @@ final class AppState: ObservableObject {
         let ax = hotkeyManager.accessibilityTrusted
         if hotkeyArmed != armed { hotkeyArmed = armed }
         if accessibilityTrusted != ax { accessibilityTrusted = ax }
+        emitHotkeyHealthIfNeeded()
+    }
+
+    /// Emit `hotkey_health` on transitions; Telemetry dedupes unchanged snapshots (#8).
+    func emitHotkeyHealthIfNeeded() {
+        Telemetry.shared.reportHotkeyHealth(
+            tapInstalled: hotkeyManager.tapInstalled,
+            carbonInstalled: hotkeyManager.carbonInstalled,
+            axTrusted: hotkeyManager.accessibilityTrusted,
+            armed: hotkeyManager.isArmed
+        )
     }
 
     /// Prompt for Accessibility and re-arm the global hotkey.

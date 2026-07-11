@@ -31,6 +31,10 @@ struct MainWindowView: View {
                 .help(appState.isRecording ? "Stop recording" : "Start recording")
             }
         }
+        .sheet(isPresented: $appState.showTelemetryDisclosure) {
+            TelemetryDisclosureSheet(isRevisit: Telemetry.shared.hasSeenDisclosure)
+                .environmentObject(appState)
+        }
     }
 
     private var sidebar: some View {
