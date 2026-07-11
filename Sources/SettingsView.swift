@@ -568,43 +568,86 @@ struct SettingsView: View {
     }
 
     private var aboutView: some View {
-        VStack(spacing: 16) {
-            if let logo = NSImage.appLogo {
-                Image(nsImage: logo)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 96, height: 96)
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
-            } else {
-                Image(systemName: "waveform.circle.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(Color.accentColor)
+        ScrollView {
+            VStack(spacing: 16) {
+                if let logo = NSImage.appLogo {
+                    Image(nsImage: logo)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 96, height: 96)
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+                } else {
+                    Image(systemName: "waveform.circle.fill")
+                        .font(.system(size: 64))
+                        .foregroundStyle(Color.accentColor)
+                }
+
+                Text("MacWispr")
+                    .font(.title)
+                    .fontWeight(.bold)
+
+                Text("Voice dictation for macOS — local or BYOK cloud")
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Text("Version \(AppVersion.display)")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    aboutRow(icon: "macbook", title: "On-device", detail: "Qwen3-ASR 0.6B / 1.7B (MLX 8-bit)")
+                    aboutRow(icon: "key.fill", title: "BYOK cloud", detail: "OpenAI · ElevenLabs Scribe v2")
+                    aboutRow(icon: "text.badge.checkmark", title: "Polish", detail: "Local LLM or OpenAI · Keychain-only keys")
+                    aboutRow(icon: "keyboard", title: "Hotkey", detail: "⌥Space hold or toggle · Both insert by default")
+                }
+                .frame(maxWidth: 360)
+                .padding(.top, 4)
+
+                HStack(spacing: 16) {
+                    Link("Website", destination: URL(string: "https://vasanthsreeram.github.io/macwispr/")!)
+                    Link("GitHub", destination: URL(string: "https://github.com/vasanthsreeram/macwispr")!)
+                    Link("Releases", destination: URL(string: "https://github.com/vasanthsreeram/macwispr/releases")!)
+                }
+                .font(.callout)
+
+                Text("MIT License · Open source")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 8)
             }
-
-            Text("MacWispr")
-                .font(.title)
-                .fontWeight(.bold)
-
-            Text("Voice dictation for macOS — local or BYOK cloud")
-                .foregroundStyle(.secondary)
-
-            Text("v1.2.0")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-
-            VStack(spacing: 4) {
-                Text("Local: Qwen3-ASR (MLX) · Cloud: OpenAI / ElevenLabs")
-                Text("API keys stay in your Keychain")
-            }
-            .font(.caption)
-            .foregroundStyle(.tertiary)
-
-            Spacer()
+            .padding()
+            .frame(maxWidth: .infinity)
         }
-        .padding()
-        .frame(maxWidth: .infinity)
     }
+
+    private func aboutRow(icon: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .frame(width: 18)
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+/// Single source for the About tab / marketing version string.
+enum AppVersion {
+    static let display: String = {
+        if let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+           !short.isEmpty
+        {
+            return short
+        }
+        return "1.2.0"
+    }()
 }
 
 extension NSImage {

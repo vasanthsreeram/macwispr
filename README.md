@@ -16,13 +16,18 @@
 
 Hold a hotkey, speak, release — text appears in whatever app you're typing in.
 
+## Website
+
+Product page & about: **[vasanthsreeram.github.io/macwispr](https://vasanthsreeram.github.io/macwispr/)**
+
 ## Easy install (release)
 
-1. Grab the latest **`.app` zip** from [Releases](https://github.com/vasanthsreeram/macwispr/releases)
+1. Grab **MacWispr 1.2.0** (or latest) **`.app` zip** from [Releases](https://github.com/vasanthsreeram/macwispr/releases/latest)
 2. Unzip and drag **MacWispr.app** into Applications
 3. Open it (right-click → **Open** the first time if macOS warns about an unsigned app)
 4. Grant **Microphone** + **Accessibility**
 5. Hold **⌥Space**, speak, release
+6. Optional: **Settings → Transcription** to add OpenAI / ElevenLabs keys (BYOK)
 
 ### One-command build & install (from source)
 
@@ -98,15 +103,16 @@ Menu bar also shows this week’s words + time saved at a glance:
 |---|---|
 | OS | macOS 14.0+ (Sonoma or later) |
 | Chip | Apple Silicon (M1 / M2 / M3 / M4 / M5) |
-| Disk | ~300 MB for the model (first run) |
+| Disk | ~500 MB–1.5 GB for local models (first run); cloud BYOK needs no local ASR download |
 | Permissions | Microphone + Accessibility |
 
 ## Usage
 
-1. Launch the app — the model auto-downloads on first run (~300 MB, cached in `~/Library/Caches/qwen3-speech/`)
+1. Launch the app — local model auto-downloads on first run (cached under `~/Library/Caches/`)
 2. Grant **Microphone** and **Accessibility** when prompted
 3. Hold `Option+Space`, speak, release — text appears in the focused field
-4. Open the main window for the **Dashboard**, history, and controls
+4. Open the main window for the **Dashboard**, history, and Settings
+5. For cloud STT: **Settings → Transcription → Provider** → OpenAI or ElevenLabs → save your API key
 
 ## Benchmark
 
@@ -130,10 +136,11 @@ xychart-beta
 
 | Model | Latency (10s audio) | RTF | Speed vs realtime | Verdict |
 |-------|--------------------:|----:|------------------:|---------|
-| **0.6B MLX-4bit** (default) | **0.60s** | **0.060** | **16.7×** | Fastest — used by MacWispr |
-| 0.6B MLX-8bit | ~0.65s | 0.065 | 15.4× | Slightly better accuracy |
+| 0.6B MLX-4bit | **0.60s** | **0.060** | **16.7×** | Fast baseline |
+| **0.6B MLX-8bit** (app default) | **~0.32–0.65s** | **~0.03–0.07** | **~15–30×** | Default in 1.2 — quality/speed balance |
 | 1.7B MLX-4bit | ~1.20s | 0.120 | 8.3× | Higher accuracy, 2× slower |
-| 1.7B MLX-8bit | 1.78s | 0.178 | 5.6× | Best accuracy, 3× slower |
+| 1.7B MLX-8bit | ~0.77–1.78s | ~0.08–0.18 | ~5–13× | Best local accuracy |
+| ElevenLabs Scribe v2 (BYOK) | ~1.6–2.3s | network | — | Cloud; strong multilingual |
 | HF PyTorch 0.6B (MPS) | 39s | 1.31 | 0.8× | Slower than realtime — not viable |
 | HF PyTorch 1.7B (MPS) | 20s | 0.68 | 1.5× | Wrong runtime stack |
 
@@ -161,23 +168,25 @@ Run `./bench.sh` on your own Mac to get numbers for your chip. See [bench/README
 ```
 Sources/
   MacWisprApp.swift          App entry (menu bar + window)
-  AppState.swift             State, hotkey wiring, post-processing
-  UsageStats.swift           Word count + time-saved math, history store
-  DashboardView.swift        Weekly time-saved dashboard
-  TranscriptionEngine.swift  Qwen3ASR load, warmup, inference
+  AppState.swift             State, hotkey wiring, providers, post-processing
+  TranscriptionEngine.swift  Local Qwen3ASR load, warmup, inference
+  CloudSTTClient.swift       OpenAI + ElevenLabs STT / OpenAI polish
+  KeychainStore.swift        BYOK API keys (Keychain only)
+  TranscriptionProvider.swift  Local / OpenAI / ElevenLabs + polish modes
+  TextPolisher.swift         Optional on-device LLM polish
   AudioRecorder.swift        Mic capture, resample to 16 kHz
   HotkeyManager.swift        Global Option+Space via NSEvent
   TextInserter.swift         Clipboard paste or simulated typing
-  MenuBarView.swift          Menu bar dropdown + weekly strip
-  MainWindowView.swift       Dashboard / dictate / history
-  SettingsView.swift         Language, insertion mode, WPM baseline
+  SettingsView.swift         Provider, keys, language, vocabulary, About
 
 scripts/
   build-app.sh               Package MacWispr.app + release zip
   install.sh                 Build and install to /Applications
   release.sh                 Tag + publish GitHub Release
 
-docs/assets/                 Logo + README images
+docs/
+  index.html                 Product website (GitHub Pages)
+  assets/                    Logo + README images
 ```
 
 ## Dependencies
