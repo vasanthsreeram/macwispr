@@ -1,16 +1,16 @@
 # MacWispr architecture (current)
 
-Last updated: 2026-07-11 · product line **1.2.2+**
+Last updated: 2026-07-12 · product line **1.2.2+**
 
 ## Runtime shape
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  NSStatusItem (waveform)  →  NSPopover (MenuBarView)          │
-│  ⌥Space HotkeyManager     →  AppState start/stop               │
-│  ListeningHUD (dot+timer) →  nonactivating floating panel      │
-│  FailureBanner            →  nonactivating error panel         │
-│  Dashboard NSWindow       →  MainWindowView + onboarding       │
+│  NSStatusItem (mic + timer) → NSPopover (MenuBarView)         │
+│  ⌥Space HotkeyManager       → AppState start/stop              │
+│  Listening banner (optional)→ nonactivating panel under bar    │
+│  FailureBanner              → nonactivating error panel        │
+│  Dashboard NSWindow         → MainWindowView + onboarding      │
 └────────────────────────────┬─────────────────────────────────┘
                              │
                              ▼
@@ -19,25 +19,40 @@ Last updated: 2026-07-11 · product line **1.2.2+**
 │  • dictationPhase: setup | ready | listening | transcribing    │
 │                    | success | failed                          │
 │  • dictationMode: hold | toggle                                │
+│  • asrModelSize: Qwen 0.6B/1.7B | Parakeet INT4/INT8           │
 │  • AudioRecorder → samples @ 16 kHz                            │
-│  • TranscriptionEngine (Qwen3ASR actor) or CloudSTTClient      │
+│  • TranscriptionEngine → Qwen3ASR (MLX) or ParakeetASR (CoreML)│
+│  • CloudSTTClient when provider is OpenAI / ElevenLabs         │
 │  • TextInserter (clipboard / type / both)                      │
 │  • HistoryStore + UsageStats                                   │
 │  • Telemetry.shared (opt-in PostHog batch)                     │
-│  • FeedbackSounds (soft system AIFF chimes)                    │
+│  • FeedbackSounds (configurable system AIFF chimes)            │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 ## Dictation phases
 
-| Phase | Menu bar | Floating HUD |
-|-------|----------|--------------|
-| setup / ready | status text | hidden |
-| listening | elapsed / listening | **red glow + timer** |
-| transcribing | “Transcribing…” | **orange glow** (no timer) |
-| success / failed | brief | green / red glow, then hide |
+| Phase | Menu bar | Optional banner |
+|-------|----------|-----------------|
+| setup / ready | idle waveform | hidden |
+| listening | red mic + timer | **Listening** + timer |
+| transcribing | orange | **Transcribing** |
+| success | green + latency | **Done** + words · STT latency |
+| failed | orange | **Failed** + reason |
 
-HUD intentionally has **no words** — phase is color only; duration is digits.
+## On-device ASR engines
+
+| Model | Package | Backend | Notes |
+|-------|---------|---------|--------|
+| Qwen3-ASR 0.6B 8-bit | `Qwen3ASR` | MLX / GPU | Default on ≤16 GB |
+| Qwen3-ASR 1.7B 8-bit | `Qwen3ASR` | MLX / GPU | Default on >16 GB |
+| Parakeet TDT v3 INT4 | `ParakeetASR` | Core ML / ANE | Fast multilingual |
+| Parakeet TDT v3 INT8 | `ParakeetASR` | Core ML / ANE | Higher quality ANE |
+
+- Catalog: `ASRModelSize.swift`
+- Load / warm / transcribe: `TranscriptionEngine.swift` (actor with dual backend)
+- Custom vocabulary context is **Qwen-only** (`supportsContext`)
+- Switching models unloads the previous backend (frees MLX / Core ML footprint)
 
 ## Dictation modes
 
@@ -76,14 +91,13 @@ Single choke point: `Telemetry.swift`.
 5. Inject version into `Info.plist`
 6. Sign (Developer ID if `MACWISPR_SIGN_IDENTITY` set) via `sign-and-notarize.sh`
 
-Without metallib next to the executable, MLX crashes at startup.
+Without metallib next to the executable, **Qwen / MLX** crashes at startup. Parakeet Core ML does not need `mlx.metallib`, but the packaged app always ships it for Qwen.
 
 ## Dependencies
 
-- **speech-swift** → Qwen3ASR, SpeechVAD, AudioCommon (MLX transitive)
+- **speech-swift** → `Qwen3ASR`, **`ParakeetASR`**, `Qwen3Chat`, `SpeechVAD`, `AudioCommon`
 - **Sparkle** → in-app updates (appcast on fuckwisprflow.com)
-- Model default: Qwen3-ASR 0.6B MLX (size selectable in Settings)
-- Cache: `~/Library/Caches/qwen3-speech/` (and related)
+- Caches: HuggingFace / speech-swift model cache under `~/Library/Caches/` (Qwen + Parakeet)
 
 ## CLI flags
 

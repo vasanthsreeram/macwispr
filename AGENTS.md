@@ -6,7 +6,10 @@ Instructions for coding agents working in this repository.
 
 **MacWispr** is a macOS menu-bar voice dictation app (Apple Silicon, macOS 14+).
 
-- Default STT: **on-device Qwen3-ASR via MLX**
+- On-device STT:
+  - **Qwen3-ASR** via **MLX** (GPU) — 0.6B / 1.7B 8-bit
+  - **Parakeet TDT v3** via **Core ML** (Neural Engine) — INT4 / INT8
+- Default model: **Qwen 1.7B** when system RAM **> 16 GB**, else **Qwen 0.6B** (user can override; Parakeet is opt-in)
 - Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional polish
 - Global hotkey: **⌥Space** (hold or toggle)
 - Inserts text system-wide (Accessibility required for paste / event tap)
@@ -32,14 +35,16 @@ Instructions for coding agents working in this repository.
 | File | Responsibility |
 |------|----------------|
 | `AppState.swift` | Recording, phases, hotkey callbacks, telemetry hooks, history |
+| `ASRModelSize.swift` | On-device model catalog (Qwen + Parakeet) + RAM default |
 | `HotkeyManager.swift` | CGEvent tap + Carbon hotkey + NSEvent backup |
-| `TranscriptionEngine.swift` | Local MLX Qwen3ASR |
-| `ListeningHUDController.swift` | Floating **minimal** HUD (glowing dot + elapsed digits only) |
-| `FeedbackSounds.swift` | Soft system-sound chimes (low volume) |
+| `TranscriptionEngine.swift` | Local **Qwen3ASR** (MLX) + **ParakeetASR** (Core ML) actor |
+| `ListeningHUDController.swift` | Optional banner under menu bar (Listening / Done + STT latency) |
+| `FeedbackSounds.swift` | Configurable system-sound chimes + volume |
 | `Telemetry.swift` | Opt-in PostHog batch client (whitelisted events only) |
-| `StatusBarController.swift` / `MenuBarView.swift` | Menu bar UI |
+| `StatusBarController.swift` / `MenuBarView.swift` | Menu bar UI (live status + timer) |
 | `FailureBannerController.swift` | Non-activating failure banner |
 | `OnboardingView.swift` | First-run checklist |
+| `SettingsView.swift` | Simplified tabs: General / Transcription / Hotkeys / About |
 | `SparkleUpdater.swift` | Check for Updates |
 
 ## Privacy & telemetry (must not regress)
@@ -54,17 +59,23 @@ Instructions for coding agents working in this repository.
 
 ## UX conventions (current)
 
-### Listening HUD
+### Status surfaces
 
-- **No instructional copy** in the floating HUD (no “Listening”, “release to…”, etc.).
-- Show **glowing phase dot** + **elapsed timer** while recording only.
-- Use **system materials** (`.regularMaterial` / capsules) and **system colors** (`systemRed` / `systemOrange` / `systemGreen`) — free AppKit/SwiftUI chrome, no third-party theme kit.
-- Keep non-activating, mouse-transparent panel at top of screen.
+- **Primary:** system **menu bar** `NSStatusItem` (Apple’s Mac surface for live status — not Dynamic Island).
+- **Optional banner:** floating non-activating capsule **under** the menu bar (Listening + timer; Done + word count + STT latency). Not a notch-integrated island (no third-party API for that on Mac).
+- Failure: non-activating banner with Fix Accessibility / Open Setup.
 
 ### Sounds
 
-- Soft volumes only (`FeedbackSounds` ~0.22–0.32). Do not restore near-full volume system AIFF playback.
+- Master toggle + **volume** + **per-event chime** (start / stop / done / error) via `FeedbackSoundPreferences`.
+- Soft ceiling so 100% isn’t ear-splitting next to a laptop mic.
 - Optional mute detection when chimes are enabled but output is muted.
+
+### Settings layout
+
+- **General:** insertion → time saved (WPM up to **200**) → history → privacy → **post-processing last**
+- **Transcription:** status + language → model dropdown (Qwen / Parakeet) → vocabulary → **provider + BYOK keys last** (keys expand only for cloud)
+- **Hotkeys:** mode, sounds, banner, permissions
 
 ### Dictation modes
 
@@ -73,61 +84,41 @@ Instructions for coding agents working in this repository.
 | Hold | Down start / up stop+transcribe |
 | Toggle | Down toggles start/stop |
 
+### On-device engines
+
+| Engine | Hardware | Custom vocab context |
+|--------|----------|----------------------|
+| Qwen3-ASR | MLX / GPU | Yes |
+| Parakeet TDT v3 | Core ML / ANE | No |
+
 ## Build & local test (before release)
 
 ```bash
 # Full Xcode.app required (not CLT alone) for mlx.metallib
 ./scripts/preflight-xcode.sh
 
-# Local install for manual testing — preferred before any GitHub release
-export MACWISPR_VERSION=1.2.2   # or next version
-source .env.signing             # if present
-./scripts/install.sh            # or build-app.sh then copy to /Applications
+# Local install (Developer ID if .env.signing present; skip notary with unset MACWISPR_NOTARY_PROFILE)
+set -a && source .env.signing && set +a
+unset MACWISPR_NOTARY_PROFILE
+export MACWISPR_VERSION=1.2.2
+./scripts/build-app.sh
+rm -rf /Applications/MacWispr.app && cp -R dist/MacWispr.app /Applications/
 open -a MacWispr
-
-# Smoke
-/Applications/MacWispr.app/Contents/MacOS/MacWispr --self-test
 ```
 
-- Prefer **local install + try ⌥Space** over shipping immediately.
-- `MACWISPR_SKIP_NOTARIZE=1` if notary Keychain profile is missing.
-- Notary profile name (when configured): `MacWispr-notary`.
+## Release (short)
 
-## Release flow (do not skip Sparkle steps)
+1. Bump `Info.plist` / scripts version if shipping a new version number
+2. `./scripts/build-app.sh` (+ Developer ID / notarize when ready)
+3. `sign_update` on zip → update `website/appcast.xml`
+4. `./scripts/release.sh vX.Y.Z`
+5. `wrangler pages deploy website --project-name=fuckwisprflow`
 
-1. Bump version in `Info.plist`, `scripts/build-*.sh` defaults, `AppVersion` fallback, website copy as needed.
-2. Build + Developer ID sign (`source .env.signing && ./scripts/build-app.sh`).
-3. Notarize + staple when credentials work.
-4. Zip with `ditto`, **Sparkle `sign_update`** → update `website/appcast.xml` `length` + `edSignature`.
-5. `./scripts/release.sh vX.Y.Z` (GitHub Release assets).
-6. Deploy website: `wrangler pages deploy website --project-name=fuckwisprflow`.
-7. Verify: download published zip has expected features; live appcast matches zip size/signature.
+See `docs/SPARKLE.md` and `docs/context/SIGNING.md`.
 
-Details: [docs/SPARKLE.md](docs/SPARKLE.md), [docs/context/SIGNING.md](docs/context/SIGNING.md).
+## Do not
 
-## Coding rules
-
-- Stay on Apple Silicon / macOS 14+ assumptions.
-- Keep dictation path fail-safe and non-blocking (no modal dialogs mid-dictation).
-- Prefer AppKit panels that are **nonactivating** for HUD / banners so focus stays in the target app.
-- Do not add autocapture, session recording, or free-text analytics.
-- Do not commit `.env.signing`, private Sparkle keys, notary passwords, or `.signing/` secrets.
-- Metallib must ship next to the binary (`scripts/build-app.sh` already does this).
-- When docs drift, update `docs/context/*` and this file together.
-
-## Context docs
-
-| Doc | Use when |
-|-----|----------|
-| [docs/context/ARCHITECTURE.md](docs/context/ARCHITECTURE.md) | Runtime shape, phases, packaging |
-| [docs/context/KNOWN_ISSUES.md](docs/context/KNOWN_ISSUES.md) | Hotkey / AX / metallib troubleshooting |
-| [docs/context/SIGNING.md](docs/context/SIGNING.md) | Developer ID, TCC, notary |
-| [docs/context/SESSION_SUMMARY.md](docs/context/SESSION_SUMMARY.md) | Historical session notes |
-| [PRIVACY.md](PRIVACY.md) | Telemetry contract |
-| [README.md](README.md) | User-facing overview |
-
-## Out of scope unless asked
-
-- Leaderboard / public rankings (tracked as GitHub idea; privacy-sensitive)
-- Changing bundle ID or Team ID
-- Shipping without a version bump when behavior changes for end users
+- Commit `.env.signing`, `.signing/`, private Sparkle keys, or `dist/`
+- Force-push `main` or rewrite published release tags without explicit user request
+- Reintroduce a fake Dynamic Island / notch overlay as “system integration”
+- Send transcript content through telemetry

@@ -443,9 +443,9 @@ final class AppState: ObservableObject {
 
         do {
             let engine = transcriptionEngine
-            let modelId = asrModelSize.modelId
+            let size = asrModelSize
             try await Task.detached {
-                try await engine.loadModel(modelId: modelId) { progress, status in
+                try await engine.loadModel(size: size) { progress, status in
                     DispatchQueue.main.async { [weak self] in
                         guard let self, self.modelLoadGeneration == generation else { return }
                         self.modelLoadProgress = progress
@@ -852,10 +852,12 @@ final class AppState: ObservableObject {
     private func transcribeSamples(_ samples: [Float]) async throws -> String {
         switch transcriptionProvider {
         case .local:
+            // Parakeet ignores context; only pass vocab for Qwen.
+            let context = asrModelSize.supportsContext ? asrContext : nil
             return try await transcriptionEngine.transcribe(
                 samples: samples,
                 language: selectedLanguage,
-                context: asrContext
+                context: context
             )
         case .openAI:
             guard let key = KeychainStore.load(account: .openAI) else {
@@ -1040,7 +1042,7 @@ final class AppState: ObservableObject {
     }
 
     func setTypingWPM(_ value: Double) {
-        typingWPM = max(10, min(120, value))
+        typingWPM = max(10, min(200, value))
         UserDefaults.standard.set(typingWPM, forKey: "typingWPM")
     }
 
