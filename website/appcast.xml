@@ -22,10 +22,11 @@
       <sparkle:version>1.2.2</sparkle:version>
       <sparkle:shortVersionString>1.2.2</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <pubDate>Sat, 11 Jul 2026 15:40:00 +0000</pubDate>
+      <pubDate>Sat, 11 Jul 2026 16:05:00 +0000</pubDate>
       <description><![CDATA[
         <h2>MacWispr 1.2.2</h2>
         <ul>
+          <li><strong>Live product telemetry</strong> — opt-in anonymous reliability events reach PostHog (working project key)</li>
           <li><strong>Listening HUD</strong> — non-activating status pill (listening / transcribing / done)</li>
           <li><strong>Clear pipeline states</strong> — menu bar Ready → Listening → Transcribing → Done/Fail</li>
           <li><strong>Sound feedback</strong> — Tink start · Pop release · Glass success · Funk failure</li>
@@ -37,9 +38,9 @@
       ]]></description>
       <enclosure
         url="https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.2/MacWispr-1.2.2-macos-arm64.zip"
-        length="107559725"
+        length="107538493"
         type="application/octet-stream"
-        sparkle:edSignature="usUyjJtBplixCm7SPNWR6ZxTAPgRTS/JAozFVSQB/kFqAjDrIC9at/VpZs6SbMGRszFGhg7yUZb7at2S2XKqAg=="
+        sparkle:edSignature="hXQbsdPpQA/E+Oxm9oPWzLLnEGjrC5n6SARG5zMrexE/uiw4R8wlig2rxPDcR65CjSd5wUt8hR8gZ1f/lbTHAw=="
       />
     </item>
   </channel>

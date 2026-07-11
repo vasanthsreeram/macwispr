@@ -69,6 +69,7 @@ Direct download:
 https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg
 
 ### What's new in 1.2.2
+- **Live product telemetry** — opt-in anonymous reliability events now ship with a real PostHog project key (hotkey health, dictation completed/failed). No transcript/audio ever leaves the device.
 - **Listening HUD** — floating non-activating status pill (listening / transcribing / done)
 - **Sound feedback** — Tink on start, Pop on release, Glass on success, Funk on failure
 - **Mute detection** — warns when Mac output is muted so chimes aren’t silent by accident
