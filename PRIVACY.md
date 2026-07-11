@@ -1,56 +1,103 @@
-# MacWispr Privacy
+# Privacy
 
-MacWispr is designed for **on-device privacy**. Dictation can run fully locally (Qwen3-ASR on Apple Silicon). Cloud speech-to-text is optional and **bring-your-own-key (BYOK)** — API keys stay in the macOS Keychain and are sent only to the provider you chose (OpenAI or ElevenLabs), never to MacWispr servers (there are none for STT).
+MacWispr is built to keep your voice and text on your Mac whenever possible.
 
-## Anonymous usage telemetry (opt-in)
+By default, **local** transcription (Qwen3-ASR via MLX) runs entirely on-device. Optional cloud STT (OpenAI / ElevenLabs) only runs if you choose a cloud provider and supply your own API key (BYOK). Keys stay in the macOS Keychain.
 
-MacWispr may offer an optional **“Share anonymous usage data”** setting (default **off**). When enabled, the app can send a small set of **anonymous, content-free** reliability signals to a self-hosted or project analytics backend (PostHog HTTPS `/batch`). This exists so we can measure real-world issues — especially a silently dead ⌥Space hotkey after updates — without seeing what you said.
+## Optional product telemetry
 
-Telemetry is gated by a single kill-switch in the app. If the toggle is off, **no telemetry events are sent**.
+MacWispr can send **anonymous, content-free** product telemetry so we can measure real-world reliability — for example whether the global hotkey is actually armed after updates, or how often dictation fails by category.
 
-### What we collect (only when you opt in)
+### Opt-in (off by default)
 
-| Category | Details |
-|----------|---------|
-| Device / build | App version, macOS version, CPU architecture (`arm64` / `x86_64`) |
-| Latency | Transcription latency **bucketed** only (`<1s`, `1-3s`, `3-10s`, `>10s`) |
-| Dictation counts | Completed / failed event counts |
-| Hotkey health | Booleans: tap installed, Carbon installed, Accessibility trusted, armed |
-| Coarse config | Provider (`local` / `cloud`), model size token, mode (`hold` / `toggle`), insertion mode |
-| Failure category | Enum only: `no_audio`, `mic_denied`, `paste_no_ax`, `stt_error` |
-| Install ID | A random UUID generated once and stored locally (not a hardware serial) |
+Telemetry is **off until you turn it on**. Nothing leaves your Mac for product analytics unless you enable it.
 
-### What we never collect
+| | |
+|---|---|
+| **Default** | Off |
+| **Enable** | Settings → Privacy → **Share anonymous usage data** |
+| **Disable** | Settings → Privacy → turn the same toggle **off** |
 
-- Transcription **text** — ever
-- **Audio** samples or recordings
-- **Custom vocabulary** words
-- **Clipboard** contents
-- API keys / secrets
-- Hardware serials, MAC address, username, email, IP-derived identity, precise location
-- Raw timestamps or durations that could fingerprint (durations are **bucketed**)
+Turning it off stops all further telemetry sends immediately. Already-sent events are not pulled back from the server (see [Retention](#retention)).
 
-There is **no autocapture**, **no session recording**, and **no SDK product analytics** beyond the explicit whitelisted events the app constructs.
+### Guiding principle
 
-### Events
+Telemetry is **opt-in**, **anonymous**, and **content-free**. If in doubt, it does not leave the device.
 
-| Event | Purpose |
-|-------|---------|
-| `hotkey_health` | Measure armed vs. dead global hotkey (priority reliability signal) |
-| `dictation_completed` | Counts + bucketed latency + coarse config + insertion outcome |
-| `dictation_failed` | Failure category enum only |
-| `opt_in` / `opt_out` | Preference changes (final `opt_out` is sent before muting) |
+We send only explicit, whitelisted events. Autocapture, session recording, and similar PostHog features are not used.
 
-### Turning it off
+---
 
-**Settings → General → Privacy → Share anonymous usage data** (off). Turning the toggle off stops all further sends immediately and attempts one final `opt_out` event.
+## What we collect
 
-## Local data on your Mac
+When telemetry is enabled, MacWispr may send:
 
-- Transcription history and usage stats live under Application Support (local only).
-- Custom vocabulary is stored in `UserDefaults` on this Mac.
-- API keys use the Keychain.
+| Category | What |
+|----------|------|
+| **App / device** | App version, macOS version, CPU architecture (`arm64` / `x86_64`) |
+| **Latency** | Transcription latency in **buckets** only (e.g. `<1s`, `1–3s`, `3–10s`, `>10s`) — not raw millisecond timings that could fingerprint |
+| **Dictation counts** | How many dictations **started**, **completed**, or **failed** |
+| **Hotkey / Accessibility health** | Boolean flags only: tap installed, Carbon hotkey installed, Accessibility trusted, hotkey armed |
+| **Coarse config** | Provider (`local` / `cloud`), model size class, dictation mode (`hold` / `toggle`), insertion mode |
+| **Failure category** | Enum only: `no_audio`, `mic_denied`, `paste_no_ax`, `stt_error` (and similar non-content labels) |
+| **Install ID** | A **random UUID** generated once on first enable and stored locally — never a hardware serial, MAC address, or other device identifier |
 
-## Questions
+These fields exist so we can answer questions like “how often is ⌥Space silently dead after an update?” without ever seeing what you said.
 
-Open an issue at [github.com/vasanthsreeram/macwispr](https://github.com/vasanthsreeram/macwispr) or review the telemetry implementation in `Sources/Telemetry.swift`.
+---
+
+## What we never collect
+
+The following **never** leave your device as telemetry (and local history/settings stay on your Mac unless you explicitly use a cloud STT/polish provider you configured):
+
+- Transcription **text** — ever  
+- **Audio** samples or recordings  
+- **Custom vocabulary** words  
+- **Clipboard** contents  
+- API keys / secrets  
+- Hardware serials, MAC address, username, email  
+- IP-derived identity or other attempts to re-identify you  
+- Precise location  
+- Raw timestamps or durations that could fingerprint (we bucket)
+
+---
+
+## Where data goes
+
+| | |
+|---|---|
+| **Service** | [PostHog](https://posthog.com) |
+| **Region** | United States (PostHog US cloud) |
+| **Transport** | HTTPS only (explicit `/capture`-style events; no browser session, no screen recording) |
+| **Who can see it** | Maintainers of this project, for product reliability metrics |
+
+Telemetry is fail-silent: network or client errors never block dictation. Failed batches are dropped, not retried in a way that interferes with the app.
+
+### Retention
+
+Events are retained on PostHog under the project’s configured data retention (typically on the order of months for product analytics; exact window may change with plan and settings). When you disable telemetry, MacWispr stops sending new events; historical aggregates already stored on PostHog are not automatically deleted.
+
+If you need data removed for a specific install ID, open a GitHub issue or contact the maintainers and include that anonymous ID (shown in Settings when telemetry is enabled, when available).
+
+---
+
+## On-device vs cloud transcription (separate from telemetry)
+
+| Mode | Audio / text leave your Mac? |
+|------|------------------------------|
+| **Local** (default) | No — ASR runs on Apple Silicon via MLX |
+| **Cloud BYOK** (OpenAI / ElevenLabs) | Yes — audio (and polish text, if enabled) go to the provider you chose, under **your** API key and their privacy policy |
+| **Transcript history / dashboard** | Stored locally under Application Support on your Mac |
+
+Turning telemetry on does **not** change where transcription runs. Local stays local.
+
+---
+
+## Summary
+
+1. **Local by default** for speech-to-text.  
+2. **Telemetry is opt-in** and off until you enable it in Settings.  
+3. We only send **anonymous, non-content** reliability signals.  
+4. We **never** send what you said, your audio, keys, or personal identifiers.
+
+See the epic and related issues on GitHub for implementation details. This document is the public contract: if something is not listed under [What we collect](#what-we-collect), it is not telemetry.
