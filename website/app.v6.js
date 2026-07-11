@@ -246,51 +246,6 @@ function initMotion() {
       clearProps: "transform,opacity",
     });
   }
-  const stage = document.querySelector(".hero-stage");
-  if (stage) {
-    gsap.from(stage, {
-      y: 24,
-      opacity: 0.001,
-      scale: 0.985,
-      duration: 0.85,
-      ease: "power3.out",
-      delay: 0.12,
-      clearProps: "transform,opacity",
-    });
-  }
-
-  // Light parallax only on desktop with ScrollTrigger
-  if (hasST && !coarse) {
-    const menu = document.querySelector(".menubar-card");
-    const dash = document.querySelector(".dash-card");
-    if (menu) {
-      gsap.to(menu, {
-        y: -20,
-        ease: "none",
-        force3D: true,
-        scrollTrigger: {
-          trigger: ".hero",
-          start: "top top",
-          end: "bottom top",
-          scrub: 0.8,
-        },
-      });
-    }
-    if (dash) {
-      gsap.to(dash, {
-        y: 24,
-        ease: "none",
-        force3D: true,
-        scrollTrigger: {
-          trigger: ".hero",
-          start: "top top",
-          end: "bottom top",
-          scrub: 0.8,
-        },
-      });
-    }
-  }
-
   const toReveal = [...document.querySelectorAll(".reveal")].filter(
     (el) => !el.closest(".hero") && el.dataset.revealed !== "1"
   );
