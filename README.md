@@ -23,7 +23,7 @@ Hold a hotkey, speak, release — text appears in whatever app you're typing in.
 
 ## Easy install (release)
 
-1. Grab **MacWispr 1.2.1** (or latest) **DMG / `.app` zip** from [Releases](https://github.com/vasanthsreeram/macwispr/releases/latest)
+1. Grab **MacWispr 1.2.2** (or latest) **DMG / `.app` zip** from [Releases](https://github.com/vasanthsreeram/macwispr/releases/latest)
 2. Unzip and drag **MacWispr.app** into Applications
 3. Open it (right-click → **Open** the first time if macOS warns about an unsigned app)
 4. Grant **Microphone** + **Accessibility**
