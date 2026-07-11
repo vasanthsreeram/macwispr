@@ -31,6 +31,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             openDashboardWhenReady(attempts: 30)
         }
 
+        // First-run telemetry disclosure: open the dashboard so the sheet can present.
+        // Skip during automated self-test / when dashboard already requested.
+        if !CommandLine.arguments.contains("--self-test"),
+           !CommandLine.arguments.contains("--open-dashboard"),
+           !Telemetry.shared.hasSeenDisclosure
+        {
+            openDashboardWhenReady(attempts: 30)
+        }
+
         // Automated smoke test: --self-test
         if CommandLine.arguments.contains("--self-test") {
             runSelfTest()
@@ -171,6 +180,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false // Keep running in menu bar
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Flush any pending opt-in telemetry before process exit (fail-silent).
+        Telemetry.shared.flush(force: true)
+        // Brief wait so the fire-and-forget URLSession task can leave the device.
+        Thread.sleep(forTimeInterval: 0.35)
+    }
+
+    func applicationDidResignActive(_ notification: Notification) {
+        Telemetry.shared.flush(force: false)
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
