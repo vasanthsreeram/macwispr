@@ -680,17 +680,25 @@ h1 .line { display: block; }
 }
 .lane-titles { min-width: 0; flex: 1; text-align: left; }
 .lane-head img {
-  width: 30px; height: 30px;
-  border-radius: 9px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
+  object-fit: contain;
+  display: block;
 }
-.wf-logo {
-  width: 30px; height: 30px;
-  border-radius: 9px;
-  object-fit: cover;
-  background: #fff;
-  border: 1px solid var(--line);
+.wf-logo,
+img.wf-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  box-shadow: 0 1px 2px rgba(20, 18, 15, 0.08);
 }
 .lane-head strong {
   display: block;
