@@ -41,7 +41,7 @@ struct DashboardView: View {
     private var modelQuickSwitch: some View {
         VStack(alignment: .trailing, spacing: 4) {
             Menu {
-                Section("On-device") {
+                Section("Local") {
                     ForEach(ASRModelSize.dashboardChoices) { size in
                         Button {
                             appState.setTranscriptionProvider(.local)

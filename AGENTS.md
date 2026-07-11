@@ -6,9 +6,10 @@ Instructions for coding agents working in this repository.
 
 **MacWispr** is a macOS menu-bar voice dictation app (Apple Silicon, macOS 14+).
 
-- On-device STT:
-  - **Qwen3-ASR** via **MLX** (GPU) — 0.6B / 1.7B 8-bit
-  - **Parakeet TDT v3** via **Core ML** (Neural Engine) — INT8 fixed 30s mel window
+- On-device STT (UI labels — language coverage first):
+  - **Qwen 0.6B (En + Asian)** / **Qwen 1.7B (En + Asian)** via **MLX** (GPU)
+  - **Parakeet v3 (En + EU)** via **Core ML** (Neural Engine)
+- Dashboard chip shows **Local** (or OpenAI / ElevenLabs); model detail is in the menu / subtitle
 - Default model: **Qwen 1.7B** when system RAM **> 16 GB**, else **Qwen 0.6B** (user can override; Parakeet is opt-in)
 - Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional polish
 - Global hotkey: **⌥Space** (hold or toggle)
@@ -23,7 +24,8 @@ Instructions for coding agents working in this repository.
 |------|------|
 | `Sources/` | Swift app (SwiftPM product `MacWispr`) |
 | `scripts/` | build, sign, DMG, release, install |
-| `website/` | Marketing + **Sparkle appcast** (Cloudflare Pages `fuckwisprflow`) |
+| `website/` | Marketing (edgy) + **Sparkle appcast** (Cloudflare Pages `fuckwisprflow`) |
+| `website-macwispr/` | Soft product site (Cloudflare Pages `macwispr` → `macwispr.lintware.com`) |
 | `docs/` | GitHub Pages product page + agent context |
 | `docs/context/` | Architecture, language/stack choice, signing, known issues (agent-oriented) |
 | `PRIVACY.md` | Public telemetry / privacy contract |
@@ -41,7 +43,8 @@ Instructions for coding agents working in this repository.
 | `ListeningHUDController.swift` | Optional banner under menu bar (Listening / Done + STT latency) |
 | `FeedbackSounds.swift` | Configurable system-sound chimes + volume |
 | `Telemetry.swift` | Opt-in PostHog batch client (whitelisted events only) |
-| `StatusBarController.swift` / `MenuBarView.swift` | Menu bar UI (live status + timer) |
+| `StatusBarController.swift` / `MenuBarView.swift` | Menu bar popover (stats + nav; single hosting controller) |
+| `DashboardView.swift` | Time Saved + top-right Local model chip |
 | `FailureBannerController.swift` | Non-activating failure banner |
 | `OnboardingView.swift` | First-run checklist |
 | `SettingsView.swift` | Simplified tabs: General / Transcription / Hotkeys / About |
@@ -74,8 +77,9 @@ Instructions for coding agents working in this repository.
 ### Settings layout
 
 - **General:** insertion → time saved (WPM up to **200**) → history → privacy → **post-processing last**
-- **Transcription:** status + language → model dropdown (Qwen / Parakeet) → vocabulary → **provider + BYOK keys last** (keys expand only for cloud)
+- **Transcription:** status + language → model dropdown → vocabulary → **provider + BYOK keys last** (keys expand only for cloud)
 - **Hotkeys:** mode, sounds, banner, permissions
+- **Dashboard:** top-right **Local** chip with model menu (same catalog as Settings)
 
 ### Dictation modes
 
@@ -84,12 +88,15 @@ Instructions for coding agents working in this repository.
 | Hold | Down start / up stop+transcribe |
 | Toggle | Down toggles start/stop |
 
-### On-device engines
+### On-device engines (user labels)
 
-| Engine | Hardware | Custom vocab context |
-|--------|----------|----------------------|
-| Qwen3-ASR | MLX / GPU | Yes |
-| Parakeet TDT v3 | Core ML / ANE | No |
+| UI name | Hardware | Languages (cue) | Custom vocab |
+|---------|----------|-----------------|--------------|
+| Qwen 0.6B (En + Asian) | MLX / GPU | English + Asian | Yes |
+| Qwen 1.7B (En + Asian) | MLX / GPU | English + Asian | Yes |
+| Parakeet v3 (En + EU) | Core ML / ANE | English + European | No |
+
+Catalog: `ASRModelSize.swift` (`displayName` / `shortName`).
 
 ## Build & local test (before release)
 

@@ -193,12 +193,12 @@ struct SettingsView: View {
                         get: { appState.asrModelSize },
                         set: { appState.setASRModelSize($0) }
                     )) {
-                        Section("Qwen3 (GPU / MLX)") {
+                        Section("Qwen — En + Asian (GPU)") {
                             ForEach([ASRModelSize.small, .large], id: \.id) { size in
                                 Text(size.pickerLabel).tag(size)
                             }
                         }
-                        Section("Parakeet (Neural Engine / Core ML)") {
+                        Section("Parakeet — En + EU (Neural Engine)") {
                             // Single INT8 fixed-shape export (INT4 HF retired).
                             // Legacy Parakeet-INT4 UserDefaults still load via ASRModelSize.
                             ForEach([ASRModelSize.parakeetInt8], id: \.id) { size in
@@ -592,7 +592,7 @@ struct SettingsView: View {
                 .disabled(!SparkleUpdater.shared.canCheckForUpdates)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    aboutRow(icon: "macbook", title: "On-device", detail: "Qwen3-ASR (MLX) · Parakeet TDT (Core ML)")
+                    aboutRow(icon: "macbook", title: "On-device", detail: "Qwen (En + Asian) · Parakeet v3 (En + EU)")
                     aboutRow(icon: "key.fill", title: "BYOK cloud", detail: "OpenAI · ElevenLabs Scribe v2")
                     aboutRow(icon: "text.badge.checkmark", title: "Polish", detail: "Local LLM or OpenAI · Keychain-only keys")
                     aboutRow(icon: "keyboard", title: "Hotkey", detail: "⌥Space hold or toggle · Both insert by default")

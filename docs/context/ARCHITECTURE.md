@@ -21,7 +21,7 @@ Last updated: 2026-07-12 · product line **1.2.2+**
 │  • dictationPhase: setup | ready | listening | transcribing    │
 │                    | success | failed                          │
 │  • dictationMode: hold | toggle                                │
-│  • asrModelSize: Qwen 0.6B/1.7B | Parakeet INT8 (fixed 30s)    │
+│  • asrModelSize: Qwen En+Asian 0.6/1.7B | Parakeet v3 En+EU    │
 │  • AudioRecorder → samples @ 16 kHz                            │
 │  • TranscriptionEngine → Qwen3ASR (MLX) or ParakeetASR (CoreML)│
 │  • CloudSTTClient when provider is OpenAI / ElevenLabs         │
@@ -44,13 +44,14 @@ Last updated: 2026-07-12 · product line **1.2.2+**
 
 ## On-device ASR engines
 
-| Model | Package | Backend | Notes |
-|-------|---------|---------|--------|
-| Qwen3-ASR 0.6B 8-bit | `Qwen3ASR` | MLX / GPU | Default on ≤16 GB |
-| Qwen3-ASR 1.7B 8-bit | `Qwen3ASR` | MLX / GPU | Default on >16 GB |
-| Parakeet TDT v3 INT8 | `ParakeetASR` | Core ML / ANE | Fixed mel `[1,128,3000]`; short clips padded |
+| UI name (`displayName`) | Package | Backend | Notes |
+|-------------------------|---------|---------|--------|
+| **Qwen 0.6B (En + Asian)** | `Qwen3ASR` | MLX / GPU | Default on ≤16 GB |
+| **Qwen 1.7B (En + Asian)** | `Qwen3ASR` | MLX / GPU | Default on >16 GB |
+| **Parakeet v3 (En + EU)** | `ParakeetASR` | Core ML / ANE | Fixed mel `[1,128,3000]`; short clips padded |
 
-- Catalog: `ASRModelSize.swift`
+- Catalog: `ASRModelSize.swift` (user labels emphasize language coverage, not “MLX 8-bit”)
+- Dashboard: **Local** chip (top-right) + menu of the three models / cloud BYOK
 - Load / warm / transcribe: `TranscriptionEngine.swift` (actor with dual backend)
 - Parakeet short-clip pad: `prepareParakeetSamples` (HF encoder is fixed-shape; INT4 repo retired)
 - Custom vocabulary context is **Qwen-only** (`supportsContext`)
@@ -60,8 +61,8 @@ Last updated: 2026-07-12 · product line **1.2.2+**
 
 | Mode | ⌥Space | UI |
 |------|--------|-----|
-| **Hold** | Down → start; Up → stop + transcribe | Hold to Speak |
-| **Toggle** | Down toggles start/stop; Up ignored | Start / Stop |
+| **Hold** | Down → start; Up → stop + transcribe | ⌥Space (menu bar shows phase) |
+| **Toggle** | Down toggles start/stop; Up ignored | ⌥Space |
 
 ## Hotkey pipeline
 

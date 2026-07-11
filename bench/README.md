@@ -1,6 +1,6 @@
 # ASR benchmarks
 
-MacWispr benches its default **Qwen3-ASR (MLX)** stack against **Parakeet TDT v2/v3** and **Nemotron 3.5** (FluidVoice-class engines) for:
+MacWispr benches its default **Qwen (En + Asian, MLX)** stack against **Parakeet v2/v3** and **Nemotron 3.5** (FluidVoice-class engines) for:
 
 1. **Latency** (single-clip, best-of-3 after warmup)
 2. **Accuracy / WER** (LibriSpeech test-clean subset)
@@ -42,7 +42,7 @@ uv run --with 'git+https://github.com/Blaizzy/mlx-audio.git' --with soundfile \
 | Harness | Engines | Backend | Metric |
 |---------|---------|---------|--------|
 | `./bench.sh` → `BenchLatency` | Qwen3-ASR 0.6B/1.7B | MLX (Metal) | Latency |
-| same | Parakeet TDT **v3** INT8 | CoreML (ANE) via speech-swift | Latency |
+| same | Parakeet v3 (En + EU) INT8 | CoreML (ANE) via speech-swift | Latency |
 | `bench/bench_mlx_audio.py` | Nemotron 3.5 · Parakeet v2/v3 | MLX (`mlx-community/*`) | Latency |
 | `bench/bench_wer.py` | Qwen · Parakeet v2/v3 · Nemotron | MLX (`mlx-audio`) | **WER + RTF** |
 | optional `--include-fluidaudio` | Parakeet v3 | FluidAudio CoreML CLI | WER + wall time |
