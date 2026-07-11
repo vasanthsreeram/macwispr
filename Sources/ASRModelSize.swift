@@ -25,22 +25,19 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// User-facing name (Settings, dashboard menu, load status).
+    /// Language coverage is the main decision cue — not backend jargon.
     var displayName: String {
         switch self {
-        case .small: return "Qwen3-ASR 0.6B (MLX 8-bit)"
-        case .large: return "Qwen3-ASR 1.7B (MLX 8-bit)"
-        case .parakeetInt4: return "Parakeet TDT v3 (CoreML INT8)"
-        case .parakeetInt8: return "Parakeet TDT v3 (CoreML INT8)"
+        case .small: return "Qwen 0.6B (En + Asian)"
+        case .large: return "Qwen 1.7B (En + Asian)"
+        case .parakeetInt4, .parakeetInt8: return "Parakeet v3 (En + EU)"
         }
     }
 
-    /// Compact label for dashboard / toolbar chips.
+    /// Compact label under the Local chip on the dashboard.
     var shortName: String {
-        switch self {
-        case .small: return "Qwen 0.6B"
-        case .large: return "Qwen 1.7B"
-        case .parakeetInt4, .parakeetInt8: return "Parakeet INT8"
-        }
+        displayName
     }
 
     /// SF Symbol for the engine class.
@@ -73,21 +70,21 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
 
     var subtitle: String {
         switch self {
-        case .small: return "~500 MB · GPU (MLX) · lighter · best on ≤16 GB"
-        case .large: return "~1.5 GB · GPU (MLX) · higher accuracy · best on >16 GB"
+        case .small: return "English + Asian languages · GPU · lighter · best on ≤16 GB"
+        case .large: return "English + Asian languages · GPU · higher accuracy · best on >16 GB"
         case .parakeetInt4, .parakeetInt8:
-            return "~Neural Engine · INT8 · fixed 30s window · multilingual"
+            return "English + European languages · Neural Engine · very fast"
         }
     }
 
     var help: String {
         switch self {
         case .small:
-            return "Qwen3 on the GPU. Faster and uses less memory — good for 16 GB Macs."
+            return "Qwen3 0.6B on the GPU. Strong English and Asian language coverage; lighter memory footprint."
         case .large:
-            return "Qwen3 on the GPU. Better accuracy on names, accents, and noise."
+            return "Qwen3 1.7B on the GPU. Same En + Asian coverage with better accuracy on names, accents, and noise."
         case .parakeetInt4, .parakeetInt8:
-            return "NVIDIA Parakeet TDT v3 on the Neural Engine (Core ML INT8). Fixed 30-second mel window; shorter clips are zero-padded automatically."
+            return "Parakeet TDT v3 on the Neural Engine. Optimized for English and European languages; very fast batch dictation."
         }
     }
 
