@@ -8,6 +8,12 @@ final class AudioRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var isTapped = false
 
+    /// Reused on the audio thread so each 1024-frame tap does not allocate.
+    private var monoScratch: [Float] = []
+    private var resampleScratch: [Float] = []
+    /// Expected max frames per tap (engine may deliver slightly more than requested).
+    private let maxTapFrames = 4096
+
     /// Prompt for mic access if needed. Safe to call at launch.
     static func requestPermissionIfNeeded() {
         if #available(macOS 14.0, *) {
@@ -27,7 +33,11 @@ final class AudioRecorder: @unchecked Sendable {
     }
 
     func startRecording() {
+        // Pre-size for ~60s of 16 kHz mono so appends rarely reallocate.
         samples = []
+        samples.reserveCapacity(Int(targetSampleRate) * 60)
+
+        ensureScratchCapacity(frameCount: maxTapFrames, sourceSR: 48_000)
 
         // Clean up a prior session that never stopped cleanly.
         if isTapped {
@@ -45,12 +55,11 @@ final class AudioRecorder: @unchecked Sendable {
             return
         }
 
+        ensureScratchCapacity(frameCount: maxTapFrames, sourceSR: inputFormat.sampleRate)
+
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
             guard let self else { return }
-            let resampled = self.resample(buffer: buffer, from: inputFormat.sampleRate, to: self.targetSampleRate)
-            self.lock.lock()
-            self.samples.append(contentsOf: resampled)
-            self.lock.unlock()
+            self.processTapBuffer(buffer, sourceSR: inputFormat.sampleRate)
         }
         isTapped = true
 
@@ -77,43 +86,101 @@ final class AudioRecorder: @unchecked Sendable {
         return result
     }
 
-    private func resample(buffer: AVAudioPCMBuffer, from sourceSR: Double, to targetSR: Double) -> [Float] {
-        guard let channelData = buffer.floatChannelData else { return [] }
+    // MARK: - Audio thread
+
+    /// Grow scratch once if the device delivers more frames than expected.
+    private func ensureScratchCapacity(frameCount: Int, sourceSR: Double) {
+        if monoScratch.count < frameCount {
+            monoScratch = [Float](repeating: 0, count: frameCount)
+        }
+        let ratio = targetSampleRate / max(sourceSR, 1)
+        let outCount = Int(ceil(Double(frameCount) * max(ratio, 1.0))) + 8
+        if resampleScratch.count < outCount {
+            resampleScratch = [Float](repeating: 0, count: outCount)
+        }
+    }
+
+    private func processTapBuffer(_ buffer: AVAudioPCMBuffer, sourceSR: Double) {
+        guard let channelData = buffer.floatChannelData else { return }
         let frameCount = Int(buffer.frameLength)
+        guard frameCount > 0 else { return }
+
+        if frameCount > monoScratch.count || resampleScratch.isEmpty {
+            ensureScratchCapacity(frameCount: frameCount, sourceSR: sourceSR)
+        }
+
         let channelCount = Int(buffer.format.channelCount)
+        let monoCount = mixToMono(
+            channelData: channelData,
+            frameCount: frameCount,
+            channelCount: channelCount
+        )
 
-        // Mix to mono if stereo
-        var mono = [Float](repeating: 0, count: frameCount)
+        let outputCount: Int
+        if abs(sourceSR - targetSampleRate) < 1.0 {
+            outputCount = monoCount
+            // Point resampleScratch at mono for the append path without a second copy.
+            // monoScratch already holds the data; copy into samples under the lock.
+            lock.lock()
+            samples.append(contentsOf: monoScratch.prefix(monoCount))
+            lock.unlock()
+            return
+        }
+
+        outputCount = resampleLinear(
+            monoCount: monoCount,
+            sourceSR: sourceSR,
+            targetSR: targetSampleRate
+        )
+
+        lock.lock()
+        samples.append(contentsOf: resampleScratch.prefix(outputCount))
+        lock.unlock()
+    }
+
+    /// Writes mono into `monoScratch`. Returns frame count written.
+    private func mixToMono(
+        channelData: UnsafePointer<UnsafeMutablePointer<Float>>,
+        frameCount: Int,
+        channelCount: Int
+    ) -> Int {
         if channelCount == 1 {
-            memcpy(&mono, channelData[0], frameCount * MemoryLayout<Float>.size)
-        } else {
-            for i in 0..<frameCount {
-                var sum: Float = 0
-                for ch in 0..<channelCount {
-                    sum += channelData[ch][i]
-                }
-                mono[i] = sum / Float(channelCount)
+            _ = monoScratch.withUnsafeMutableBufferPointer { dest in
+                memcpy(dest.baseAddress!, channelData[0], frameCount * MemoryLayout<Float>.size)
             }
+            return frameCount
         }
 
-        // Resample if needed
-        if abs(sourceSR - targetSR) < 1.0 {
-            return mono
+        // Scalar mix — replaced by vDSP in a follow-up (#4 item 2).
+        for i in 0..<frameCount {
+            var sum: Float = 0
+            for ch in 0..<channelCount {
+                sum += channelData[ch][i]
+            }
+            monoScratch[i] = sum / Float(channelCount)
         }
+        return frameCount
+    }
 
+    /// Linear-interpolation resample from `monoScratch` into `resampleScratch`.
+    /// Returns output frame count.
+    private func resampleLinear(monoCount: Int, sourceSR: Double, targetSR: Double) -> Int {
         let ratio = targetSR / sourceSR
-        let outputCount = Int(Double(frameCount) * ratio)
-        var output = [Float](repeating: 0, count: outputCount)
+        let outputCount = Int(Double(monoCount) * ratio)
+        guard outputCount > 0, monoCount > 0 else { return 0 }
 
-        // Linear interpolation resampling
+        if resampleScratch.count < outputCount {
+            resampleScratch = [Float](repeating: 0, count: outputCount)
+        }
+
+        let last = monoCount - 1
         for i in 0..<outputCount {
             let srcIndex = Double(i) / ratio
             let lower = Int(srcIndex)
-            let upper = min(lower + 1, frameCount - 1)
+            let upper = min(lower + 1, last)
             let frac = Float(srcIndex - Double(lower))
-            output[i] = mono[lower] * (1 - frac) + mono[upper] * frac
+            resampleScratch[i] = monoScratch[lower] * (1 - frac) + monoScratch[upper] * frac
         }
-
-        return output
+        return outputCount
     }
 }
