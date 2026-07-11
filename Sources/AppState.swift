@@ -63,6 +63,10 @@ final class AppState: ObservableObject {
 
     private var recordingSession = 0
     private var hotkeyHealthTimer: Timer?
+    /// Current health-timer interval (shorter while unarmed so we recover quickly).
+    private var hotkeyHealthInterval: TimeInterval = 2.0
+    private static let hotkeyHealthIntervalUnarmed: TimeInterval = 2.0
+    private static let hotkeyHealthIntervalArmed: TimeInterval = 8.0
     /// History id for the latest dictation (so Dictate edits update the same row).
     private var lastTranscriptionId: UUID?
     /// Debounced history persistence — avoids rewriting history.json every dictation.
@@ -720,15 +724,39 @@ final class AppState: ObservableObject {
         // Accessory apps rarely become "active", and granting Accessibility
         // after launch doesn't notify us — poll so the global hotkey heals
         // without a relaunch, and so the menu bar status stays honest.
+        // Interval backs off once armed (#4 item 5) to reduce App Nap disruption.
+        startHotkeyHealthTimer(interval: Self.hotkeyHealthIntervalUnarmed)
+    }
+
+    private func startHotkeyHealthTimer(interval: TimeInterval) {
         hotkeyHealthTimer?.invalidate()
-        hotkeyHealthTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        hotkeyHealthInterval = interval
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.hotkeyManager.ensureRegistered()
-                self?.refreshHotkeyHealth()
+                self?.tickHotkeyHealth()
             }
         }
-        if let hotkeyHealthTimer {
-            RunLoop.main.add(hotkeyHealthTimer, forMode: .common)
+        // common modes so menu-bar tracking doesn't starve the timer.
+        RunLoop.main.add(timer, forMode: .common)
+        hotkeyHealthTimer = timer
+    }
+
+    private func tickHotkeyHealth() {
+        // Once armed and no titled window is visible, still re-enable a disabled
+        // tap but skip published-state churn (menu bar isn't showing health UI).
+        let hasVisibleWindow = NSApp.windows.contains {
+            $0.isVisible && $0.styleMask.contains(.titled)
+        }
+        hotkeyManager.ensureRegistered()
+        if hasVisibleWindow || !hotkeyManager.isArmed {
+            refreshHotkeyHealth()
+        }
+
+        let desired = hotkeyManager.isArmed
+            ? Self.hotkeyHealthIntervalArmed
+            : Self.hotkeyHealthIntervalUnarmed
+        if abs(desired - hotkeyHealthInterval) > 0.5 {
+            startHotkeyHealthTimer(interval: desired)
         }
     }
 
