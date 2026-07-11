@@ -50,6 +50,13 @@ final class TextInserter: @unchecked Sendable {
         }
     }
 
+    /// Update the general pasteboard without synthesizing paste/type.
+    /// Used after async polish so the user can re-paste the improved text.
+    func copyToClipboardOnly(_ text: String) {
+        guard !text.isEmpty else { return }
+        copyToClipboard(text)
+    }
+
     private func copyToClipboard(_ text: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()

@@ -359,9 +359,12 @@ final class AppState: ObservableObject {
 
         do {
             let text = try await transcribeSamples(samples)
-            var processed = postProcess(text)
-            processed = await applyPolish(processed)
+            let processed = postProcess(text)
 
+            // Insert raw STT immediately so perceived latency is STT time only.
+            // Polish (if enabled) runs as a follow-up that updates UI/history
+            // and the clipboard — not a second injection into the focused app
+            // (re-typing/replacing would race with cursor movement).
             currentTranscription = processed
 
             let duration = Double(samples.count) / 16000.0
@@ -371,7 +374,8 @@ final class AppState: ObservableObject {
                 duration: duration,
                 wordCount: UsageStats.wordCount(in: processed)
             )
-            lastTranscriptionId = entry.id
+            let entryId = entry.id
+            lastTranscriptionId = entryId
             transcriptionHistory.insert(entry, at: 0)
             HistoryStore.trimInPlace(&transcriptionHistory)
             scheduleHistorySave()
@@ -395,6 +399,10 @@ final class AppState: ObservableObject {
             if soundFeedbackEnabled, outcome == .ok {
                 FeedbackSounds.playListeningStopped()
             }
+
+            if polishProvider != .off {
+                await polishAndUpdate(entryId: entryId, raw: processed)
+            }
         } catch {
             currentTranscription = "Error: \(error.localizedDescription)"
             lastTranscriptionId = nil
@@ -402,6 +410,47 @@ final class AppState: ObservableObject {
             if soundFeedbackEnabled {
                 FeedbackSounds.playListeningStopped()
             }
+        }
+    }
+
+    /// Apply polish after raw insertion. Updates UI/history/clipboard only —
+    /// does not re-paste or re-type into the active app (that would double text
+    /// or race the user's cursor).
+    private func polishAndUpdate(entryId: UUID, raw: String) async {
+        let polished = await applyPolish(raw)
+        guard polished != raw else { return }
+
+        // Always upgrade the history row for this dictation when polish finishes.
+        if let index = transcriptionHistory.firstIndex(where: { $0.id == entryId }) {
+            let old = transcriptionHistory[index]
+            transcriptionHistory[index] = TranscriptionEntry(
+                id: old.id,
+                text: polished,
+                timestamp: old.timestamp,
+                duration: old.duration,
+                wordCount: UsageStats.wordCount(in: polished)
+            )
+            scheduleHistorySave()
+        }
+
+        // Only touch the live UI / clipboard if this is still the latest dictation.
+        guard lastTranscriptionId == entryId else { return }
+
+        // Preserve any accessibility warning suffix on currentTranscription.
+        if currentTranscription.hasPrefix(raw) {
+            let suffix = String(currentTranscription.dropFirst(raw.count))
+            currentTranscription = polished + suffix
+        } else {
+            currentTranscription = polished
+        }
+
+        // Refresh clipboard for modes that use it so a manual paste gets polished text.
+        // Type-out already sent raw keystrokes — do not re-inject.
+        switch insertionMode {
+        case .clipboard, .both:
+            textInserter.copyToClipboardOnly(polished)
+        case .typeOut:
+            break
         }
     }
 
