@@ -47,7 +47,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
   </noscript>
 
-  <link rel="stylesheet" href="/styles.v5.css" />
+  <link rel="stylesheet" href="/styles.v6.css" />
   <link rel="preload" as="image" href="/assets/hero-menubar.webp" type="image/webp" fetchpriority="high" />
   <link rel="preload" as="image" href="/assets/dash.webp" type="image/webp" />
 
@@ -148,19 +148,19 @@
             font-size: 15px;
             font-weight: 400;
             fill: #14120f;
-            opacity: 0.55;
+            opacity: 0.85;
           }
           #marquee-text-hero2 {
             font-family: Figtree, system-ui, -apple-system, sans-serif;
             font-size: 16px;
             font-weight: 600;
             fill: #14120f;
-            opacity: 0.7;
+            opacity: 0.95;
             baseline-shift: -28%;
           }
         </style>
-        <path id="curve1" d="M0.59 50.92C17.46 143.29 70.74 364.34 257.39 424.74C413.71 470.25 601.76 267.82 535.11 166.46C451.89 57.15 317.12 324.88 578.16 484.45C630.82 520.59 817.46 561.26 1046.43 565.23" stroke="#14120f" stroke-opacity="0.12" stroke-width="3" stroke-dasharray="8,6" fill="none"></path>
-        <path id="curve2" d="M2.04 563.87C111.59 558.26 316.49 554.01 517.96 490.06C703.01 431.32 875.31 444.53 1021.88 453.21" stroke="#14120f" stroke-opacity="0.1" stroke-width="18" stroke-linecap="round" fill="none"></path>
+        <path id="curve1" d="M0.59 50.92C17.46 143.29 70.74 364.34 257.39 424.74C413.71 470.25 601.76 267.82 535.11 166.46C451.89 57.15 317.12 324.88 578.16 484.45C630.82 520.59 817.46 561.26 1046.43 565.23" stroke="#14120f" stroke-opacity="0.22" stroke-width="3.5" stroke-dasharray="8,6" fill="none"></path>
+        <path id="curve2" d="M2.04 563.87C111.59 558.26 316.49 554.01 517.96 490.06C703.01 431.32 875.31 444.53 1021.88 453.21" stroke="#14120f" stroke-opacity="0.18" stroke-width="20" stroke-linecap="round" fill="none"></path>
         <text x="-3300">
           <textPath id="marquee-text-hero1" xlink:href="#curve1" href="#curve1">Umm, hope your week has started well…I was talking to Cheyene earlier but reception was really bad and I think their going to handle the first part of the project, but I’m not totally sure. Also, I told the team the the new timeline should be ready by Friday, although it’s probably going to slip. There’s been a lot of back and forth and honestly the the whole thing’s been kind of chaotic, like nobody really knows what’s going on so can you check in with them and see if the notes from yesterday’s meeting were sent out, or if they’re still waiting. I think Cheyene mentioned it but didn’t confirm, and now I’m a little lost.</textPath>
           <animate id="marquee1-anim" attributeName="x" dur="40s" values="-3300; 0" repeatCount="indefinite"></animate>
@@ -478,6 +478,6 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js" defer></script>
-  <script src="/app.v5.js" defer></script>
+  <script src="/app.v6.js" defer></script>
 </body>
 </html>
