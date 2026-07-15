@@ -108,6 +108,10 @@ final class AppState: ObservableObject {
     @Published var listeningHUDEnabled = true
     /// First-run setup checklist until the user dismisses it.
     @Published var showOnboarding = false
+    /// Connected microphones (refreshed when Settings opens).
+    @Published var availableInputDevices: [AudioInputDevice] = []
+    /// Core Audio UID; empty string = follow macOS system default.
+    @Published var selectedInputDeviceUID: String = ""
 
     let transcriptionEngine = TranscriptionEngine()
     let textPolisher = TextPolisher()
@@ -138,6 +142,7 @@ final class AppState: ObservableObject {
     private static let polishProviderKey = "polishProvider"
     private static let listeningHUDKey = "listeningHUDEnabled"
     private static let onboardingCompletedKey = "hasCompletedOnboarding"
+    private static let inputDeviceUIDKey = "inputDeviceUID"
 
     /// Ready to accept mic input for the active transcription provider.
     var isReadyToDictate: Bool {
@@ -286,6 +291,11 @@ final class AppState: ObservableObject {
             showTelemetryDisclosure = true
         }
         showOnboarding = !UserDefaults.standard.bool(forKey: Self.onboardingCompletedKey)
+        if let savedInputUID = UserDefaults.standard.string(forKey: Self.inputDeviceUIDKey) {
+            selectedInputDeviceUID = savedInputUID
+        }
+        syncAudioInputDevice()
+        refreshInputDevices()
         refreshKeyPresence()
         syncIdlePhase()
         setupHotkey()
@@ -314,6 +324,27 @@ final class AppState: ObservableObject {
         Telemetry.shared.markDisclosureSeen()
         showTelemetryDisclosure = false
         setTelemetryOptIn(optIn)
+    }
+
+    // MARK: - Microphone input
+
+    func refreshInputDevices() {
+        availableInputDevices = AudioInputDevices.inputDevices()
+        if !selectedInputDeviceUID.isEmpty,
+           !availableInputDevices.contains(where: { $0.uid == selectedInputDeviceUID })
+        {
+            setInputDeviceUID("")
+        }
+    }
+
+    func setInputDeviceUID(_ uid: String) {
+        selectedInputDeviceUID = uid
+        UserDefaults.standard.set(uid, forKey: Self.inputDeviceUIDKey)
+        syncAudioInputDevice()
+    }
+
+    private func syncAudioInputDevice() {
+        audioRecorder.inputDeviceUID = selectedInputDeviceUID.isEmpty ? nil : selectedInputDeviceUID
     }
 
     // MARK: - BYOK keys

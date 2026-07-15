@@ -519,7 +519,34 @@ struct SettingsView: View {
                 }
                 .font(.caption)
             }
-            .onAppear { appState.refreshOutputMuteState() }
+            .onAppear {
+                appState.refreshOutputMuteState()
+                appState.refreshInputDevices()
+            }
+
+            Section("Microphone") {
+                Picker("Input device", selection: Binding(
+                    get: { appState.selectedInputDeviceUID },
+                    set: { appState.setInputDeviceUID($0) }
+                )) {
+                    Text("System Default").tag("")
+                    ForEach(appState.availableInputDevices) { device in
+                        Text(device.name).tag(device.uid)
+                    }
+                }
+                if appState.selectedInputDeviceUID.isEmpty {
+                    Text("Following macOS default: \(AudioInputDevices.defaultInputDeviceName())")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Text("Applies on the next dictation. Plug in a USB or Bluetooth mic, then refresh if it does not appear.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Refresh device list") {
+                    appState.refreshInputDevices()
+                }
+                .font(.caption)
+            }
 
             Section("Permissions") {
                 HStack {
