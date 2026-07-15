@@ -118,6 +118,14 @@ open -a MacWispr
 
 **Always ship from `main`.** For 1.2.3 scope and “what is not included,” see [docs/context/RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md).
 
+### GitHub Actions (preferred)
+
+1. Add signing secrets — [docs/CI.md](docs/CI.md)
+2. Bump `Info.plist` on `main`
+3. `git tag -a vX.Y.Z && git push origin vX.Y.Z` → **Release** workflow signs, notarizes, publishes, updates appcast
+
+### Manual (local)
+
 1. Confirm branch is `main` (not `feat/native-lfm-polish`)
 2. Bump `Info.plist` / scripts version if shipping a new version number
 3. `source .env.signing && export MACWISPR_VERSION=… && ./scripts/build-app.sh` (Developer ID + notary)
@@ -125,7 +133,7 @@ open -a MacWispr
 5. `./scripts/release.sh vX.Y.Z`
 6. `wrangler pages deploy website --project-name=fuckwisprflow`
 
-See `docs/SPARKLE.md` and `docs/context/SIGNING.md`.
+See `docs/CI.md`, `docs/SPARKLE.md`, and `docs/context/SIGNING.md`.
 
 **Stack choice:** stay on **Swift**. Size/RAM are model + MLX-bound, not language-bound. Do not rewrite in Rust/Zig/Bun for “lighter” alone — [docs/context/LANGUAGE_STACK.md](docs/context/LANGUAGE_STACK.md).
 
