@@ -54,20 +54,8 @@ struct MainWindowView: View {
                 Label("Settings", systemImage: "gear")
                     .tag(SidebarItem.settings)
             }
-
-            if selectedSidebar == .history {
-                Section("Recent") {
-                    if appState.transcriptionHistory.isEmpty {
-                        Text("No transcriptions yet")
-                            .foregroundStyle(.secondary)
-                            .font(.callout)
-                    } else {
-                        ForEach(appState.transcriptionHistory.prefix(50)) { entry in
-                            historyRow(entry)
-                        }
-                    }
-                }
-            }
+            // History lives only in the detail pane (GitHub #14 — avoid duplicating
+            // the same list in the sidebar "menu" and the main content area).
         }
         .listStyle(.sidebar)
     }
@@ -116,28 +104,6 @@ struct MainWindowView: View {
                         EditableHistoryRow(entry: entry)
                     }
                 }
-            }
-        }
-    }
-
-    private func historyRow(_ entry: TranscriptionEntry) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(entry.text)
-                .lineLimit(2)
-                .font(.callout)
-            HStack {
-                Text(entry.timestamp, style: .time)
-                Text("•")
-                Text("\(entry.wordCount)w")
-            }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 2)
-        .contextMenu {
-            Button("Copy") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(entry.text, forType: .string)
             }
         }
     }

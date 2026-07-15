@@ -228,6 +228,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.setActivationPolicy(.regular)
         }
 
+        // Drop any leftover titled "MacWispr" windows from older dual-path builds
+        // (SwiftUI Window scene + AppKit host) so only one dashboard stays open.
+        closeStrayMacWisprWindows(keeping: dashboardWindow)
+
         if dashboardWindow == nil {
             let root = MainWindowView()
                 .environmentObject(appState)
@@ -235,7 +239,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             let hosting = NSHostingController(rootView: root)
             let window = NSWindow(contentViewController: hosting)
-            window.identifier = NSUserInterfaceItemIdentifier("main")
+            window.identifier = NSUserInterfaceItemIdentifier("MacWisprDashboard")
             window.title = "MacWispr"
             window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
             window.setContentSize(NSSize(width: 720, height: 640))
@@ -248,12 +252,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 forName: NSWindow.willCloseNotification,
                 object: window,
                 queue: .main
-            ) { [weak self] _ in
+            ) { _ in
                 DispatchQueue.main.async {
                     // Keep the window instance for fast reopen; drop Dock presence.
-                    guard let self else { return }
                     let otherVisible = NSApp.windows.contains {
-                        $0 !== window && $0.isVisible && $0.styleMask.contains(.titled)
+                        $0 !== window && $0.isVisible && $0.isMacWisprDashboardCandidate
                     }
                     if !otherVisible {
                         NSApp.setActivationPolicy(.accessory)
@@ -280,6 +283,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
         }
+    }
+
+    /// Closes extra titled MacWispr windows so only our retained dashboard remains.
+    @MainActor
+    private func closeStrayMacWisprWindows(keeping keep: NSWindow?) {
+        for window in NSApp.windows {
+            guard window !== keep else { continue }
+            guard window.isMacWisprDashboardCandidate else { continue }
+            // Don't touch popovers, HUD panels, status-item windows, etc.
+            window.isReleasedWhenClosed = true
+            window.close()
+        }
+    }
+}
+
+private extension NSWindow {
+    /// Titled app windows that look like a MacWispr dashboard (not HUD/popover chrome).
+    var isMacWisprDashboardCandidate: Bool {
+        guard styleMask.contains(.titled) else { return false }
+        if identifier?.rawValue == "MacWisprDashboard" || identifier?.rawValue == "main" {
+            return true
+        }
+        return title == "MacWispr"
     }
 }
 
