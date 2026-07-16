@@ -108,7 +108,32 @@ Artifacts:
 
 - `data/qwen35_targeted/`
 - `fused/qwen35-08b-polish-targeted/`
-- Full **500** holdout eval: `results/eval_full500_targeted.json` (when complete)
+- Full **500** holdout eval: `results/eval_full500_targeted.json`
+
+#### Full 500 holdout (base vs targeted SFT)
+
+After Phase-2 SFT + Phase-3 weak-spot continue train:
+
+| Model | Pass rate | Answer leak | Mean latency |
+|-------|-----------|-------------|--------------|
+| Untrained Base | **59.2%** (296/500) | 4.8% | ~1550 ms |
+| Targeted SFT | **94.6%** (473/500) | **0.0%** | ~575 ms |
+| **Delta** | **+35.4 pp** | −4.8 pp | ~2.7× faster |
+
+Per-tag (full 500):
+
+| Tag | Base | Targeted SFT | n |
+|-----|------|--------------|---|
+| preserve_question | 64% | **100%** | 100 |
+| format_bullets | 42% | **97%** | 60 |
+| format_checklist | 44% | **96%** | 50 |
+| format_mixed | 36% | **92%** | 50 |
+| format_numbered | 31% | **84%** | 80 |
+| light | 84% | **92%** | 50 |
+| preserve_prose | 87% | **97%** | 60 |
+| course | 96% | **100%** | 50 |
+
+Compare to Phase-2 **fast 96** sample (SFT-500 only, no targeted continue): 85.4% pass. Full holdout after targeted practice: **94.6%**.
 
 ---
 

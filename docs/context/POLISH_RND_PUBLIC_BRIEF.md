@@ -12,26 +12,38 @@ We’re training a **tiny on-device polish model** that cleans dictation *after*
 2. **MiniCPM LoRA** — better lists; still behaved like a chatbot on questions.
 3. **Switch to Qwen3.5 0.8B *Base* + full SFT** — train on 500 carefully built pairs.
 4. **Two-pass synthetic data** — high creativity for messy inputs, low temperature for perfect labels (via Grok Composer, OAuth).
-5. **Measured learning** — +23 points pass rate on a hard holdout sample; zero answer-leak on that sample.
-6. **Targeted second pass** — extra data for bullets / numbered vs checklist confusion; continued training.
+5. **Measured learning** — +23 points on a 96-sample holdout; zero answer-leak on that sample.
+6. **Targeted second pass** — extra data for bullets / numbered vs checklist; continued training.
+7. **Full 500 holdout** — **94.6%** pass, **0%** answer-leak, ~0.6 s mean.
 
-## Result table (96-example stratified holdout)
+## Result tables
+
+### Full 500-example holdout (headline)
 
 | Model | Pass rate | Answered questions? | Latency (mean) |
 |-------|-----------|---------------------|----------------|
-| Base (no polish train) | 62.5% | Sometimes (3.1%) | ~1.7 s |
-| After 500-pair SFT | **85.4%** | **0%** on sample | **~0.7 s** |
+| Base (no polish train) | 59.2% | 4.8% leak | ~1.5 s |
+| After 500-pair SFT + targeted practice | **94.6%** | **0%** | **~0.6 s** |
 
-### By skill (same sample)
+### By skill (full 500)
 
 | Skill | Before | After |
 |-------|--------|-------|
-| Keep questions as questions | 67% | 100% |
-| Numbered steps | 25% | 75% |
-| Mixed list + prose | 25% | 75% |
-| Checklists | 42% | 83% |
-| Bullets | 50% | 58% |
-| Course-correction | 92% | 100% |
+| Keep questions as questions | 64% | **100%** |
+| Bullets | 42% | **97%** |
+| Checklists | 44% | **96%** |
+| Mixed list + prose | 36% | **92%** |
+| Numbered steps | 31% | **84%** |
+| Course-correction | 96% | **100%** |
+| Light cleanup | 84% | **92%** |
+| Preserve clean prose | 87% | **97%** |
+
+### Earlier 96-sample check (first SFT only, pre-targeted)
+
+| Model | Pass rate | Leak | Latency |
+|-------|-----------|------|---------|
+| Base | 62.5% | 3.1% | ~1.7 s |
+| SFT-500 only | 85.4% | 0% | ~0.7 s |
 
 ## Principles we publish
 

@@ -645,7 +645,7 @@
             <p>
               On a stratified 96-example slice of a 500 holdout, pass rate moved
               <strong>62.5% → 85.4%</strong>, answer-leak <strong>3.1% → 0%</strong>,
-              mean latency <strong>~1.7s → ~0.7s</strong>.
+              mean latency <strong>~1.5s → ~0.6s</strong>.
             </p>
             <p class="tl-lesson">Verdict: the model learned. Remaining gaps = bullets and numbered vs checklist style.</p>
           </article>
@@ -671,28 +671,28 @@
     <section class="section" id="results" aria-labelledby="results-title">
       <div class="section-head">
         <p class="kicker">Results</p>
-        <h2 id="results-title">Measured on a hard holdout sample</h2>
+        <h2 id="results-title">Measured on the full 500-example holdout</h2>
         <p>
-          Numbers from a stratified 96-example slice of a 500-example holdout (2026-07).
-          Not loss curves — pass rate, answer-leak, and latency.
+          Numbers from the <strong>full 500-example holdout</strong> after base SFT + targeted weak-spot practice (2026-07).
+          Not loss curves — pass rate, answer-leak, and latency. (Earlier 96-sample check: 85.4% after first SFT only.)
         </p>
       </div>
 
       <div class="delta-strip" aria-label="Headline deltas">
         <article class="delta-card glass-card">
           <span class="label">Pass rate</span>
-          <div class="metric">+22.9 <span>pp</span></div>
-          <p>62.5% → <strong>85.4%</strong></p>
+          <div class="metric">+35.4 <span>pp</span></div>
+          <p>59.2% → <strong>94.6%</strong></p>
         </article>
         <article class="delta-card glass-card">
           <span class="label">Answer leak</span>
           <div class="metric">0% <span>on sample</span></div>
-          <p>3.1% → <strong>0%</strong></p>
+          <p>4.8% → <strong>0%</strong></p>
         </article>
         <article class="delta-card glass-card">
           <span class="label">Mean latency</span>
           <div class="metric">~2.5× <span>faster</span></div>
-          <p>~1.7s → <strong>~0.7s</strong></p>
+          <p>~1.5s → <strong>~0.6s</strong></p>
         </article>
       </div>
       <p class="delta-note">
@@ -716,22 +716,22 @@
               <td class="feat">Base (no polish train)</td>
               <td class="before">62.5%</td>
               <td class="before">Sometimes (3.1%)</td>
-              <td class="before">~1.7 s</td>
+              <td class="before">~1.5 s</td>
             </tr>
             <tr>
               <td class="feat">After 500-pair SFT</td>
               <td class="after win">85.4%</td>
               <td class="after win">0% on sample</td>
-              <td class="after win">~0.7 s</td>
+              <td class="after win">~0.6 s</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <h3 class="kicker" style="margin: 2rem 0 0.75rem;">By skill (same sample)</h3>
+      <h3 class="kicker" style="margin: 2rem 0 0.75rem;">By skill (full 500)</h3>
       <div class="table-wrap glass-card">
         <table class="res-table">
-          <caption class="visually-hidden">Per-skill pass rates before and after SFT</caption>
+          <caption class="visually-hidden">Per-skill pass rates before and after SFT on full 500 holdout</caption>
           <thead>
             <tr>
               <th scope="col">Skill</th>
@@ -742,33 +742,43 @@
           <tbody>
             <tr>
               <td class="feat">Keep questions as questions</td>
-              <td class="before">67%</td>
+              <td class="before">64%</td>
               <td class="after">100%</td>
-            </tr>
-            <tr>
-              <td class="feat">Numbered steps</td>
-              <td class="before">25%</td>
-              <td class="after">75%</td>
-            </tr>
-            <tr>
-              <td class="feat">Mixed list + prose</td>
-              <td class="before">25%</td>
-              <td class="after">75%</td>
-            </tr>
-            <tr>
-              <td class="feat">Checklists</td>
-              <td class="before">42%</td>
-              <td class="after">83%</td>
             </tr>
             <tr>
               <td class="feat">Bullets</td>
-              <td class="before">50%</td>
-              <td class="after">58%</td>
+              <td class="before">42%</td>
+              <td class="after">97%</td>
+            </tr>
+            <tr>
+              <td class="feat">Checklists</td>
+              <td class="before">44%</td>
+              <td class="after">96%</td>
+            </tr>
+            <tr>
+              <td class="feat">Mixed list + prose</td>
+              <td class="before">36%</td>
+              <td class="after">92%</td>
+            </tr>
+            <tr>
+              <td class="feat">Numbered steps</td>
+              <td class="before">31%</td>
+              <td class="after">84%</td>
             </tr>
             <tr>
               <td class="feat">Course-correction</td>
-              <td class="before">92%</td>
+              <td class="before">96%</td>
               <td class="after">100%</td>
+            </tr>
+            <tr>
+              <td class="feat">Light cleanup</td>
+              <td class="before">84%</td>
+              <td class="after">92%</td>
+            </tr>
+            <tr>
+              <td class="feat">Preserve clean prose</td>
+              <td class="before">87%</td>
+              <td class="after">97%</td>
             </tr>
           </tbody>
         </table>
