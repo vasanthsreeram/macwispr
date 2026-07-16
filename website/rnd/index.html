@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>R&amp;D — Training on-device polish · MacWispr</title>
+  <meta name="description" content="How we train a tiny local polish model that cleans dictation after speech-to-text — lists, course-correction, zero question-answering — without a cloud LLM." />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#f7f2e8" />
+  <meta name="color-scheme" content="light" />
+  <link rel="canonical" href="https://fuckwisprflow.com/rnd" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="MacWispr" />
+  <meta property="og:url" content="https://fuckwisprflow.com/rnd" />
+  <meta property="og:title" content="R&amp;D — Training on-device polish · MacWispr" />
+  <meta property="og:description" content="Timeline and measured results: local dictation polish that rewrites text, never answers your questions." />
+  <meta property="og:image" content="https://fuckwisprflow.com/assets/share-og.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="R&amp;D — Training on-device polish · MacWispr" />
+  <meta name="twitter:description" content="Timeline and measured results: local dictation polish that rewrites text, never answers your questions." />
+  <meta name="twitter:image" content="https://fuckwisprflow.com/assets/share-og.png" />
+
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/logo-128.png" />
+  <link rel="icon" type="image/png" sizes="256x256" href="/assets/logo-256.png" />
+  <link rel="apple-touch-icon" href="/assets/logo-256.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="/styles.v7.css" />
+  <style>
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .rnd-main {
+      position: relative;
+      z-index: 1;
+      width: min(var(--max), calc(100% - 1.5rem));
+      margin: 0 auto;
+      padding: calc(var(--header-h) + 2.25rem) 0 4rem;
+    }
+    .rnd-hero {
+      max-width: 44rem;
+      margin-bottom: 2rem;
+    }
+    .rnd-hero .eyebrow {
+      margin: 0 0 0.6rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .rnd-hero h1 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2.4rem, 5.8vw, 3.55rem);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin: 0 0 0.9rem;
+    }
+    .rnd-hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .rnd-hero .lede {
+      margin: 0 0 1.2rem;
+      font-size: 1.16rem;
+      color: var(--ink-soft);
+      line-height: 1.55;
+    }
+    .rnd-hero .hero-actions {
+      justify-content: flex-start;
+    }
+    .trust-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 1.1rem;
+    }
+
+    .rnd-main .section {
+      width: 100%;
+      padding: 1.75rem 0;
+    }
+    .rnd-main .section-head {
+      text-align: left;
+      margin: 0 0 1.35rem;
+      max-width: 40rem;
+    }
+    .rnd-main .section-head h2 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(1.9rem, 3.8vw, 2.55rem);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin: 0.25rem 0 0.5rem;
+    }
+    .rnd-main .section-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 38rem;
+    }
+
+    /* Score / delta strip */
+    .delta-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin: 0 0 0.5rem;
+    }
+    .delta-card {
+      padding: 1.25rem 1.15rem;
+    }
+    .delta-card .label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .delta-card .metric {
+      font-family: var(--serif);
+      font-size: clamp(1.85rem, 3.5vw, 2.45rem);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin: 0 0 0.45rem;
+      color: var(--ok);
+    }
+    .delta-card .metric span {
+      font-size: 0.55em;
+      color: var(--muted);
+      letter-spacing: 0;
+    }
+    .delta-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+    .delta-note {
+      margin: 0.85rem 0 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    /* Vertical timeline */
+    .timeline {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      position: relative;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 0.72rem;
+      top: 0.4rem;
+      bottom: 0.4rem;
+      width: 2px;
+      background: linear-gradient(
+        180deg,
+        rgba(232, 93, 76, 0.45) 0%,
+        rgba(59, 110, 245, 0.25) 55%,
+        rgba(26, 154, 92, 0.35) 100%
+      );
+    }
+    .tl-item {
+      position: relative;
+      padding: 0 0 1.15rem 2.35rem;
+    }
+    .tl-item:last-child { padding-bottom: 0; }
+    .tl-item::before {
+      content: "";
+      position: absolute;
+      left: 0.45rem;
+      top: 1.35rem;
+      width: 0.62rem;
+      height: 0.62rem;
+      border-radius: 50%;
+      background: var(--cream-2);
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 0 3px rgba(232, 93, 76, 0.12);
+      z-index: 1;
+    }
+    .tl-item.done::before {
+      background: var(--ok);
+      border-color: var(--ok);
+      box-shadow: 0 0 0 3px rgba(26, 154, 92, 0.14);
+    }
+    .tl-item.active::before {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .tl-card {
+      padding: 1.2rem 1.2rem 1.15rem;
+    }
+    .tl-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem 0.65rem;
+      margin-bottom: 0.45rem;
+    }
+    .tl-phase {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .tl-tag {
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.16rem 0.48rem;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(20, 18, 15, 0.05);
+      border: 1px solid var(--line);
+    }
+    .tl-tag.ok {
+      color: var(--ok);
+      background: rgba(26, 154, 92, 0.1);
+      border-color: rgba(26, 154, 92, 0.18);
+    }
+    .tl-tag.warn {
+      color: var(--accent);
+      background: rgba(232, 93, 76, 0.1);
+      border-color: rgba(232, 93, 76, 0.18);
+    }
+    .tl-card h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+    .tl-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.98rem;
+      line-height: 1.5;
+    }
+    .tl-card p + p { margin-top: 0.55rem; }
+    .tl-lesson {
+      margin-top: 0.7rem !important;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.92rem !important;
+      color: var(--ink) !important;
+      font-weight: 600;
+    }
+
+    /* Two-pass callout */
+    .pass-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .pass-card {
+      padding: 1.2rem 1.15rem;
+    }
+    .pass-card .n {
+      display: inline-grid;
+      place-items: center;
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: rgba(232, 93, 76, 0.12);
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .pass-card.cool .n {
+      background: rgba(59, 110, 245, 0.12);
+      color: var(--accent-2);
+    }
+    .pass-card h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1.08rem;
+      letter-spacing: -0.02em;
+    }
+    .pass-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+    .pass-temp {
+      display: inline-block;
+      margin-top: 0.65rem;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+    }
+    .res-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 480px;
+      background: rgba(255, 253, 248, 0.88);
+    }
+    .res-table th,
+    .res-table td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.98rem;
+    }
+    .res-table th {
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      background: rgba(20, 18, 15, 0.03);
+    }
+    .res-table tr:last-child td { border-bottom: 0; }
+    .res-table .feat {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .res-table .after {
+      color: var(--ok);
+      font-weight: 700;
+    }
+    .res-table .before {
+      color: var(--ink-soft);
+    }
+    .res-table .win {
+      font-weight: 800;
+    }
+    .table-caption {
+      margin: 0.75rem 0 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    /* Principles */
+    .principle-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    .principle-card {
+      padding: 1.2rem 1.15rem;
+    }
+    .principle-card .n {
+      display: inline-grid;
+      place-items: center;
+      min-width: 1.6rem;
+      height: 1.6rem;
+      padding: 0 0.35rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: rgba(26, 154, 92, 0.12);
+      color: var(--ok);
+      margin-bottom: 0.5rem;
+    }
+    .principle-card h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+    .principle-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .privacy-box {
+      padding: 1.35rem 1.25rem;
+      margin-top: 0.75rem;
+      border-left: 3px solid rgba(59, 110, 245, 0.45);
+    }
+    .privacy-box h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1.05rem;
+    }
+    .privacy-box p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.98rem;
+      line-height: 1.5;
+    }
+
+    .close-box {
+      padding: 2.25rem 1.6rem;
+      text-align: center;
+      background:
+        radial-gradient(520px 220px at 50% 0%, rgba(255, 200, 140, 0.4) 0%, transparent 70%),
+        rgba(255, 253, 248, 0.9);
+    }
+    .close-box h2 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2rem, 4.5vw, 2.9rem);
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      margin: 0.35rem 0 0.85rem;
+      max-width: 20ch;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .close-box p {
+      margin: 0 auto 1.35rem;
+      max-width: 34rem;
+      color: var(--ink-soft);
+      font-size: 1.08rem;
+      line-height: 1.5;
+    }
+    .close-box .hero-actions {
+      justify-content: center;
+    }
+    .close-note {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    @media (max-width: 820px) {
+      .delta-strip,
+      .pass-grid,
+      .principle-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 520px) {
+      .rnd-main {
+        width: min(var(--max), calc(100% - 1.1rem));
+        padding-top: calc(var(--header-h) + 1.4rem);
+      }
+      .rnd-hero .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .rnd-hero .hero-actions .btn { width: 100%; }
+      .tl-item { padding-left: 2.1rem; }
+      .close-box { padding: 1.75rem 1.1rem; }
+      .close-box .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .close-box .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" aria-hidden="true">
+    <div class="aurora"></div>
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="grid-fade"></div>
+    <div class="vignette"></div>
+    <div class="noise"></div>
+  </div>
+
+  <header class="site-header">
+    <div class="header-inner glass">
+      <a class="brand" href="/" aria-label="MacWispr home">
+        <img src="/assets/logo-mark.png" width="32" height="32" alt="" decoding="async" />
+        <span class="brand-text">f*ck<span class="soft">wispr</span>flow</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/why">Why</a>
+        <a href="/rnd" aria-current="page">R&amp;D</a>
+        <a href="/#install">Install</a>
+      </nav>
+      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download</a>
+    </div>
+  </header>
+
+  <main class="rnd-main">
+    <header class="rnd-hero">
+      <p class="eyebrow">R&amp;D</p>
+      <h1>Training a local polish model that <em>rewrites</em> — not chats.</h1>
+      <p class="lede">
+        After speech-to-text, dictation is still messy: ums, spoken lists, “wait, I mean…”.
+        We’re training a <strong>tiny on-device polish model</strong> that cleans that text for paste —
+        without sending audio or transcripts to a cloud LLM, and without
+        <strong>answering questions you only meant to type</strong>.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-dark btn-glow" href="#results">See measured results</a>
+        <a class="btn btn-ghost glass" href="#timeline">Read the timeline</a>
+      </div>
+      <div class="trust-row" aria-label="Scope signals">
+        <span class="chip yes">On-device weights</span>
+        <span class="chip yes">Post-STT rewrite</span>
+        <span class="chip yes">Experimental</span>
+        <span class="chip">Rewrite only</span>
+      </div>
+    </header>
+
+    <section class="section" id="job" aria-labelledby="job-title">
+      <div class="section-head">
+        <p class="kicker">The job</p>
+        <h2 id="job-title">Clean dictation. Don’t answer it.</h2>
+        <p>
+          Product pages talk about free local ASR. This page is the gap:
+          how we teach a small model to format and correct spoken text —
+          and stay silent when the user is only <em>dictating</em> a question.
+        </p>
+      </div>
+      <div class="pass-grid">
+        <article class="pass-card glass-card">
+          <span class="n" aria-hidden="true">✓</span>
+          <h3>What polish should do</h3>
+          <p>
+            Drop filler, fix caps and punctuation, turn “number one…” into real lists,
+            keep final intent after course-corrections — paste-ready prose.
+          </p>
+        </article>
+        <article class="pass-card glass-card cool">
+          <span class="n" aria-hidden="true">✕</span>
+          <h3>What it must never do</h3>
+          <p>
+            “Do you think that’s a good idea?” must stay a <strong>question</strong> —
+            not “Yes, I think…”. Chat priors kill dictation tools.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="timeline" aria-labelledby="timeline-title">
+      <div class="section-head">
+        <p class="kicker">Timeline</p>
+        <h2 id="timeline-title">How we got here (honest version)</h2>
+        <p>
+          Not a launch deck — a lab log. Small models, real failures, then a base model
+          and disciplined data.
+        </p>
+      </div>
+
+      <ol class="timeline">
+        <li class="tl-item done">
+          <article class="tl-card glass-card">
+            <div class="tl-meta">
+              <span class="tl-phase">Phase 0</span>
+              <span class="tl-tag">Explore</span>
+            </div>
+            <h3>Liquid / LFM polish</h3>
+            <p>
+              Tiny LFM-class models with LoRA course-correction. Fast footprint,
+              weak Flow-like formatting, easy to over-index as “the” default.
+            </p>
+            <p class="tl-lesson">Lesson: useful experiment, not the product default.</p>
+          </article>
+        </li>
+
+        <li class="tl-item done">
+          <article class="tl-card glass-card">
+            <div class="tl-meta">
+              <span class="tl-phase">Phase 1</span>
+              <span class="tl-tag warn">Chat prior</span>
+            </div>
+            <h3>MiniCPM LoRA — better lists, still a chatbot</h3>
+            <p>
+              LoRA on a chat-style MiniCPM checkpoint (~1.5k–1.8k synthetic pairs).
+              Strong on simple “Number one is X” lists. On questions, it still
+              <strong>answered</strong> like an assistant.
+            </p>
+            <p class="tl-lesson">Lesson: LoRA on a chat model does not reliably kill answer-leak.</p>
+          </article>
+        </li>
+
+        <li class="tl-item done">
+          <article class="tl-card glass-card">
+            <div class="tl-meta">
+              <span class="tl-phase">Phase 2</span>
+              <span class="tl-tag ok">Base + full SFT</span>
+            </div>
+            <h3>Qwen3.5 0.8B <em>Base</em> + full SFT on 500 pairs</h3>
+            <p>
+              Switched to a <strong>pretrain-only base</strong> (not instruct/chat), full-weight SFT,
+              and 500 carefully built train pairs — no legacy MiniCPM data mix.
+              Holdout kept leak-free and large enough to trust.
+            </p>
+            <p class="tl-lesson">Lesson: prefer base over chat when the job is rewrite, not reply.</p>
+          </article>
+        </li>
+
+        <li class="tl-item done">
+          <article class="tl-card glass-card">
+            <div class="tl-meta">
+              <span class="tl-phase">Data</span>
+              <span class="tl-tag">Two-pass synth</span>
+            </div>
+            <h3>High-T raw, low-T gold — never one call</h3>
+            <p>
+              Synthetic pairs are built in two temperatures: messy dictation seeds at high creativity,
+              then perfect clean labels at low temperature. Mixing both in one generation
+              blurs diversity and correctness.
+            </p>
+            <div class="pass-grid" style="margin-top: 0.85rem;">
+              <div>
+                <p><strong>Pass 1 — seeds</strong></p>
+                <p>Diverse messy <code>raw</code> dictations only.</p>
+                <span class="pass-temp">Temp ~1.15</span>
+              </div>
+              <div>
+                <p><strong>Pass 2 — labels</strong></p>
+                <p>Boring, correct <code>clean</code> gold only.</p>
+                <span class="pass-temp">Temp ~0.1</span>
+              </div>
+            </div>
+          </article>
+        </li>
+
+        <li class="tl-item done">
+          <article class="tl-card glass-card">
+            <div class="tl-meta">
+              <span class="tl-phase">Measured</span>
+              <span class="tl-tag ok">+23 pp</span>
+            </div>
+            <h3>Holdout: learning is real</h3>
+            <p>
+              On a stratified 96-example slice of a 500 holdout, pass rate moved
+              <strong>62.5% → 85.4%</strong>, answer-leak <strong>3.1% → 0%</strong>,
+              mean latency <strong>~1.7s → ~0.7s</strong>.
+            </p>
+            <p class="tl-lesson">Verdict: the model learned. Remaining gaps = bullets and numbered vs checklist style.</p>
+          </article>
+        </li>
+
+        <li class="tl-item active">
+          <article class="tl-card glass-card">
+            <div class="tl-meta">
+              <span class="tl-phase">Phase 3</span>
+              <span class="tl-tag">In progress</span>
+            </div>
+            <h3>Targeted weak-spot practice</h3>
+            <p>
+              Extra two-pass data focused on bullets, strict numbered lists, checklists, mixed formats,
+              and light cleanup that never drafts assistant text. Continue full SFT from the fused Phase-2 weights.
+            </p>
+            <p class="tl-lesson">Shipping defaults stay careful — this track is R&amp;D toward open polish.</p>
+          </article>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section" id="results" aria-labelledby="results-title">
+      <div class="section-head">
+        <p class="kicker">Results</p>
+        <h2 id="results-title">Measured on a hard holdout sample</h2>
+        <p>
+          Numbers from a stratified 96-example slice of a 500-example holdout (2026-07).
+          Not loss curves — pass rate, answer-leak, and latency.
+        </p>
+      </div>
+
+      <div class="delta-strip" aria-label="Headline deltas">
+        <article class="delta-card glass-card">
+          <span class="label">Pass rate</span>
+          <div class="metric">+22.9 <span>pp</span></div>
+          <p>62.5% → <strong>85.4%</strong></p>
+        </article>
+        <article class="delta-card glass-card">
+          <span class="label">Answer leak</span>
+          <div class="metric">0% <span>on sample</span></div>
+          <p>3.1% → <strong>0%</strong></p>
+        </article>
+        <article class="delta-card glass-card">
+          <span class="label">Mean latency</span>
+          <div class="metric">~2.5× <span>faster</span></div>
+          <p>~1.7s → <strong>~0.7s</strong></p>
+        </article>
+      </div>
+      <p class="delta-note">
+        Untrained Qwen3.5-0.8B Base vs full SFT on 500 two-pass pairs. Same prompt contract,
+        temperature 0 for product-style eval.
+      </p>
+
+      <div class="table-wrap glass-card" style="margin-top: 1.25rem;">
+        <table class="res-table">
+          <caption class="visually-hidden">Overall polish metrics before and after SFT</caption>
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Pass rate</th>
+              <th scope="col">Answered questions?</th>
+              <th scope="col">Latency (mean)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="feat">Base (no polish train)</td>
+              <td class="before">62.5%</td>
+              <td class="before">Sometimes (3.1%)</td>
+              <td class="before">~1.7 s</td>
+            </tr>
+            <tr>
+              <td class="feat">After 500-pair SFT</td>
+              <td class="after win">85.4%</td>
+              <td class="after win">0% on sample</td>
+              <td class="after win">~0.7 s</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="kicker" style="margin: 2rem 0 0.75rem;">By skill (same sample)</h3>
+      <div class="table-wrap glass-card">
+        <table class="res-table">
+          <caption class="visually-hidden">Per-skill pass rates before and after SFT</caption>
+          <thead>
+            <tr>
+              <th scope="col">Skill</th>
+              <th scope="col">Before</th>
+              <th scope="col">After</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="feat">Keep questions as questions</td>
+              <td class="before">67%</td>
+              <td class="after">100%</td>
+            </tr>
+            <tr>
+              <td class="feat">Numbered steps</td>
+              <td class="before">25%</td>
+              <td class="after">75%</td>
+            </tr>
+            <tr>
+              <td class="feat">Mixed list + prose</td>
+              <td class="before">25%</td>
+              <td class="after">75%</td>
+            </tr>
+            <tr>
+              <td class="feat">Checklists</td>
+              <td class="before">42%</td>
+              <td class="after">83%</td>
+            </tr>
+            <tr>
+              <td class="feat">Bullets</td>
+              <td class="before">50%</td>
+              <td class="after">58%</td>
+            </tr>
+            <tr>
+              <td class="feat">Course-correction</td>
+              <td class="before">92%</td>
+              <td class="after">100%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-caption">
+        Bullets barely moved — that’s why Phase 3 exists. Preserve-prose and light cleanup
+        were already strong on base; the SFT win is mostly structure + not answering questions.
+      </p>
+    </section>
+
+    <section class="section" id="principles" aria-labelledby="principles-title">
+      <div class="section-head">
+        <p class="kicker">Principles</p>
+        <h2 id="principles-title">What we refuse to regress</h2>
+        <p>Engineering rules we publish so future us doesn’t “optimize” into a chatbot again.</p>
+      </div>
+      <div class="principle-grid">
+        <article class="principle-card glass-card">
+          <span class="n">01</span>
+          <h3>Base over chat</h3>
+          <p>Prefer base / pretrain weights for polish SFT. Instruct priors want to be helpful — we need a rewriter.</p>
+        </article>
+        <article class="principle-card glass-card">
+          <span class="n">02</span>
+          <h3>Full SFT when killing leak</h3>
+          <p>LoRA on chat was not enough. Full-weight SFT (or high-capacity adapters) when answer-leak is the failure mode.</p>
+        </article>
+        <article class="principle-card glass-card">
+          <span class="n">03</span>
+          <h3>Two-pass data discipline</h3>
+          <p>Wild inputs at high T; boring correct gold at low T. Never one sample that has to be both creative and perfect.</p>
+        </article>
+        <article class="principle-card glass-card">
+          <span class="n">04</span>
+          <h3>Holdouts with trap questions</h3>
+          <p>Hundreds of held-out dictations, including “Do you think…?” traps. Measure pass rate + leak + latency — not loss alone.</p>
+        </article>
+      </div>
+
+      <aside class="privacy-box glass-card" aria-labelledby="privacy-note-title">
+        <h3 id="privacy-note-title">Privacy note</h3>
+        <p>
+          Synthetic train/eval pairs are <strong>invented text</strong>, not user recordings.
+          Production telemetry stays opt-in and <strong>never sends transcripts</strong>
+          — see the <a href="/privacy">privacy contract</a>.
+          Local weights; polish is a rewrite on your Mac, not a cloud chat.
+        </p>
+      </aside>
+    </section>
+
+    <section class="section" id="next" aria-labelledby="next-title">
+      <div class="close-box glass-card">
+        <p class="kicker">Status</p>
+        <h2 id="next-title">R&amp;D, measured in public.</h2>
+        <p>
+          This is not the whole shipping story — it’s the polish gap product pages skip.
+          Free local ASR first; open polish that doesn’t answer your questions, next.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-dark btn-glow" href="/">Back to home</a>
+          <a class="btn btn-ghost glass" href="/why">Why MacWispr</a>
+          <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+        </div>
+        <p class="close-note">Experimental · numbers from 2026-07 holdout runs · MIT open source</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="/assets/logo-mark.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
+      <div>
+        <strong>f*ckwisprflow.com</strong>
+        <span>MacWispr · R&amp;D</span>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/why">Why</a>
+      <a href="/rnd" aria-current="page">R&amp;D</a>
+      <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+      <a href="/privacy">Privacy</a>
+    </div>
+    <p class="footer-note">Not affiliated with Wispr Flow. No Windows builds. On purpose. © <span id="y"></span></p>
+  </footer>
+
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
