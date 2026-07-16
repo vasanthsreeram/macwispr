@@ -29,6 +29,8 @@ Instructions for coding agents working in this repository.
 | `website-macwispr/` | Soft product site (Cloudflare Pages `macwispr` → `macwispr.lintware.com`) |
 | `docs/` | GitHub Pages product page + agent context |
 | `docs/context/` | Architecture, language/stack choice, signing, known issues (agent-oriented) |
+| `docs/context/POLISH_TRAINING.md` | On-device **polish** SFT log (Qwen3.5 Base, two-pass data, metrics) — R&D |
+| `docs/context/POLISH_RND_PUBLIC_BRIEF.md` | Public-facing R&D copy deck for website timeline |
 | `PRIVACY.md` | Public telemetry / privacy contract |
 | `Info.plist` | Bundle ID, version, Sparkle feed URL / public key |
 | `dist/` | Built `.app` / zip / DMG (local; do not commit) |
