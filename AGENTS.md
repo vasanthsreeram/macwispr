@@ -16,8 +16,9 @@ Instructions for coding agents working in this repository.
 - Inserts text system-wide (Accessibility required for paste / event tap)
 - Marketing site: [fuckwisprflow.com](https://fuckwisprflow.com)
 - Sparkle updates: appcast at `https://fuckwisprflow.com/appcast.xml`
-- Latest ship line: **1.2.3** from **`main`** only (Developer ID Team `UTSTY3J6NS`; Parakeet + Qwen)
-- **Do not** include branch `feat/native-lfm-polish` (LFM2.5 fine-tuned polish) in 1.2.3 — keep that branch separate until a later release ([docs/context/RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md))
+- Latest **stable** ship line: **1.2.3** from **`main`** (Developer ID Team `UTSTY3J6NS`; Parakeet + Qwen)
+- **Beta:** **1.2.4-beta.1** — bundled Qwen polish SFT + polish-before-paste + no hardcoded fillers ([docs/context/RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md)); GitHub **pre-release** (does not replace `latest` = 1.2.3)
+- **Do not** include branch `feat/native-lfm-polish` (LFM2.5 fine-tuned polish) in 1.2.3 / 1.2.4-beta — keep that branch separate ([docs/context/RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md))
 
 ## Repo map
 
