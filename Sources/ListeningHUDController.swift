@@ -238,7 +238,7 @@ struct ListeningBannerView: View {
                 .strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.20), radius: 10, y: 3)
-        .accessibilityLabel(words.map(\.text).joined(separator: " "))
+        .accessibilityLabel(words.map(\.text).joined())
     }
 
     // MARK: Pre-text chrome (timer only, monochrome)
@@ -287,43 +287,35 @@ struct ListeningBannerView: View {
 
     // MARK: Smooth morph (no full clear)
 
-    /// Update on-screen words from a new ASR hypothesis without blanking.
+    /// Update on-screen tokens from a new ASR hypothesis without blanking.
     ///
     /// Strategy:
-    /// - Keep the common word **prefix** with the same identity (no flash).
-    /// - Replace only the **tail** in one structural update (never intermediate empty).
-    /// - Fade new tail words in, staggered, so re-transcription feels like a morph.
+    /// - Tokenize Latin by words **and CJK by character** so Chinese can wrap.
+    /// - Keep the common **prefix** with the same identity (no flash).
+    /// - Fade new tail tokens in, staggered.
     private func morph(to newText: String) {
         let cleaned = newText
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\n", with: " ")
-        let incoming = cleaned
-            .split(whereSeparator: \.isWhitespace)
-            .map(String.init)
+        // Critical for Chinese: no spaces between hanzi → must split CJK to wrap.
+        let incoming = Self.tokenizeForWrap(cleaned)
 
         let current = words.map(\.text)
         if incoming == current { return }
 
-        // Longest common word prefix — never thrash the stable head.
         let shared = Self.commonWordPrefixCount(current, incoming)
 
         morphTask?.cancel()
         morphTask = Task { @MainActor in
-            // Rebuild: reuse prefix word cells, mint new cells only for the tail.
             var rebuilt: [TranscriptWord] = Array(words.prefix(shared))
             var brandNewIDs: [Int] = []
 
             for token in incoming.dropFirst(shared) {
-                // If the old word at this slot matches case-insensitively but
-                // casing/punctuation changed, update text in place (same id).
                 let idx = rebuilt.count
                 if idx < words.count,
                    words[idx].text.lowercased() == token.lowercased()
                 {
-                    var kept = words[idx]
-                    // Force value-equality update for punctuation/casing.
-                    kept = TranscriptWord(id: kept.id, text: token, isNew: false)
-                    rebuilt.append(kept)
+                    rebuilt.append(TranscriptWord(id: words[idx].id, text: token, isNew: false))
                 } else {
                     let id = nextWordID
                     nextWordID &+= 1
@@ -332,34 +324,95 @@ struct ListeningBannerView: View {
                 }
             }
 
-            // Single structural swap — if shared>0, head never disappears.
-            // If shared==0, old full string is replaced by new full string in
-            // one frame (still no empty intermediate).
             fadingIDs.formUnion(brandNewIDs)
             withAnimation(.easeInOut(duration: 0.16)) {
                 words = rebuilt
             }
             scrollToken &+= 1
 
-            // Staggered fade-in for brand-new tail words only.
-            let stepNs: UInt64 = 42_000_000 // smooth cadence, intentionally delayed
-            for id in brandNewIDs {
+            // CJK produces many more tokens — speed up so long Chinese tails stay snappy.
+            let cjkHeavy = brandNewIDs.count > 12
+                && brandNewIDs.count > 0
+                && rebuilt.suffix(brandNewIDs.count).allSatisfy { Self.isCJKToken($0.text) }
+            let stepNs: UInt64 = cjkHeavy ? 14_000_000 : 42_000_000
+            let batch = cjkHeavy ? 3 : 1
+
+            var i = 0
+            while i < brandNewIDs.count {
                 if Task.isCancelled { return }
-                // Start slightly visible so the line never looks punched-out.
-                try? await Task.sleep(nanoseconds: 16_000_000)
-                withAnimation(.easeOut(duration: 0.34)) {
-                    fadingIDs.remove(id)
+                try? await Task.sleep(nanoseconds: 12_000_000)
+                let end = min(i + batch, brandNewIDs.count)
+                withAnimation(.easeOut(duration: 0.30)) {
+                    for j in i..<end {
+                        fadingIDs.remove(brandNewIDs[j])
+                    }
                 }
+                i = end
                 try? await Task.sleep(nanoseconds: stepNs)
             }
         }
+    }
+
+    /// Latin: space-separated words. CJK / Hangul / kana: one character per token
+    /// so the flow layout can wrap across multiple lines.
+    static func tokenizeForWrap(_ text: String) -> [String] {
+        var tokens: [String] = []
+        var latin = ""
+
+        func flushLatin() {
+            let t = latin.trimmingCharacters(in: .whitespaces)
+            if !t.isEmpty { tokens.append(t) }
+            latin = ""
+        }
+
+        for ch in text {
+            if ch.isWhitespace || ch.isNewline {
+                flushLatin()
+                continue
+            }
+            if isCJKScalar(ch) {
+                flushLatin()
+                tokens.append(String(ch))
+            } else {
+                latin.append(ch)
+            }
+        }
+        flushLatin()
+        return tokens
+    }
+
+    private static func isCJKToken(_ s: String) -> Bool {
+        s.count == 1 && s.first.map(isCJKScalar) == true
+    }
+
+    /// Han, kana, hangul, CJK punctuation, fullwidth forms — anything that
+    /// typically wraps without spaces.
+    private static func isCJKScalar(_ ch: Character) -> Bool {
+        for s in ch.unicodeScalars {
+            let v = s.value
+            switch v {
+            case 0x3000...0x303F, // CJK symbols & punctuation
+                 0x3040...0x309F, // Hiragana
+                 0x30A0...0x30FF, // Katakana
+                 0x31F0...0x31FF, // Katakana phonetic extensions
+                 0x3400...0x4DBF, // CJK Ext A
+                 0x4E00...0x9FFF, // CJK Unified
+                 0xAC00...0xD7AF, // Hangul syllables
+                 0xF900...0xFAFF, // CJK compatibility ideographs
+                 0xFF00...0xFFEF, // Halfwidth/fullwidth forms
+                 0x20000...0x2A6DF: // CJK Ext B (if present)
+                return true
+            default:
+                break
+            }
+        }
+        return false
     }
 
     private static func commonWordPrefixCount(_ a: [String], _ b: [String]) -> Int {
         let n = min(a.count, b.count)
         var i = 0
         while i < n {
-            // Case-insensitive so "The" / "the" doesn't thrash the head.
             if a[i].lowercased() != b[i].lowercased() { break }
             i += 1
         }
@@ -367,45 +420,55 @@ struct ListeningBannerView: View {
     }
 }
 
-// MARK: - Wrapping flow of words
+// MARK: - Wrapping flow of tokens
 
-/// Simple flow layout: words wrap to the next line; fills top→bottom.
+/// Flow layout: tokens wrap left→right, top→bottom (works for CJK chars + Latin words).
 private struct TranscriptFlowView: View {
     let words: [TranscriptWord]
     let fadingIDs: Set<Int>
 
+    /// Tight gap between hanzi; wider between Latin words.
+    private var horizontalSpacing: CGFloat {
+        let cjk = words.filter { $0.text.count == 1 }.count
+        return cjk * 2 >= words.count ? 1.5 : 5
+    }
+
     var body: some View {
-        // Use a flexible wrapping HStack via ViewThatFits / LazyVGrid alternative:
-        // Attributed flow with Text concatenation would lose per-word opacity.
-        // WordBubbleFlow measures and wraps.
-        WordWrapLayout(spacing: 5, lineSpacing: 4) {
+        WordWrapLayout(spacing: horizontalSpacing, lineSpacing: 5) {
             ForEach(words) { word in
                 let isFading = fadingIDs.contains(word.id)
                 Text(word.text)
-                    .font(.system(size: 13.5, weight: .medium, design: .rounded))
-                    // Near-black on light / near-white on dark via .primary
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundStyle(Color.primary)
-                    // Never fully 0 — avoids punch-out holes during morph.
                     .opacity(isFading ? 0.18 : 1.0)
-                    .offset(y: isFading ? 5 : 0)
-                    .blur(radius: isFading ? 0.6 : 0)
-                    .animation(.easeOut(duration: 0.34), value: isFading)
+                    .offset(y: isFading ? 4 : 0)
+                    .blur(radius: isFading ? 0.5 : 0)
+                    .animation(.easeOut(duration: 0.30), value: isFading)
             }
         }
+        // Ensure layout gets a real width for wrap decisions.
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 
-/// Left-to-right, top-to-bottom word wrap layout.
+/// Left-to-right, top-to-bottom wrap. Subviews wider than the line start a new row.
 private struct WordWrapLayout: Layout {
     var spacing: CGFloat = 5
     var lineSpacing: CGFloat = 4
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
+        guard maxWidth.isFinite, maxWidth > 0 else {
+            // Unbounded: single row estimate.
+            let w = subviews.reduce(CGFloat(0)) { $0 + $1.sizeThatFits(.unspecified).width }
+                + CGFloat(max(0, subviews.count - 1)) * spacing
+            let h = subviews.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0
+            return CGSize(width: w, height: h)
+        }
+
         var x: CGFloat = 0
         var y: CGFloat = 0
         var rowHeight: CGFloat = 0
-        var widthUsed: CGFloat = 0
 
         for sub in subviews {
             let size = sub.sizeThatFits(.unspecified)
@@ -416,19 +479,19 @@ private struct WordWrapLayout: Layout {
             }
             rowHeight = max(rowHeight, size.height)
             x += size.width + spacing
-            widthUsed = max(widthUsed, x - spacing)
         }
-        return CGSize(width: maxWidth.isFinite ? maxWidth : widthUsed, height: y + rowHeight)
+        return CGSize(width: maxWidth, height: y + rowHeight)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.minX
         var y = bounds.minY
         var rowHeight: CGFloat = 0
+        let maxX = bounds.maxX
 
         for sub in subviews {
             let size = sub.sizeThatFits(.unspecified)
-            if x > bounds.minX, x + size.width > bounds.maxX {
+            if x > bounds.minX, x + size.width > maxX {
                 x = bounds.minX
                 y += rowHeight + lineSpacing
                 rowHeight = 0
