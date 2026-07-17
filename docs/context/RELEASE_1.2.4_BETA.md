@@ -22,6 +22,8 @@
 | **Polish before paste** | Formatted text is inserted at the cursor (not history/clipboard-only) |
 | **No hardcoded filler strip** | Removed fixed uh/um/so… regex list (broke phrases like “and so on”); polish model owns cleanup |
 | **Dev capture (opt-in)** | Settings → Developer: local WAV + raw STT / post-process / polished under Application Support |
+| **#14 / #15** | Single dashboard window + Cmd+Q; history only in detail pane (not duplicated sidebar) |
+| **Polish telemetry (content-free)** | Opt-in buckets only: polish on/off, latency/word-count buckets, shape flags — **no** transcript text, **no** keystrokes |
 | **Everything from 1.2.3** | Parakeet v3 En+EU, Qwen 0.6B/1.7B En+Asian, model chip, GPU free on switch, etc. |
 
 Training / R&D detail: [POLISH_TRAINING.md](./POLISH_TRAINING.md). Public timeline: `/rnd` on fuckwisprflow.

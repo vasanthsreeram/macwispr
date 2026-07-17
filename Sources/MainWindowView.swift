@@ -74,6 +74,15 @@ struct MainWindowView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: selectedSidebar) { _, item in
+            // Content-free nav telemetry (whitelisted surfaces only).
+            switch item {
+            case .dashboard: Telemetry.shared.reportUIOpen(surface: "dashboard")
+            case .history: Telemetry.shared.reportUIOpen(surface: "history")
+            case .settings: Telemetry.shared.reportUIOpen(surface: "settings")
+            case .dictate: break
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .macWisprShowSettings)) { _ in
             selectedSidebar = .settings
         }
