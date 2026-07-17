@@ -1,6 +1,7 @@
 import Foundation
 import Qwen3ASR
 import ParakeetASR
+import SpeechVAD
 
 actor TranscriptionEngine {
     private enum Backend {
@@ -9,6 +10,8 @@ actor TranscriptionEngine {
     }
 
     private var backend: Backend?
+    /// Loaded alongside Qwen for VAD-guided streaming. Unused for Parakeet.
+    private var vadModel: SileroVADModel?
     private var isWarmedUp = false
     private(set) var loadedModelId: String?
     private var loadedEngine: ASRModelSize.Engine?
@@ -16,13 +19,19 @@ actor TranscriptionEngine {
     /// cannot reinstall weights after the user switched provider/size.
     private var loadGeneration = 0
 
+    /// Audio shorter than this uses a single batch pass (streaming overhead not worth it).
+    private static let streamingMinSeconds: Double = 1.5
+
     func loadModel(
         size: ASRModelSize,
         progressHandler: @escaping @Sendable (Double, String) -> Void
     ) async throws {
         let modelId = size.modelId
-        // Already on the requested model.
+        // Already on the requested model (and VAD ready for Qwen streaming).
         if backend != nil, loadedModelId == modelId {
+            if size.engine == .qwenMLX, vadModel == nil {
+                try await loadVAD(progressHandler: progressHandler, generation: loadGeneration)
+            }
             return
         }
 
@@ -34,10 +43,12 @@ actor TranscriptionEngine {
 
         switch size.engine {
         case .qwenMLX:
+            progressHandler(0.02, "Loading Qwen…")
             let loaded = try await Qwen3ASRModel.fromPretrained(
                 modelId: modelId
             ) { progress, status in
-                progressHandler(progress, status)
+                // Reserve room for VAD after ASR weights.
+                progressHandler(progress * 0.75, status)
             }
             guard generation == loadGeneration else {
                 loaded.unload()
@@ -48,7 +59,12 @@ actor TranscriptionEngine {
             self.loadedEngine = .qwenMLX
             warmUpQwen(loaded)
 
+            try await loadVAD(progressHandler: progressHandler, generation: generation)
+            progressHandler(1.0, "Ready")
+
         case .parakeetCoreML:
+            // Free VAD when not on Qwen.
+            vadModel = nil
             progressHandler(0.05, "Downloading Parakeet…")
             let loaded = try await ParakeetASRModel.fromPretrained(
                 modelId: modelId
@@ -64,6 +80,21 @@ actor TranscriptionEngine {
             self.loadedEngine = .parakeetCoreML
             try warmUpParakeet(loaded)
         }
+    }
+
+    private func loadVAD(
+        progressHandler: @escaping @Sendable (Double, String) -> Void,
+        generation: Int
+    ) async throws {
+        if vadModel != nil { return }
+        progressHandler(0.78, "Loading voice activity model…")
+        let vad = try await SileroVADModel.fromPretrained { progress, status in
+            progressHandler(0.78 + progress * 0.2, status)
+        }
+        guard generation == loadGeneration else {
+            throw CancellationError()
+        }
+        self.vadModel = vad
     }
 
     /// Legacy entry that resolves size from known model IDs.
@@ -91,6 +122,7 @@ actor TranscriptionEngine {
             break
         }
         backend = nil
+        vadModel = nil
         isWarmedUp = false
         loadedModelId = nil
         loadedEngine = nil
@@ -115,6 +147,7 @@ actor TranscriptionEngine {
         isWarmedUp = true
     }
 
+    /// Batch transcription (Parakeet, short clips, or streaming fallback).
     /// - Parameter context: Optional system-prompt context (custom vocab).
     ///   Applied for Qwen3 only — Parakeet does not take a context prompt.
     func transcribe(
@@ -129,13 +162,10 @@ actor TranscriptionEngine {
         switch backend {
         case .qwen(let model):
             if !isWarmedUp { warmUpQwen(model) }
-            let durationSec = Double(samples.count) / 16000.0
-            let maxTokens = min(256, max(64, Int(durationSec * 25)))
-            return model.transcribe(
-                audio: samples,
-                sampleRate: 16000,
+            return Self.batchTranscribeQwen(
+                model: model,
+                samples: samples,
                 language: language,
-                maxTokens: maxTokens,
                 context: context
             )
 
@@ -153,6 +183,136 @@ actor TranscriptionEngine {
                 language: language
             )
         }
+    }
+
+    /// Qwen path with VAD-guided streaming partials for perceived speed.
+    ///
+    /// Emits growing transcript text via `onPartial` as segments finalize (and
+    /// intermediate partials while a segment is open). Falls back to a single
+    /// batch pass for very short clips or if VAD finds no speech.
+    ///
+    /// Polish must run **after** this returns — never mid-stream.
+    func transcribeStreaming(
+        samples: [Float],
+        language: String? = nil,
+        context: String? = nil,
+        onPartial: @escaping @Sendable (String) -> Void
+    ) async throws -> String {
+        guard let backend else {
+            throw TranscriptionError.modelNotLoaded
+        }
+
+        switch backend {
+        case .parakeet:
+            // Parakeet TDT is batch-only in this build.
+            let text = try await transcribe(
+                samples: samples, language: language, context: context)
+            onPartial(text)
+            return text
+
+        case .qwen(let model):
+            if !isWarmedUp { warmUpQwen(model) }
+
+            let durationSec = Double(samples.count) / 16000.0
+            // Short dictation: one shot is already sub-second; skip VAD overhead.
+            if durationSec < Self.streamingMinSeconds || vadModel == nil {
+                let text = Self.batchTranscribeQwen(
+                    model: model,
+                    samples: samples,
+                    language: language,
+                    context: context
+                )
+                onPartial(text)
+                return text
+            }
+
+            let vad = vadModel!
+            let maxTokens = min(256, max(64, Int(durationSec * 25)))
+            let config = StreamingASRConfig(
+                maxSegmentDuration: 8.0,
+                vadConfig: .sileroDefault,
+                language: language,
+                maxTokens: maxTokens,
+                emitPartialResults: true,
+                partialResultInterval: 0.9,
+                context: context
+            )
+
+            let streaming = StreamingASR(asrModel: model, vadModel: vad)
+            var finals: [String] = []
+            var livePartial = ""
+
+            func publish() {
+                var parts = finals
+                if !livePartial.isEmpty { parts.append(livePartial) }
+                let combined = parts
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " ")
+                if !combined.isEmpty {
+                    onPartial(combined)
+                }
+            }
+
+            // Consume the stream on this actor. StreamingASR is not thread-safe;
+            // keep all ASR calls serialized here.
+            let stream = streaming.transcribeStream(
+                audio: samples,
+                sampleRate: 16000,
+                config: config
+            )
+            for try await segment in stream {
+                let trimmed = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { continue }
+                if segment.isFinal {
+                    finals.append(trimmed)
+                    livePartial = ""
+                } else {
+                    livePartial = trimmed
+                }
+                publish()
+            }
+
+            var result = finals
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            if result.isEmpty, !livePartial.isEmpty {
+                result = livePartial
+            }
+
+            // VAD sometimes yields nothing on quiet/short speech — batch fallback.
+            if result.isEmpty {
+                result = Self.batchTranscribeQwen(
+                    model: model,
+                    samples: samples,
+                    language: language,
+                    context: context
+                )
+                if !result.isEmpty {
+                    onPartial(result)
+                }
+            }
+
+            return result
+        }
+    }
+
+    private static func batchTranscribeQwen(
+        model: Qwen3ASRModel,
+        samples: [Float],
+        language: String?,
+        context: String?
+    ) -> String {
+        let durationSec = Double(samples.count) / 16000.0
+        let maxTokens = min(256, max(64, Int(durationSec * 25)))
+        return model.transcribe(
+            audio: samples,
+            sampleRate: 16000,
+            language: language,
+            maxTokens: maxTokens,
+            context: context
+        )
     }
 
     /// Parakeet mel hop length (matches NeMo / speech-swift MelPreprocessor).

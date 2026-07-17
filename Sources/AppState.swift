@@ -134,7 +134,15 @@ final class AppState: ObservableObject {
     private var modelLoadGeneration = 0
     /// Debounced history persistence — avoids rewriting history.json every dictation.
     private var historySaveTask: Task<Void, Never>?
+    /// Live partial ASR while the mic is open (local Qwen only).
+    private var livePartialTask: Task<Void, Never>?
+    /// Prevents overlapping live ASR calls on the engine actor.
+    private var livePartialInFlight = false
     private static let historySaveDebounceNs: UInt64 = 750_000_000 // 0.75s
+    /// How often to re-transcribe the growing buffer while listening.
+    private static let livePartialIntervalNs: UInt64 = 1_100_000_000 // 1.1s
+    /// Wait for at least this much audio before first live pass.
+    private static let livePartialMinSamples = 16_000 // 1.0s @ 16 kHz
     private static let customVocabularyKey = "customVocabulary"
     private static let asrModelSizeKey = "asrModelSize"
     private static let transcriptionProviderKey = "transcriptionProvider"
@@ -666,7 +674,72 @@ final class AppState: ObservableObject {
             }
             guard isRecording, recordingSession == session else { return }
             audioRecorder.startRecording()
+            // Live partials while the mic is open (local Qwen) — words appear as you speak.
+            startLivePartialLoop(session: session)
         }
+    }
+
+    /// Periodically re-transcribe the growing mic buffer so the HUD types live.
+    private func startLivePartialLoop(session: Int) {
+        livePartialTask?.cancel()
+        livePartialInFlight = false
+
+        // Live draft only for local Qwen (AR batch on growing buffer).
+        guard transcriptionProvider == .local, asrModelSize.engine == .qwenMLX else { return }
+
+        livePartialTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 850_000_000)
+            while !Task.isCancelled {
+                guard let self else { return }
+                guard self.isRecording, self.recordingSession == session else { return }
+                guard self.dictationPhase == .listening else { return }
+
+                if !self.livePartialInFlight {
+                    let snap = self.audioRecorder.snapshotSamples()
+                    if snap.count >= Self.livePartialMinSamples {
+                        self.livePartialInFlight = true
+                        let context = self.asrModelSize.supportsContext ? self.asrContext : nil
+                        let language = self.selectedLanguage
+                        let engine = self.transcriptionEngine
+                        let sessionAtStart = session
+                        Task { [weak self] in
+                            defer {
+                                Task { @MainActor [weak self] in
+                                    self?.livePartialInFlight = false
+                                }
+                            }
+                            do {
+                                let text = try await engine.transcribe(
+                                    samples: snap,
+                                    language: language,
+                                    context: context
+                                )
+                                await MainActor.run { [weak self] in
+                                    guard let self else { return }
+                                    guard self.isRecording, self.recordingSession == sessionAtStart else { return }
+                                    guard self.dictationPhase == .listening else { return }
+                                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    guard !trimmed.isEmpty else { return }
+                                    self.currentTranscription = trimmed
+                                    self.phaseDetail = trimmed
+                                    ListeningHUDController.shared.sync(with: self)
+                                }
+                            } catch {
+                                // Ignore transient live failures; final pass still runs on release.
+                            }
+                        }
+                    }
+                }
+
+                try? await Task.sleep(nanoseconds: Self.livePartialIntervalNs)
+            }
+        }
+    }
+
+    private func stopLivePartialLoop() {
+        livePartialTask?.cancel()
+        livePartialTask = nil
+        livePartialInFlight = false
     }
 
     func stopRecordingAndTranscribe() async {
@@ -674,6 +747,7 @@ final class AppState: ObservableObject {
         isRecording = false
         recordingSession += 1
         stopElapsedTimer()
+        stopLivePartialLoop()
         let samples = audioRecorder.stopRecording()
 
         // Pop when mic stops (successful capture). Empty/error uses failure chime via presentFailure.
@@ -688,7 +762,13 @@ final class AppState: ObservableObject {
             return
         }
 
-        setPhase(.transcribing, detail: "Transcribing…")
+        // Keep any live draft visible while we finalize.
+        let draft = currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
+        setPhase(
+            .transcribing,
+            detail: draft.isEmpty ? "Finalizing…" : draft
+        )
+        ListeningHUDController.shared.sync(with: self)
 
         let audioDuration = Double(samples.count) / 16000.0
         let sttStarted = Date()
@@ -701,8 +781,10 @@ final class AppState: ObservableObject {
 
             // Polish before insert so the cursor gets the formatted text — not
             // raw STT with polish only landing in history/clipboard afterward.
+            // Live drafts stay raw STT only; polish runs after the final pass.
             if polishProvider != .off {
                 setPhase(.transcribing, detail: "Polishing…")
+                ListeningHUDController.shared.sync(with: self)
                 let polishStarted = Date()
                 processed = await applyPolish(processed)
                 polishLatency = Date().timeIntervalSince(polishStarted)

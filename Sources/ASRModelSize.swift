@@ -108,10 +108,10 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
 
     static let sixteenGigabytes: UInt64 = 16 * 1_073_741_824
 
-    /// First-run default: Qwen 1.7B when RAM > 16 GB, else Qwen 0.6B.
-    /// Parakeet is opt-in (user picks it in Settings).
+    /// Product default: Qwen **0.6B** (lighter RAM / download; live partials still apply).
+    /// Parakeet remains opt-in; 1.7B is available when the user wants more accuracy.
     static var recommendedDefault: ASRModelSize {
-        systemMemoryBytes > sixteenGigabytes ? .large : .small
+        .small
     }
 
     var isRecommendedForThisMac: Bool {
@@ -127,13 +127,6 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
 
     static var recommendationCaption: String {
         let gb = systemMemoryGB
-        switch recommendedDefault {
-        case .large:
-            return "This Mac has \(gb) GB — Qwen 1.7B is recommended. Parakeet runs on the Neural Engine if you prefer speed."
-        case .small:
-            return "This Mac has \(gb) GB — Qwen 0.6B is recommended. Parakeet (ANE) is also available."
-        case .parakeetInt4, .parakeetInt8:
-            return "This Mac has \(gb) GB of memory."
-        }
+        return "This Mac has \(gb) GB — default is Qwen 0.6B (lighter). Switch to 1.7B for higher accuracy, or Parakeet (ANE) for speed."
     }
 }
