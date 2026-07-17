@@ -697,12 +697,15 @@ final class AppState: ObservableObject {
             let sttLatency = Date().timeIntervalSince(sttStarted)
             let afterLight = postProcess(text)
             var processed = afterLight
+            var polishLatency: TimeInterval? = nil
 
             // Polish before insert so the cursor gets the formatted text — not
             // raw STT with polish only landing in history/clipboard afterward.
             if polishProvider != .off {
                 setPhase(.transcribing, detail: "Polishing…")
+                let polishStarted = Date()
                 processed = await applyPolish(processed)
+                polishLatency = Date().timeIntervalSince(polishStarted)
             }
 
             lastCleanTranscription = processed
@@ -764,10 +767,20 @@ final class AppState: ObservableObject {
                 }
             }
 
+            // Content-free polish metrics only (word buckets / shape / changed).
+            let rawWords = UsageStats.wordCount(in: afterLight)
+            let polishedWords = UsageStats.wordCount(in: processed)
             reportDictationCompleted(
                 sttLatency: sttLatency,
                 audioDuration: audioDuration,
-                insertionOutcome: telemetryOutcome
+                insertionOutcome: telemetryOutcome,
+                polishLatency: polishLatency,
+                rawWordCount: rawWords,
+                polishedWordCount: polishedWords,
+                textChangedByPolish: polishProvider != .off && afterLight != processed,
+                rawHasNewlines: afterLight.contains(where: \.isNewline),
+                polishedHasNewlines: processed.contains(where: \.isNewline),
+                polishedLooksLikeList: Telemetry.looksLikeList(processed)
             )
         } catch {
             lastTranscriptionId = nil
@@ -847,7 +860,14 @@ final class AppState: ObservableObject {
     private func reportDictationCompleted(
         sttLatency: TimeInterval,
         audioDuration: TimeInterval,
-        insertionOutcome: TelemetryInsertionOutcome
+        insertionOutcome: TelemetryInsertionOutcome,
+        polishLatency: TimeInterval? = nil,
+        rawWordCount: Int? = nil,
+        polishedWordCount: Int? = nil,
+        textChangedByPolish: Bool? = nil,
+        rawHasNewlines: Bool? = nil,
+        polishedHasNewlines: Bool? = nil,
+        polishedLooksLikeList: Bool? = nil
     ) {
         let providerToken: String
         let modelSizeToken: String
@@ -870,6 +890,13 @@ final class AppState: ObservableObject {
         case .both: insertionToken = "both"
         }
 
+        let polishToken: String
+        switch polishProvider {
+        case .off: polishToken = "off"
+        case .local: polishToken = "local"
+        case .openAI: polishToken = "openai"
+        }
+
         Telemetry.shared.reportDictationCompleted(
             provider: providerToken,
             modelSize: modelSizeToken,
@@ -877,7 +904,16 @@ final class AppState: ObservableObject {
             insertionMode: insertionToken,
             sttLatencySeconds: sttLatency,
             audioDurationSeconds: audioDuration,
-            insertionOutcome: insertionOutcome
+            insertionOutcome: insertionOutcome,
+            polishProvider: polishToken,
+            polishModel: polishProvider == .local ? polishLocalModel.rawValue : nil,
+            polishLatencySeconds: polishLatency,
+            rawWordCount: rawWordCount,
+            polishedWordCount: polishedWordCount,
+            textChangedByPolish: textChangedByPolish,
+            rawHasNewlines: rawHasNewlines,
+            polishedHasNewlines: polishedHasNewlines,
+            polishedLooksLikeList: polishedLooksLikeList
         )
     }
 

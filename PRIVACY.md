@@ -39,6 +39,8 @@ When telemetry is enabled, MacWispr may send:
 | **Dictation outcomes** | How many dictations **completed** or **failed** |
 | **Hotkey / Accessibility health** | Boolean flags only: tap installed, Carbon hotkey installed, Accessibility trusted, hotkey armed |
 | **Coarse config** | Provider (`local` / `cloud`), model size class, dictation mode (`hold` / `toggle`), insertion mode |
+| **Polish (content-free)** | Polish on/off class (`off` / `local` / `openai`), polish model class, polish latency **bucket**, raw/polished **word-count buckets**, `text_changed_by_polish` bool, coarse shape flags (`has_newlines`, `looks_like_list`) — **never** raw or polished transcript text |
+| **UI surface (coarse)** | Enum-only opens: `dashboard` / `settings` / `history` / `onboarding` / `about` — no paths, no free text |
 | **Failure category** | Enum only: `no_audio`, `mic_denied`, `paste_no_ax`, `stt_error` (and similar non-content labels) |
 | **Install ID** | A **random UUID** generated once on first enable and stored locally — never a hardware serial, MAC address, or other device identifier |
 
@@ -50,8 +52,9 @@ These fields exist so we can answer questions like “how often is ⌥Space sile
 
 The following **never** leave your device as telemetry (and local history/settings stay on your Mac unless you explicitly use a cloud STT/polish provider you configured):
 
-- Transcription **text** — ever  
+- Transcription **text** — ever (including pre-polish / post-polish strings)  
 - **Audio** samples or recordings  
+- **Keystrokes** or global input logging  
 - **Custom vocabulary** words  
 - **Clipboard** contents  
 - API keys / secrets  

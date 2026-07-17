@@ -222,6 +222,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         self.appState = appState
+        // Coarse surface open only — no free text / paths.
+        Telemetry.shared.reportUIOpen(surface: "dashboard")
 
         // Become a normal app so the window can take focus and appear on-screen.
         if NSApp.activationPolicy() != .regular {

@@ -21,6 +21,8 @@ enum TelemetryEventName: String {
     case dictationFailed = "dictation_failed"
     case optIn = "opt_in"
     case optOut = "opt_out"
+    /// Coarse UI open (dashboard / settings / history) — no free text, no paths.
+    case uiOpen = "ui_open"
 }
 
 /// Failure categories for `dictation_failed` (enum only — no free text).
@@ -204,6 +206,10 @@ final class Telemetry: @unchecked Sendable {
 
     // MARK: - Dictation lifecycle (#9)
 
+    /// Content-free dictation outcome. **Never** pass transcript strings.
+    ///
+    /// Optional polish fields (beta): structure/buckets only — raw vs polished
+    /// text stays on-device (dev capture). No keystroke / click streams.
     func reportDictationCompleted(
         provider: String,
         modelSize: String,
@@ -211,9 +217,18 @@ final class Telemetry: @unchecked Sendable {
         insertionMode: String,
         sttLatencySeconds: TimeInterval,
         audioDurationSeconds: TimeInterval,
-        insertionOutcome: TelemetryInsertionOutcome
+        insertionOutcome: TelemetryInsertionOutcome,
+        polishProvider: String = "off",
+        polishModel: String? = nil,
+        polishLatencySeconds: TimeInterval? = nil,
+        rawWordCount: Int? = nil,
+        polishedWordCount: Int? = nil,
+        textChangedByPolish: Bool? = nil,
+        rawHasNewlines: Bool? = nil,
+        polishedHasNewlines: Bool? = nil,
+        polishedLooksLikeList: Bool? = nil
     ) {
-        capture(.dictationCompleted, properties: [
+        var props: [String: Any] = [
             "provider": provider,
             "model_size": modelSize,
             "mode": mode,
@@ -221,7 +236,31 @@ final class Telemetry: @unchecked Sendable {
             "stt_latency_bucket": Self.sttLatencyBucket(sttLatencySeconds),
             "duration_bucket": Self.durationBucket(audioDurationSeconds),
             "insertion_outcome": insertionOutcome.rawValue,
-        ])
+            "polish_provider": polishProvider,
+        ]
+        if let polishModel { props["polish_model"] = polishModel }
+        if let polishLatencySeconds {
+            props["polish_latency_bucket"] = Self.sttLatencyBucket(polishLatencySeconds)
+        }
+        if let rawWordCount { props["raw_word_count_bucket"] = Self.wordCountBucket(rawWordCount) }
+        if let polishedWordCount {
+            props["polished_word_count_bucket"] = Self.wordCountBucket(polishedWordCount)
+        }
+        if let textChangedByPolish { props["text_changed_by_polish"] = textChangedByPolish }
+        if let rawHasNewlines { props["raw_has_newlines"] = rawHasNewlines }
+        if let polishedHasNewlines { props["polished_has_newlines"] = polishedHasNewlines }
+        if let polishedLooksLikeList { props["polished_looks_like_list"] = polishedLooksLikeList }
+        capture(.dictationCompleted, properties: props)
+    }
+
+    /// Coarse UI surface opens (opt-in) — no paths, no free text.
+    func reportUIOpen(surface: String) {
+        // Whitelist surfaces only (hard gate against accidental free-text).
+        let allowed: Set<String> = [
+            "dashboard", "settings", "history", "onboarding", "about",
+        ]
+        guard allowed.contains(surface) else { return }
+        capture(.uiOpen, properties: ["surface": surface])
     }
 
     func reportDictationFailed(reason: DictationFailureReason) {
@@ -246,6 +285,30 @@ final class Telemetry: @unchecked Sendable {
         if seconds < 15 { return "5-15s" }
         if seconds < 30 { return "15-30s" }
         return ">30s"
+    }
+
+    /// Word-count buckets only — never exact counts that could encode content length finely.
+    static func wordCountBucket(_ count: Int) -> String {
+        if count <= 5 { return "1-5" }
+        if count <= 15 { return "6-15" }
+        if count <= 40 { return "16-40" }
+        if count <= 100 { return "41-100" }
+        return ">100"
+    }
+
+    /// Heuristic list shape — newline + bullet/number markers. No text sent.
+    static func looksLikeList(_ text: String) -> Bool {
+        let lines = text.split(whereSeparator: \.isNewline)
+        guard lines.count >= 2 else { return false }
+        var marked = 0
+        for line in lines {
+            let t = line.trimmingCharacters(in: .whitespaces)
+            guard !t.isEmpty else { continue }
+            if t.hasPrefix("-") || t.hasPrefix("•") || t.hasPrefix("*") { marked += 1; continue }
+            // "1." / "1)"
+            if let c = t.first, c.isNumber { marked += 1 }
+        }
+        return marked >= 2
     }
 
     // MARK: - Flush
