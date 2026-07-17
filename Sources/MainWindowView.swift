@@ -306,7 +306,6 @@ struct MainWindowView: View {
                     }
                     .pickerStyle(.segmented)
 
-                    Toggle("Remove filler words", isOn: $appState.removeFillerWords)
                     Toggle("Auto-capitalize", isOn: $appState.autoCapitalize)
                 }
                 .padding(4)

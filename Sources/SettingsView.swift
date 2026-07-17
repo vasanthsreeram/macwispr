@@ -127,10 +127,12 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Advanced cleanup options — last on General.
+            // Polish owns cleanup/lists; avoid hardcoded word filters.
             Section("Post-Processing") {
-                Toggle("Remove filler words (uh, um, like…)", isOn: $appState.removeFillerWords)
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
+                Text("Filler words and formatting are handled by the polish model when Local polish is on — not by a fixed word list.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 Picker("Polish transcript", selection: Binding(
                     get: { appState.polishProvider },
