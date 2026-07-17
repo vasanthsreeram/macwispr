@@ -114,8 +114,29 @@ struct SettingsView: View {
                 }
 
                 if appState.polishProvider == .local {
+                    // Model pack switcher — MiniCPM default; Liquid only if installed.
+                    let available = PolishLocalModel.availableCases
+                    if available.count > 1 {
+                        Picker("Local polish model", selection: Binding(
+                            get: { appState.polishLocalModel },
+                            set: { appState.setPolishLocalModel($0) }
+                        )) {
+                            ForEach(available) { model in
+                                Text(model.displayName).tag(model)
+                            }
+                        }
+                        Text(appState.polishLocalModel.help)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(appState.polishLocalModel.displayName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     HStack {
-                        Text(TextPolisher.displayName)
+                        Text(appState.isLLMLoaded
+                             ? "Active: \(appState.polishLocalModel.shortName)"
+                             : "Not loaded")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -130,15 +151,11 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
-                        } else {
-                            Text("Not loaded")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
                     }
                     if !appState.isLLMLoaded && !appState.isLLMLoading {
-                        Button("Download polish model (~300 MB)") {
-                            Task { await appState.loadLLM() }
+                        Button("Load \(appState.polishLocalModel.shortName)") {
+                            Task { await appState.loadLLM(force: true) }
                         }
                     }
                 } else if appState.polishProvider == .openAI {

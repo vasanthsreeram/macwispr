@@ -11,6 +11,8 @@ Notes for humans and coding agents working on MacWispr.
 | [KNOWN_ISSUES.md](./KNOWN_ISSUES.md) | Troubleshooting (hotkey, metallib, menu bar, AX, sounds) |
 | [SIGNING.md](./SIGNING.md) | Developer ID + notarization — durable Accessibility / TCC |
 | [RELEASE_1.2.3.md](./RELEASE_1.2.3.md) | **1.2.3 scope** — ships from `main`; LFM polish branch excluded |
+| [POLISH_TRAINING.md](./POLISH_TRAINING.md) | On-device polish SFT log (Qwen3.5 Base, phases 0–4, metrics) |
+| [POLISH_RND_PUBLIC_BRIEF.md](./POLISH_RND_PUBLIC_BRIEF.md) | Public R&D copy deck for `/rnd` |
 | [SESSION_SUMMARY.md](./SESSION_SUMMARY.md) | Session history / product evolution notes |
 | [../SPARKLE.md](../SPARKLE.md) | Sparkle keys, appcast, release signing |
 

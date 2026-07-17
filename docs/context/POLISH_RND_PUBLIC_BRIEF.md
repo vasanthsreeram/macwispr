@@ -15,6 +15,8 @@ We’re training a **tiny on-device polish model** that cleans dictation *after*
 5. **Measured learning** — +23 points on a 96-sample holdout; zero answer-leak on that sample.
 6. **Targeted second pass** — extra data for bullets / numbered vs checklist; continued training.
 7. **Full 500 holdout** — **94.6%** pass, **0%** answer-leak, ~0.6 s mean.
+8. **General enumeration** — train spoken list *intent* (not keyword rules); continue SFT → `qwen35-08b-polish-enum`.
+9. **App wire-up** — MLX polish, bare train prompt, **paste after polish**, bundle weights in FormatTest.
 
 ## Result tables
 
@@ -50,6 +52,7 @@ We’re training a **tiny on-device polish model** that cleans dictation *after*
 - Local weights; dictation polish is a **rewrite**, not a chat.
 - Gold labels must be boring and correct; messy inputs can be wild.
 - We test on **hundreds** of held-out dictations, including “Do you think…?” traps.
+- Lists come from **enumeration intent in training data**, not hard-coded keyword triggers.
 - Shipping product still defaults carefully; this is **R&D** toward open polish.
 
 ## Privacy note

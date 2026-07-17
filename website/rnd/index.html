@@ -651,18 +651,36 @@
           </article>
         </li>
 
-        <li class="tl-item active">
+        <li class="tl-item">
           <article class="tl-card glass-card">
             <div class="tl-meta">
               <span class="tl-phase">Phase 3</span>
-              <span class="tl-tag">In progress</span>
+              <span class="tl-tag ok">94.6% holdout</span>
             </div>
             <h3>Targeted weak-spot practice</h3>
             <p>
               Extra two-pass data focused on bullets, strict numbered lists, checklists, mixed formats,
               and light cleanup that never drafts assistant text. Continue full SFT from the fused Phase-2 weights.
+              Full 500 holdout: <strong>94.6%</strong> pass, <strong>0%</strong> answer-leak, ~0.6&nbsp;s mean.
             </p>
             <p class="tl-lesson">Shipping defaults stay careful — this track is R&amp;D toward open polish.</p>
+          </article>
+        </li>
+
+        <li class="tl-item active">
+          <article class="tl-card glass-card">
+            <div class="tl-meta">
+              <span class="tl-phase">Phase 4</span>
+              <span class="tl-tag">Live</span>
+            </div>
+            <h3>General enumeration intent + app wire-up</h3>
+            <p>
+              Live dictations like “the first one is apple, orange…” still stayed prose after Phase&nbsp;3.
+              Fix via more training on <em>spoken list intent</em> and prose contrast — not keyword rules.
+              Continue SFT → <code>qwen35-08b-polish-enum</code>. Product path: MLX polish, bare train prompt,
+              paste <strong>after</strong> polish, weights bundled in FormatTest.
+            </p>
+            <p class="tl-lesson">If a list form fails live, improve data + retrain — don’t hard-code triggers.</p>
           </article>
         </li>
       </ol>
@@ -784,8 +802,8 @@
         </table>
       </div>
       <p class="table-caption">
-        Bullets barely moved — that’s why Phase 3 exists. Preserve-prose and light cleanup
-        were already strong on base; the SFT win is mostly structure + not answering questions.
+        Full 500 after Phase 3 (targeted). Phase 4 adds general enumeration training for
+        spoken list intent that still failed live (“first one is…”) — not keyword heuristics.
       </p>
     </section>
 
@@ -815,6 +833,11 @@
           <span class="n">04</span>
           <h3>Holdouts with trap questions</h3>
           <p>Hundreds of held-out dictations, including “Do you think…?” traps. Measure pass rate + leak + latency — not loss alone.</p>
+        </article>
+        <article class="principle-card glass-card">
+          <span class="n">05</span>
+          <h3>Lists by intent, not keywords</h3>
+          <p>Spoken enumeration should become structure because the model learned it — not because product code matched “first one is.”</p>
         </article>
       </div>
 

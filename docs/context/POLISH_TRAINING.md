@@ -135,6 +135,34 @@ Per-tag (full 500):
 
 Compare to Phase-2 **fast 96** sample (SFT-500 only, no targeted continue): 85.4% pass. Full holdout after targeted practice: **94.6%**.
 
+### Phase 4 — General enumeration intent (not keyword rules)
+
+Live dictation still failed forms like:
+
+> “I’m creating a list. The first one is apple, orange, green apple, and then sausages.”
+
+The model kept prose. **Fix is training, not `if contains("first one")` heuristics** (user constraint: list intent must generalize).
+
+| Item | Detail |
+|------|--------|
+| Data | ~200 general spoken-enumeration pairs + ~60 **prose contrast** (keep as paragraphs when not listing) + earlier list-comma folds |
+| Style | Varied openers (“first one is…”, “items are…”, “getting: A, B, C”), domains, list markers (`-` / `1.` / checklist) |
+| Continue train | From Phase-3 fused weights; **full** SFT, **350** iters, LR `3e-6` |
+| Val loss | ~1.44 → ~1.33 mid-run (final ~1.43) |
+| Artifacts | `data/qwen35_general_lists/`, `data/qwen35_enum_continue/` (~306 train), `fused/qwen35-08b-polish-enum/`, `adapters/qwen35-08b-polish-enum/` |
+
+**App integration (same phase):**
+
+- `TextPolisher` → MLX (`mlx-swift-lm`), bare `### Input` / `### Output` (matches train)
+- `PolishLocalModel` catalog; default pack folder `PolishModel` = Qwen enum SFT (~1.4 GB)
+- Polish runs **before** paste/type-out (`AppState.stopRecordingAndTranscribe`)
+- `scripts/build-app.sh` bundles `POLISH_MODEL_SRC` (default: `fused/qwen35-08b-polish-enum`)
+- FormatTest local install: `MacWispr-FormatTest.app` (ad-hoc; separate from stable 1.2.3)
+
+Offline smoke: fruit / “first one is…” style inputs list correctly on enum pack. Live STT wording still varies — if prose returns, check history raw vs polished and that Local polish is loaded.
+
+**Tradeoff:** some narrative prose may over-list after enum SFT; contrastive prose pairs mitigate; re-measure full 500 when convenient.
+
 ---
 
 ## Inference contract (app)
@@ -158,16 +186,22 @@ Compare to Phase-2 **fast 96** sample (SFT-500 only, no targeted continue): 85.4
 ~/.cache/macwispr-minicpm-bench/
   scripts/gen_polish_data_oauth.py      # 500 train + holdout two-pass
   scripts/gen_targeted_weakspots.py     # weak-tag two-pass
+  scripts/gen_general_lists.py          # general enumeration + prose contrast
   scripts/eval_polish_models.py         # multi-model holdout
   scripts/train_qwen35_polish.sh
   data/eval_holdout_500/holdout.jsonl
   data/qwen35_polish_500only/
   data/qwen35_targeted/
+  data/qwen35_general_lists/
+  data/qwen35_enum_continue/
   models/Qwen3.5-0.8B-Base-mlx/
   fused/qwen35-08b-polish-500/
   fused/qwen35-08b-polish-targeted/
+  fused/qwen35-08b-polish-enum/         # current FormatTest default
   results/
 ```
+
+Product sources (repo): `Sources/TextPolisher.swift`, `Sources/PolishLocalModel.swift`, polish-before-insert in `AppState.swift`, bundling in `scripts/build-app.sh`.
 
 ---
 
@@ -178,7 +212,8 @@ Compare to Phase-2 **fast 96** sample (SFT-500 only, no targeted continue): 85.4
 3. **Two-pass data:** high-T diversity on raw, low-T correctness on clean.
 4. Holdout **≥ hundreds**, leak-free, with explicit **preserve_question**.
 5. Measure **pass rate + answer_leak + latency**; not loss alone.
-6. Ship defaults: MiniCPM/Liquid optional packs; polish **before** paste.
+6. Ship defaults: Qwen polish pack default; Liquid optional; polish **before** paste.
+7. **Generalize list intent via data** — no product keyword heuristics for “first one is…”.
 
 ---
 

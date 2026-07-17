@@ -56,6 +56,7 @@ final class AppState: ObservableObject {
     @Published var asrModelSize: ASRModelSize = ASRModelSize.recommendedDefault
     @Published var transcriptionProvider: TranscriptionProvider = .local
     @Published var polishProvider: PolishProvider = .off
+    @Published var polishLocalModel: PolishLocalModel = .miniCPM
     /// Keychain presence flags (never store the raw secrets in @Published).
     @Published var hasOpenAIKey = false
     @Published var hasElevenLabsKey = false
@@ -136,6 +137,7 @@ final class AppState: ObservableObject {
     private static let asrModelSizeKey = "asrModelSize"
     private static let transcriptionProviderKey = "transcriptionProvider"
     private static let polishProviderKey = "polishProvider"
+    private static let polishLocalModelKey = "polishLocalModel"
     private static let listeningHUDKey = "listeningHUDEnabled"
     private static let onboardingCompletedKey = "hasCompletedOnboarding"
 
@@ -277,6 +279,17 @@ final class AppState: ObservableObject {
             polishProvider = .local
         }
         llmPolishEnabled = polishProvider == .local
+
+        if let raw = UserDefaults.standard.string(forKey: Self.polishLocalModelKey),
+           let m = PolishLocalModel(rawValue: raw)
+        {
+            polishLocalModel = m.isAvailable ? m : (PolishLocalModel.availableCases.first ?? .miniCPM)
+        } else if PolishLocalModel.miniCPM.isAvailable {
+            polishLocalModel = .miniCPM
+        } else {
+            polishLocalModel = PolishLocalModel.availableCases.first ?? .miniCPM
+        }
+        TextPolisher.setModelPreference(polishLocalModel)
         if let saved = UserDefaults.standard.stringArray(forKey: Self.customVocabularyKey) {
             customVocabulary = saved
         }
@@ -390,8 +403,26 @@ final class AppState: ObservableObject {
         llmPolishEnabled = provider == .local
         UserDefaults.standard.set(provider.rawValue, forKey: Self.polishProviderKey)
         UserDefaults.standard.set(llmPolishEnabled, forKey: "llmPolishEnabled")
-        if provider == .local && !isLLMLoaded && !isLLMLoading {
-            Task { await loadLLM() }
+        if provider == .local {
+            Task { await loadLLM(force: !isLLMLoaded) }
+        }
+    }
+
+    func setPolishLocalModel(_ model: PolishLocalModel) {
+        guard model.isAvailable else { return }
+        polishLocalModel = model
+        TextPolisher.setModelPreference(model)
+        UserDefaults.standard.set(model.rawValue, forKey: Self.polishLocalModelKey)
+        // Drop in-memory weights so the next load uses the new pack.
+        Task {
+            await textPolisher.unload()
+            await MainActor.run {
+                isLLMLoaded = false
+                llmLoadStatus = ""
+            }
+            if polishProvider == .local {
+                await loadLLM(force: true)
+            }
         }
     }
 
@@ -651,11 +682,15 @@ final class AppState: ObservableObject {
         do {
             let text = try await transcribeSamples(samples)
             let sttLatency = Date().timeIntervalSince(sttStarted)
-            let processed = postProcess(text)
+            var processed = postProcess(text)
 
-            // Insert raw STT immediately so perceived latency is STT time only.
-            // Polish (if enabled) runs as a follow-up that updates UI/history
-            // and the clipboard — not a second injection into the focused app.
+            // Polish before insert so the cursor gets the formatted text — not
+            // raw STT with polish only landing in history/clipboard afterward.
+            if polishProvider != .off {
+                setPhase(.transcribing, detail: "Polishing…")
+                processed = await applyPolish(processed)
+            }
+
             lastCleanTranscription = processed
             currentTranscription = processed
 
@@ -703,10 +738,6 @@ final class AppState: ObservableObject {
                 audioDuration: audioDuration,
                 insertionOutcome: telemetryOutcome
             )
-
-            if polishProvider != .off {
-                await polishAndUpdate(entryId: entryId, raw: processed)
-            }
         } catch {
             lastTranscriptionId = nil
             Telemetry.shared.reportDictationFailed(reason: .sttError)
@@ -762,42 +793,6 @@ final class AppState: ObservableObject {
             presentFailure(reason, preferAccessibilityFix: true)
         case .failed(let reason):
             presentFailure(reason)
-        }
-    }
-
-    /// Apply polish after raw insertion. Updates UI/history/clipboard only —
-    /// does not re-paste or re-type into the active app (that would double text
-    /// or race the user's cursor).
-    private func polishAndUpdate(entryId: UUID, raw: String) async {
-        let polished = await applyPolish(raw)
-        guard polished != raw else { return }
-
-        // Always upgrade the history row for this dictation when polish finishes.
-        if let index = transcriptionHistory.firstIndex(where: { $0.id == entryId }) {
-            let old = transcriptionHistory[index]
-            transcriptionHistory[index] = TranscriptionEntry(
-                id: old.id,
-                text: polished,
-                timestamp: old.timestamp,
-                duration: old.duration,
-                wordCount: UsageStats.wordCount(in: polished)
-            )
-            scheduleHistorySave()
-        }
-
-        // Only touch the live UI / clipboard if this is still the latest dictation.
-        guard lastTranscriptionId == entryId else { return }
-
-        lastCleanTranscription = polished
-        currentTranscription = polished
-
-        // Refresh clipboard for modes that use it so a manual paste gets polished text.
-        // Type-out already sent raw keystrokes — do not re-inject.
-        switch insertionMode {
-        case .clipboard, .both:
-            textInserter.copyToClipboardOnly(polished)
-        case .typeOut:
-            break
         }
     }
 
@@ -1014,26 +1009,26 @@ final class AppState: ObservableObject {
         setPolishProvider(enabled ? .local : .off)
     }
 
-    func loadLLM() async {
-        guard !isLLMLoaded && !isLLMLoading else { return }
+    func loadLLM(force: Bool = false) async {
+        if isLLMLoading { return }
+        if isLLMLoaded && !force { return }
         isLLMLoading = true
-        llmLoadStatus = "Downloading polish model..."
+        isLLMLoaded = false
+        let pack = polishLocalModel
+        llmLoadStatus = "Loading \(pack.shortName)…"
         do {
             let polisher = textPolisher
-            try await Task.detached {
-                try await polisher.load { progress, status in
-                    DispatchQueue.main.async { [weak self] in
-                        self?.llmLoadStatus = status.isEmpty
-                            ? "Downloading... \(Int(progress * 100))%"
-                            : "\(status) (\(Int(progress * 100))%)"
-                    }
+            try await polisher.load(model: pack) { progress, status in
+                Task { @MainActor in
+                    self.llmLoadStatus = status
                 }
-            }.value
+            }
             isLLMLoaded = true
-            llmLoadStatus = "Ready"
+            llmLoadStatus = "Ready · \(pack.shortName)"
         } catch {
-            llmLoadStatus = "Error: \(error.localizedDescription)"
             isLLMLoaded = false
+            llmLoadStatus = error.localizedDescription
+            NSLog("MacWispr polish load failed: \(error.localizedDescription)")
         }
         isLLMLoading = false
     }
