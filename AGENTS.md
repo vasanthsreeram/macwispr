@@ -123,14 +123,18 @@ open -a MacWispr
 
 ## Release (short)
 
-**Always ship from `main`.** For 1.2.3 scope and “what is not included,” see [docs/context/RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md).
+**Always ship from `main`.**
+
+| Line | Doc | GitHub |
+|------|-----|--------|
+| **Stable 1.2.3** | [RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md) | `latest` + Sparkle appcast |
+| **Beta 1.2.4-beta.1** | [RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md) | **pre-release only** (do not `--latest` / do not appcast) |
 
 1. Confirm branch is `main` (not `feat/native-lfm-polish`)
 2. Bump `Info.plist` / scripts version if shipping a new version number
-3. `source .env.signing && export MACWISPR_VERSION=… && ./scripts/build-app.sh` (Developer ID + notary)
-4. `sign_update` on zip → update `website/appcast.xml`
-5. `./scripts/release.sh vX.Y.Z`
-6. `wrangler pages deploy website --project-name=fuckwisprflow`
+3. `source .env.signing && export MACWISPR_VERSION=… && ./scripts/build-app.sh` (Developer ID + notary for stable; notary optional for beta)
+4. For **stable** only: `sign_update` on zip → update `website/appcast.xml` → `./scripts/release.sh vX.Y.Z` → deploy appcast
+5. For **beta**: `gh release create v… --prerelease` with zip+DMG (see RELEASE_1.2.4_BETA.md)
 
 See `docs/SPARKLE.md` and `docs/context/SIGNING.md`.
 
@@ -143,4 +147,5 @@ See `docs/SPARKLE.md` and `docs/context/SIGNING.md`.
 - Reintroduce a fake Dynamic Island / notch overlay as “system integration”
 - Send transcript content through telemetry
 - Full rewrite in Rust / Zig / Bun / JS unless explicitly requested (see [LANGUAGE_STACK.md](docs/context/LANGUAGE_STACK.md))
-- Merge **`feat/native-lfm-polish`** into a **1.2.3** release (LFM fine-tune stays on that branch)
+- Merge **`feat/native-lfm-polish`** into a **1.2.3** or **1.2.4-beta** cut (LFM fine-tune stays on that branch)
+- Mark a **beta** GitHub release as **Latest** or put it on the Sparkle appcast without an explicit product decision

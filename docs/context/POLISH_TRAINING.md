@@ -2,7 +2,7 @@
 
 Agent-oriented log of how we train the **local post-STT polish** model: cleanup, lists, course-correction, and **never answering questions** the user is only dictating.
 
-**Status:** Experimental. Not the 1.2.3 shipping line. Worktrees and artifacts live under `~/.cache/macwispr-minicpm-bench/` (Documents sandbox often blocks heavy ML). Product path: `TextPolisher` + optional `PolishModel` bundle.
+**Status:** Productized in **1.2.4-beta.1** (GitHub pre-release; not Sparkle/latest). Stable **1.2.3** does not include the SFT polish pack. Training worktrees/artifacts live under `~/.cache/macwispr-minicpm-bench/` (Documents sandbox often blocks heavy ML). Product path: `TextPolisher` + bundled `PolishModel`. See [RELEASE_1.2.4_BETA.md](./RELEASE_1.2.4_BETA.md).
 
 ---
 
@@ -157,7 +157,7 @@ The model kept prose. **Fix is training, not `if contains("first one")` heuristi
 - `PolishLocalModel` catalog; default pack folder `PolishModel` = Qwen enum SFT (~1.4 GB)
 - Polish runs **before** paste/type-out (`AppState.stopRecordingAndTranscribe`)
 - `scripts/build-app.sh` bundles `POLISH_MODEL_SRC` (default: `fused/qwen35-08b-polish-enum`)
-- FormatTest local install: `MacWispr-FormatTest.app` (ad-hoc; separate from stable 1.2.3)
+- **Shipped beta:** GitHub `v1.2.4-beta.1` (Developer ID; polish weights in-app)
 
 Offline smoke: fruit / “first one is…” style inputs list correctly on enum pack. Live STT wording still varies — if prose returns, check history raw vs polished and that Local polish is loaded.
 
@@ -221,4 +221,4 @@ Product sources (repo): `Sources/TextPolisher.swift`, `Sources/PolishLocalModel.
 
 Marketing-facing timeline and tables: website **R&D** section (`/rnd` or similar). Source facts from this file; do not invent metrics.
 
-See also: [AGENTS.md](../../AGENTS.md), [LANGUAGE_STACK.md](LANGUAGE_STACK.md), [RELEASE_1.2.3.md](RELEASE_1.2.3.md).
+See also: [AGENTS.md](../../AGENTS.md), [LANGUAGE_STACK.md](LANGUAGE_STACK.md), [RELEASE_1.2.3.md](RELEASE_1.2.3.md), [RELEASE_1.2.4_BETA.md](RELEASE_1.2.4_BETA.md).
