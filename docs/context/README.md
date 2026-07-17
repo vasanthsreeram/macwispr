@@ -7,6 +7,7 @@ Notes for humans and coding agents working on MacWispr.
 | File | Contents |
 |------|----------|
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Runtime architecture, phases, HUD, telemetry, packaging |
+| [LIVE_PARTIALS.md](./LIVE_PARTIALS.md) | Live Qwen drafts while mic open; HUD morph |
 | [LANGUAGE_STACK.md](./LANGUAGE_STACK.md) | Why Swift (not Rust/Zig/Bun); size/RAM realism |
 | [KNOWN_ISSUES.md](./KNOWN_ISSUES.md) | Troubleshooting (hotkey, metallib, menu bar, AX, sounds) |
 | [SIGNING.md](./SIGNING.md) | Developer ID + notarization — durable Accessibility / TCC |

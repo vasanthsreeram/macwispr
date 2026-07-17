@@ -130,6 +130,22 @@ final class AudioRecorder: @unchecked Sendable {
         return result
     }
 
+    /// Copy of audio captured so far without stopping the mic (for live partials).
+    func snapshotSamples() -> [Float] {
+        lock.lock()
+        let copy = samples
+        lock.unlock()
+        return copy
+    }
+
+    /// Seconds of 16 kHz mono captured so far.
+    var capturedDuration: TimeInterval {
+        lock.lock()
+        let n = samples.count
+        lock.unlock()
+        return Double(n) / targetSampleRate
+    }
+
     // MARK: - Audio thread
 
     private func processTapBuffer(_ buffer: AVAudioPCMBuffer, sourceSR: Double) {
