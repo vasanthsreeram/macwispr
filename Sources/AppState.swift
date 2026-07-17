@@ -57,6 +57,8 @@ final class AppState: ObservableObject {
     @Published var transcriptionProvider: TranscriptionProvider = .local
     @Published var polishProvider: PolishProvider = .off
     @Published var polishLocalModel: PolishLocalModel = .miniCPM
+    /// Opt-in local debug: save WAV + raw/polished text under Application Support.
+    @Published var devCaptureEnabled: Bool = false
     /// Keychain presence flags (never store the raw secrets in @Published).
     @Published var hasOpenAIKey = false
     @Published var hasElevenLabsKey = false
@@ -294,6 +296,8 @@ final class AppState: ObservableObject {
             customVocabulary = saved
         }
         telemetryOptIn = Telemetry.shared.isOptedIn
+        // Dev capture: UserDefaults, or force-on via MACWISPR_DEV_CAPTURE=1.
+        devCaptureEnabled = DevCaptureStore.isEnabled
         // First-run disclosure: show once until the user acknowledges the manifest.
         if !Telemetry.shared.hasSeenDisclosure {
             showTelemetryDisclosure = true
@@ -314,6 +318,15 @@ final class AppState: ObservableObject {
     }
 
     // MARK: - Telemetry opt-in (#7)
+
+    func setDevCaptureEnabled(_ enabled: Bool) {
+        devCaptureEnabled = enabled
+        DevCaptureStore.setEnabled(enabled)
+        // Keep published flag in sync if env forced true (still allow UI to reflect store).
+        if ProcessInfo.processInfo.environment["MACWISPR_DEV_CAPTURE"] == "1" {
+            devCaptureEnabled = true
+        }
+    }
 
     func setTelemetryOptIn(_ enabled: Bool) {
         Telemetry.shared.setOptIn(enabled)
@@ -682,7 +695,8 @@ final class AppState: ObservableObject {
         do {
             let text = try await transcribeSamples(samples)
             let sttLatency = Date().timeIntervalSince(sttStarted)
-            var processed = postProcess(text)
+            let afterLight = postProcess(text)
+            var processed = afterLight
 
             // Polish before insert so the cursor gets the formatted text — not
             // raw STT with polish only landing in history/clipboard afterward.
@@ -706,6 +720,23 @@ final class AppState: ObservableObject {
             transcriptionHistory.insert(entry, at: 0)
             HistoryStore.trimInPlace(&transcriptionHistory)
             scheduleHistorySave()
+
+            // Local-only debug dump (off by default). Never sent as telemetry.
+            if devCaptureEnabled || DevCaptureStore.isEnabled {
+                DevCaptureStore.save(
+                    samples: samples,
+                    entryId: entryId,
+                    rawSTT: text,
+                    afterPostProcess: afterLight,
+                    polished: processed,
+                    audioDuration: audioDuration,
+                    sttLatency: sttLatency,
+                    transcriptionProvider: transcriptionProvider.rawValue,
+                    asrModel: transcriptionProvider == .local ? asrModelSize.rawValue : nil,
+                    polishProvider: polishProvider.rawValue,
+                    polishModel: polishProvider == .local ? polishLocalModel.rawValue : nil
+                )
+            }
 
             // Carbon can detect ⌥Space without AX, but paste/type still needs it.
             let outcome = textInserter.insert(text: processed, mode: insertionMode)
@@ -740,6 +771,22 @@ final class AppState: ObservableObject {
             )
         } catch {
             lastTranscriptionId = nil
+            if devCaptureEnabled || DevCaptureStore.isEnabled {
+                DevCaptureStore.save(
+                    samples: samples,
+                    entryId: nil,
+                    rawSTT: nil,
+                    afterPostProcess: nil,
+                    polished: nil,
+                    audioDuration: audioDuration,
+                    sttLatency: Date().timeIntervalSince(sttStarted),
+                    transcriptionProvider: transcriptionProvider.rawValue,
+                    asrModel: transcriptionProvider == .local ? asrModelSize.rawValue : nil,
+                    polishProvider: polishProvider.rawValue,
+                    polishModel: polishProvider == .local ? polishLocalModel.rawValue : nil,
+                    error: error.localizedDescription
+                )
+            }
             Telemetry.shared.reportDictationFailed(reason: .sttError)
             presentFailure("Transcription failed: \(error.localizedDescription)")
         }
