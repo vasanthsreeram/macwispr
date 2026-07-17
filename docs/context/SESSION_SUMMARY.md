@@ -2,7 +2,7 @@
 
 **Branch for releases:** `main`  
 **Stable ship line:** **1.2.3** (Parakeet + Qwen; Developer ID Team `UTSTY3J6NS`; Sparkle + `releases/latest`)  
-**Beta:** **1.2.4-beta.1** — bundled Qwen3.5 polish SFT, polish-before-paste, no hardcoded fillers — [RELEASE_1.2.4_BETA.md](./RELEASE_1.2.4_BETA.md)  
+**Beta:** **1.2.4-beta.1** — Qwen3.5 polish SFT (bundled), polish-before-paste, no filler regex, #14/#15 window/history, content-free polish telemetry, **notarized** Developer ID — [RELEASE_1.2.4_BETA.md](./RELEASE_1.2.4_BETA.md)  
 **Not in 1.2.3 / beta:** fine-tuned LFM polish → branch **`feat/native-lfm-polish` only**  
 **Agent guide:** [AGENTS.md](../../AGENTS.md) · **Stable scope:** [RELEASE_1.2.3.md](./RELEASE_1.2.3.md)
 
@@ -36,6 +36,9 @@ This document captures major product milestones so agents do not re-learn them f
 | **Site** | fuckwisprflow.com (Cloudflare Pages project `fuckwisprflow`) |
 | **1.2.3 ASR** | Parakeet v3 En+EU (Core ML) + Qwen En+Asian; model chip; GPU free on switch (#12) |
 | **1.2.4-beta.1 polish** | Bundled Qwen3.5-0.8B SFT; polish-before-paste; no filler regex; dev capture; GitHub pre-release only |
+| **#14 / #15** | Merged into beta: single dashboard window + Cmd+Q; history detail-only (was on `fix/14-15-window-and-history`) |
+| **Beta telemetry** | Content-free polish buckets + coarse `ui_open`; no transcript text / keystrokes |
+| **Beta notarization** | `MacWispr-notary` profile; stapled; `spctl` Notarized Developer ID |
 | **LFM polish** | **Not shipped** — stays on `feat/native-lfm-polish` until a later release |
 
 ### Intentionally removed earlier

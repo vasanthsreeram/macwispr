@@ -1,5 +1,38 @@
 # Known issues & troubleshooting
 
+## Wrong MacWispr binary (multi-window / “beta doesn’t have fixes”)
+
+**Symptom:** You installed **1.2.4-beta.1** under `/Applications`, but still see **two MacWispr windows**, broken Cmd+Q, or duplicate history — as if #14/#15 were missing.
+
+**Cause:** LaunchServices / Dock opened a **different** `MacWispr.app` with the same bundle id (`com.vasanthsreeram.macwispr`), often a leftover **repo build**:
+
+```text
+~/Documents/macwispr/dist/MacWispr.app
+~/Documents/macwispr-lfm-format-test/dist/MacWispr.app
+```
+
+**Check:**
+
+```bash
+pgrep -x MacWispr | while read p; do ps -p "$p" -o command=; done
+# Good: /Applications/MacWispr.app/Contents/MacOS/MacWispr
+# Bad:  …/dist/MacWispr.app/Contents/MacOS/MacWispr
+```
+
+**Fix:**
+
+```bash
+pkill -x MacWispr || true
+rm -rf /Applications/MacWispr.app
+# Rename leftover dist apps so they are not launchable as "MacWispr"
+# mv dist/MacWispr.app dist/MacWispr.OLD-DISABLED.app
+# Reinstall beta DMG or:
+# ditto /path/to/notarized/MacWispr.app /Applications/MacWispr.app
+open /Applications/MacWispr.app
+```
+
+Prefer opening from **Applications**, not from a git `dist/` folder. Full notes: [RELEASE_1.2.4_BETA.md](./RELEASE_1.2.4_BETA.md).
+
 ## ⌥Space does nothing
 
 **Code path was verified** with `--self-test` (synthetic handler + CGEvent inject) when Accessibility is granted.

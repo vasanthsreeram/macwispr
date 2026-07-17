@@ -8,11 +8,12 @@
 | | |
 |---|---|
 | **Release page** | https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.4-beta.1 |
-| **DMG** | [MacWispr-1.2.4-beta.1-macos-arm64.dmg](https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.4-beta.1/MacWispr-1.2.4-beta.1-macos-arm64.dmg) (~1.2 GB) |
+| **DMG** | [MacWispr-1.2.4-beta.1-macos-arm64.dmg](https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.4-beta.1/MacWispr-1.2.4-beta.1-macos-arm64.dmg) (~1.2–1.3 GB) |
 | **Zip** | [MacWispr-1.2.4-beta.1-macos-arm64.zip](https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.4-beta.1/MacWispr-1.2.4-beta.1-macos-arm64.zip) (~1.2 GB) |
 | **Signing** | **Developer ID** Team `UTSTY3J6NS` (hardened runtime) |
-| **Notarization** | **Not** stapled in this beta (no notary profile at cut time) — first launch may need **right-click → Open** |
+| **Notarization** | **Yes** — stapled (`notarytool` profile `MacWispr-notary`; submission `c85f4f1b-…` **Accepted**) |
 | **Sparkle** | **Not** promoted — `website/appcast.xml` stays on **1.2.3** |
+| **`spctl`** | `accepted` · `source=Notarized Developer ID` |
 
 ## What’s in 1.2.4-beta.1
 
@@ -20,45 +21,72 @@
 |------|--------|
 | **Local polish (bundled)** | Qwen3.5-0.8B full-SFT pack (`PolishModel` = enum-continued) via **MLX** |
 | **Polish before paste** | Formatted text is inserted at the cursor (not history/clipboard-only) |
-| **No hardcoded filler strip** | Removed fixed uh/um/so… regex list (broke phrases like “and so on”); polish model owns cleanup |
+| **No hardcoded filler strip** | Removed fixed uh/um/so… regex list; polish model owns cleanup |
 | **Dev capture (opt-in)** | Settings → Developer: local WAV + raw STT / post-process / polished under Application Support |
-| **#14 / #15** | Single dashboard window + Cmd+Q; history only in detail pane (not duplicated sidebar) |
-| **Polish telemetry (content-free)** | Opt-in buckets only: polish on/off, latency/word-count buckets, shape flags — **no** transcript text, **no** keystrokes |
+| **#14 / #15** | Merged from `fix/14-15-window-and-history`: single AppKit dashboard (no dual SwiftUI `Window`), Cmd+Q works; history **only** in detail pane |
+| **Polish telemetry (content-free)** | Opt-in buckets: polish on/off class, polish latency/word-count buckets, shape flags (`has_newlines`, `looks_like_list`), coarse `ui_open` — **never** transcript text or keystrokes |
+| **Installer DMG** | Large icons + branded drag-to-Applications background (`dmgbuild`) |
 | **Everything from 1.2.3** | Parakeet v3 En+EU, Qwen 0.6B/1.7B En+Asian, model chip, GPU free on switch, etc. |
 
-Training / R&D detail: [POLISH_TRAINING.md](./POLISH_TRAINING.md). Public timeline: `/rnd` on fuckwisprflow.
+Training / R&D: [POLISH_TRAINING.md](./POLISH_TRAINING.md). Privacy: [PRIVACY.md](../../PRIVACY.md).
 
 ## Explicitly out
 
 | Item | Notes |
 |------|--------|
-| **LFM / Sotto polish** | Still on **`feat/native-lfm-polish` only** — do not merge into beta/stable cut |
-| **Sparkle auto-update to beta** | Appcast intentionally stays on stable 1.2.3 |
-| **Notarized Gatekeeper path** | Revisit for 1.2.4 final / next beta when notary credentials available |
+| **LFM / Sotto polish** | Still on **`feat/native-lfm-polish` only** |
+| **Sparkle auto-update to beta** | Appcast stays on stable 1.2.3 |
 | **Personal / federated fine-tune** | Not in this beta |
+| **Transcript / keystroke telemetry** | Forbidden — local **dev capture** only for full pre/post text |
 
 ## Install (end user)
 
-1. Download the **DMG** (or zip) from the [pre-release](https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.4-beta.1)  
-2. Drag **MacWispr** into **Applications** (replace any older build)  
-3. If macOS blocks open: **right-click → Open** (or Privacy & Security → Open Anyway)  
-4. Grant **Microphone** + **Accessibility**  
-5. Optional: Settings → Post-Processing → **Local LLM** polish to load the bundled model  
+1. Download the **DMG** from the [pre-release](https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.4-beta.1)  
+2. **Quit** any running MacWispr  
+3. Drag **MacWispr** into **Applications** (replace older build)  
+4. Open **from Applications** (not a repo `dist/` folder)  
+5. Grant **Microphone** + **Accessibility**  
+6. Optional: Settings → Post-Processing → **Local LLM** polish  
 
-> Large download because polish weights ship **inside** the app (~1.4 GB on disk; ~1.2 GB compressed).  
-> Polish is **off by default**.
+> Large download: polish weights ship **inside** the app (~1.4 GB on disk).  
+> Polish is **off by default**.  
+> Notarized builds should open without the “Apple could not verify…” block.
 
 ### Dev capture (optional)
 
-Settings → General → **Developer → Save audio + text locally** writes:
+Settings → General → **Developer → Save audio + text locally**:
 
 `~/Library/Application Support/MacWispr/dev-captures/<timestamp>_<id>/`
 
-- `audio.wav` — 16 kHz mono  
-- `01_raw_stt.txt` / `02_postprocess.txt` / `03_polished.txt`  
-- `meta.json`  
+- `audio.wav`, `01_raw_stt.txt`, `02_postprocess.txt`, `03_polished.txt`, `meta.json`  
+- **Never** uploaded by telemetry  
+- Env force: `MACWISPR_DEV_CAPTURE=1`
 
-Never uploaded by telemetry. Or force with env `MACWISPR_DEV_CAPTURE=1`.
+### Clean install / “wrong binary” pitfall
+
+macOS LaunchServices can open an **older** `MacWispr.app` that still lives under a **repo `dist/`** path (same bundle id `com.vasanthsreeram.macwispr`). Symptom: multi-window / missing #14–#15 fixes even though `/Applications` shows 1.2.4-beta.1.
+
+**Check which binary is running:**
+
+```bash
+pgrep -x MacWispr | while read p; do ps -p "$p" -o command=; done
+# Expect: /Applications/MacWispr.app/Contents/MacOS/MacWispr
+# Bad:    …/Documents/macwispr/dist/MacWispr.app/…
+```
+
+**Hard clean:**
+
+```bash
+pkill -x MacWispr || true
+rm -rf /Applications/MacWispr.app
+# Disable leftover build products (do not leave as MacWispr.app)
+# e.g. mv dist/MacWispr.app dist/MacWispr.OLD-DISABLED.app
+ditto /path/to/fresh/MacWispr.app /Applications/MacWispr.app
+open /Applications/MacWispr.app
+```
+
+Re-register if needed:  
+`/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/MacWispr.app`
 
 ## Build / republish (maintainer)
 
@@ -66,30 +94,35 @@ Never uploaded by telemetry. Or force with env `MACWISPR_DEV_CAPTURE=1`.
 git checkout main
 export MACWISPR_VERSION=1.2.4-beta.1
 export MACWISPR_SIGN_IDENTITY="Developer ID Application: Vasanth Sreeram (UTSTY3J6NS)"
-unset MACWISPR_NOTARY_PROFILE   # set profile when notarizing
+export MACWISPR_NOTARY_PROFILE="MacWispr-notary"   # required for Gatekeeper-clean beta
 export POLISH_MODEL_SRC="$HOME/.cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-enum"
-./scripts/build-app.sh
-./scripts/build-dmg.sh   # needs extra HFS headroom for polish pack
+./scripts/build-app.sh          # sign + notary + staple + zip
+./scripts/build-dmg.sh          # dmgbuild layout + background
 
-# Pre-release only — do NOT pass --latest (keeps 1.2.3 as Latest)
-gh release create "v${MACWISPR_VERSION}" \
+# Pre-release only — do NOT use --latest
+gh release upload "v${MACWISPR_VERSION}" \
   "dist/MacWispr-${MACWISPR_VERSION}-macos-arm64.zip" \
   "dist/MacWispr-${MACWISPR_VERSION}-macos-arm64.dmg" \
-  --title "MacWispr v${MACWISPR_VERSION}" \
-  --prerelease \
-  --notes-file docs/context/RELEASE_1.2.4_BETA.md
-# or: gh release upload … --clobber if the tag/release already exists
+  --clobber
 ```
 
-Do **not** update `website/appcast.xml` for beta unless intentionally promoting a channel.
+Verify:
+
+```bash
+spctl -a -vv dist/MacWispr.app
+# accepted · source=Notarized Developer ID
+xcrun stapler validate dist/MacWispr.app
+```
+
+Do **not** update `website/appcast.xml` for beta unless intentionally promoting.
 
 ## Relationship to 1.2.3
 
 | Line | Role |
 |------|------|
 | **1.2.3** | Stable ship + Sparkle + `releases/latest` |
-| **1.2.4-beta.1** | Opt-in polish beta; larger download; pre-release only |
+| **1.2.4-beta.1** | Opt-in polish beta (pre-release only); larger download |
 
-When polishing is ready for everyone: cut **1.2.4** (or later) non-beta from `main`, notarize, update appcast, then mark GitHub Latest.
+When polish is ready for everyone: cut a non-beta **1.2.4+**, update appcast, mark GitHub Latest.
 
-See also: [RELEASE_1.2.3.md](./RELEASE_1.2.3.md), [POLISH_TRAINING.md](./POLISH_TRAINING.md), [SIGNING.md](./SIGNING.md), [PRIVACY.md](../../PRIVACY.md).
+See also: [RELEASE_1.2.3.md](./RELEASE_1.2.3.md), [POLISH_TRAINING.md](./POLISH_TRAINING.md), [SIGNING.md](./SIGNING.md), [KNOWN_ISSUES.md](./KNOWN_ISSUES.md).

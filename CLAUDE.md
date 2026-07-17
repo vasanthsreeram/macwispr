@@ -11,5 +11,5 @@ Quick pointers:
 - Sparkle: `website/appcast.xml` + [docs/SPARKLE.md](docs/SPARKLE.md)
 - Architecture notes: [docs/context/](docs/context/)
 - Model UI names: **Qwen 0.6B/1.7B (En + Asian)**, **Parakeet v3 (En + EU)**; chip says **Local** (`ASRModelSize.swift`)
-- **Stable:** **1.2.3** = GitHub Latest + Sparkle. **Beta:** **1.2.4-beta.1** polish bundle — [RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md) (pre-release only)
+- **Stable:** **1.2.3** = GitHub Latest + Sparkle. **Beta:** **1.2.4-beta.1** polish + #14/#15 + notarized — [RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md) (pre-release only; never launch repo `dist/MacWispr.app` over `/Applications`)
 - Stay on Swift (not Rust/Zig/Bun): [docs/context/LANGUAGE_STACK.md](docs/context/LANGUAGE_STACK.md)

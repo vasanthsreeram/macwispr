@@ -17,7 +17,7 @@ Instructions for coding agents working in this repository.
 - Marketing site: [fuckwisprflow.com](https://fuckwisprflow.com)
 - Sparkle updates: appcast at `https://fuckwisprflow.com/appcast.xml`
 - Latest **stable** ship line: **1.2.3** from **`main`** (Developer ID Team `UTSTY3J6NS`; Parakeet + Qwen)
-- **Beta:** **1.2.4-beta.1** — bundled Qwen polish SFT + polish-before-paste + no hardcoded fillers ([docs/context/RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md)); GitHub **pre-release** (does not replace `latest` = 1.2.3)
+- **Beta:** **1.2.4-beta.1** — Qwen polish SFT + polish-before-paste + no filler regex + #14/#15 window/history + content-free polish telemetry; **notarized** ([docs/context/RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md)); GitHub **pre-release** (does not replace `latest` = 1.2.3). **Do not launch repo `dist/MacWispr.app`** — LaunchServices can prefer it over `/Applications`
 - **Do not** include branch `feat/native-lfm-polish` (LFM2.5 fine-tuned polish) in 1.2.3 / 1.2.4-beta — keep that branch separate ([docs/context/RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md))
 
 ## Repo map
@@ -67,6 +67,7 @@ Instructions for coding agents working in this repository.
 - Public contract: `PRIVACY.md`. Update it if the collect list changes.
 - Fail-silent: network errors must never block dictation.
 - **Dev capture** (Settings → Developer, or `MACWISPR_DEV_CAPTURE=1`): local WAV + text stages only; never telemetry. `DevCaptureStore`.
+- **Beta polish telemetry** (opt-in only): buckets / booleans on `dictation_completed` + coarse `ui_open` — **never** pre/post transcript text or keystrokes.
 
 ## UX conventions (current)
 
