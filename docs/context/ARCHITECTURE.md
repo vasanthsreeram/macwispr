@@ -1,6 +1,8 @@
 # MacWispr architecture (current)
 
-Last updated: 2026-07-12 · product line **1.2.3** (`main`). Fine-tuned LFM polish is **not** on this line — see branch `feat/native-lfm-polish` and [RELEASE_1.2.3.md](./RELEASE_1.2.3.md).
+Last updated: 2026-07-17 · **stable 1.2.3** + **beta 1.2.4-beta.1** on `main`.  
+Stable = ASR-focused ship ([RELEASE_1.2.3.md](./RELEASE_1.2.3.md)). Beta = bundled Qwen3.5 polish SFT ([RELEASE_1.2.4_BETA.md](./RELEASE_1.2.4_BETA.md)).  
+Fine-tuned **LFM** polish remains on branch `feat/native-lfm-polish` only.
 
 **Stack choice:** stay on **Swift** (AppKit + MLX via `speech-swift` + Sparkle). Size and peak RAM are dominated by metallibs and model weights, not the app language. Full comparison and “why not Rust/Zig/Bun”: [LANGUAGE_STACK.md](./LANGUAGE_STACK.md).
 
@@ -24,9 +26,11 @@ Last updated: 2026-07-12 · product line **1.2.3** (`main`). Fine-tuned LFM poli
 │  • asrModelSize: Qwen En+Asian 0.6/1.7B | Parakeet v3 En+EU    │
 │  • AudioRecorder → samples @ 16 kHz                            │
 │  • TranscriptionEngine → Qwen3ASR (MLX) or ParakeetASR (CoreML)│
+│  • TextPolisher (optional local MLX Qwen polish / OpenAI)      │
 │  • CloudSTTClient when provider is OpenAI / ElevenLabs         │
-│  • TextInserter (clipboard / type / both)                      │
+│  • TextInserter (clipboard / type / both) — after polish       │
 │  • HistoryStore + UsageStats                                   │
+│  • DevCaptureStore (opt-in local WAV + text stages)            │
 │  • Telemetry.shared (opt-in PostHog batch)                     │
 │  • FeedbackSounds (configurable system AIFF chimes)            │
 └──────────────────────────────────────────────────────────────┘

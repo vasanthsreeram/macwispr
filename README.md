@@ -21,14 +21,23 @@ Hold a hotkey, speak, release — text appears in whatever app you're typing in.
 - Marketing site: **[fuckwisprflow.com](https://www.fuckwisprflow.com)** (MacWispr vs cloud)
 - Product notes: **[vasanthsreeram.github.io/macwispr](https://vasanthsreeram.github.io/macwispr/)**
 
-## Easy install (release)
+## Easy install (stable)
 
-1. Grab **MacWispr 1.2.3** (or latest) **DMG / `.app` zip** from [Releases](https://github.com/vasanthsreeram/macwispr/releases/latest)
-2. Unzip and drag **MacWispr.app** into Applications
-3. Open it (right-click → **Open** the first time if macOS warns about an unsigned app)
+1. Grab **MacWispr 1.2.3** (stable / Latest) **DMG / `.app` zip** from [Releases · Latest](https://github.com/vasanthsreeram/macwispr/releases/latest)
+2. Unzip / open DMG and drag **MacWispr.app** into Applications
+3. Open it (right-click → **Open** the first time if macOS warns)
 4. Grant **Microphone** + **Accessibility**
 5. Hold **⌥Space**, speak, release
 6. Optional: **Settings → Transcription** to add OpenAI / ElevenLabs keys (BYOK)
+
+### Beta (1.2.4-beta.1) — bundled on-device polish
+
+Opt-in **pre-release** with **Qwen3.5-0.8B polish** bundled (~1.2 GB download). Does **not** replace stable Latest or Sparkle.
+
+- Release: **[v1.2.4-beta.1](https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.4-beta.1)**
+- DMG: [MacWispr-1.2.4-beta.1-macos-arm64.dmg](https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.4-beta.1/MacWispr-1.2.4-beta.1-macos-arm64.dmg)
+- After install: Settings → Post-Processing → **Local LLM** to enable polish  
+- Scope / notes: [docs/context/RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md)
 
 ### One-command build & install (from source)
 
@@ -71,15 +80,15 @@ uv run --with 'git+https://github.com/Blaizzy/mlx-audio.git' --with soundfile \
   - **Parakeet v3 (En + EU)** — Neural Engine (Core ML)
 - **RAM-aware default** — Qwen 1.7B when Mac has &gt;16 GB RAM; else Qwen 0.6B (override anytime)
 - **BYOK cloud STT** — Optional OpenAI (`gpt-4o-mini-transcribe`) or ElevenLabs (`scribe_v2`); keys in Keychain only
-- **Transcript polish** — Off, local LLM, or OpenAI (`gpt-4o-mini`)
+- **Transcript polish** — Off, **local Qwen3.5 polish SFT** (bundled in **1.2.4-beta**), or OpenAI BYOK; polish runs **before paste**
 - **Menu bar app** — Live status (red mic + timer while listening; Done shows STT latency)
 - **Listening banner** — Optional floating “Listening / Done” under the menu bar (not a fake Dynamic Island)
 - **Configurable chimes** — Per-event system sound + volume in Settings (start / stop / done / error)
 - **Weekly Time Saved dashboard** — Word count + estimated typing time saved (baseline up to 200 WPM)
-- **Sparkle auto-updates** — Check for Updates via appcast on fuckwisprflow.com
+- **Sparkle auto-updates** — Check for Updates via appcast on fuckwisprflow.com (stable line)
 - **Opt-in telemetry** — Anonymous, content-free reliability events (off by default; see [PRIVACY.md](PRIVACY.md))
-- **Filler word removal** — Strips “uh”, “um”, “like”, “you know”, etc.
-- **Auto-capitalize** — First letter capitalized automatically
+- **Cleanup** — Optional auto-capitalize; fillers/lists via **polish model** (no hardcoded filler word list)
+- **Dev capture (beta)** — Optional local WAV + raw/polished text for debugging (never telemetried)
 - **52 languages** — Auto-detect or pin a language (Qwen / cloud; Parakeet is multilingual EU set)
 - **Transcription history** — Browse and copy past results (persisted locally)
 - **Multiple insertion modes** — Clipboard paste, simulated typing, or both

@@ -47,7 +47,8 @@ You can re-print the public key later with the same tool if the private key is s
 1. **Build** the app and zip (existing tooling):
 
    ```bash
-   export MACWISPR_VERSION=1.2.3   # ship from main — see context/RELEASE_1.2.3.md
+   export MACWISPR_VERSION=1.2.3   # stable only — see context/RELEASE_1.2.3.md
+   # Do not put 1.2.4-beta on this feed (pre-release is GitHub-only)
    ./scripts/build-app.sh
    # produces dist/MacWispr-1.2.3-macos-arm64.zip
    ```

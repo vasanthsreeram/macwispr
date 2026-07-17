@@ -1,9 +1,10 @@
 # Session summary — MacWispr product evolution
 
 **Branch for releases:** `main`  
-**Shipped / shipping line:** **1.2.3** (Parakeet + Qwen; Developer ID Team `UTSTY3J6NS`)  
-**Not in 1.2.3:** fine-tuned LFM polish → branch **`feat/native-lfm-polish` only**  
-**Agent guide:** [AGENTS.md](../../AGENTS.md) · **Release scope:** [RELEASE_1.2.3.md](./RELEASE_1.2.3.md)
+**Stable ship line:** **1.2.3** (Parakeet + Qwen; Developer ID Team `UTSTY3J6NS`; Sparkle + `releases/latest`)  
+**Beta:** **1.2.4-beta.1** — bundled Qwen3.5 polish SFT, polish-before-paste, no hardcoded fillers — [RELEASE_1.2.4_BETA.md](./RELEASE_1.2.4_BETA.md)  
+**Not in 1.2.3 / beta:** fine-tuned LFM polish → branch **`feat/native-lfm-polish` only**  
+**Agent guide:** [AGENTS.md](../../AGENTS.md) · **Stable scope:** [RELEASE_1.2.3.md](./RELEASE_1.2.3.md)
 
 This document captures major product milestones so agents do not re-learn them from scratch.
 
@@ -11,7 +12,7 @@ This document captures major product milestones so agents do not re-learn them f
 
 ## Product
 
-**MacWispr** — on-device voice dictation for macOS (Apple Silicon). Menu-bar app; hold or toggle dictation; insert text system-wide; local **Qwen (MLX)** + **Parakeet (Core ML)**; optional BYOK cloud STT; optional transcript polish (Qwen chat / OpenAI on `main`); opt-in anonymous telemetry.
+**MacWispr** — on-device voice dictation for macOS (Apple Silicon). Menu-bar app; hold or toggle dictation; insert text system-wide; local **Qwen (MLX)** + **Parakeet (Core ML)**; optional BYOK cloud STT; optional **local Qwen3.5 polish SFT** (bundled in 1.2.4-beta) or OpenAI polish; opt-in anonymous telemetry.
 
 **Requirements:** macOS 14+, arm64, Microphone + Accessibility, full Xcode for metallib builds, ~300MB+ model cache on first local run.
 
@@ -34,6 +35,7 @@ This document captures major product milestones so agents do not re-learn them f
 | **Telemetry** | Privacy-first opt-in PostHog client; live project key in 1.2.2+ builds |
 | **Site** | fuckwisprflow.com (Cloudflare Pages project `fuckwisprflow`) |
 | **1.2.3 ASR** | Parakeet v3 En+EU (Core ML) + Qwen En+Asian; model chip; GPU free on switch (#12) |
+| **1.2.4-beta.1 polish** | Bundled Qwen3.5-0.8B SFT; polish-before-paste; no filler regex; dev capture; GitHub pre-release only |
 | **LFM polish** | **Not shipped** — stays on `feat/native-lfm-polish` until a later release |
 
 ### Intentionally removed earlier

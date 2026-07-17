@@ -1,9 +1,11 @@
 # MacWispr 1.2.3 — release scope
 
-**Status (agent-maintained):** **Notarized** (submission `615fc1c0-…`, Accepted + stapled). Public ship = GitHub `v1.2.3` + appcast.  
-**Version string in repo:** **1.2.3**.  
-**Ship from:** `main` only (`6158724` + release doc/notes commits).  
-**Do not ship from:** `feat/native-lfm-polish` (or any LFM / Sotto fine-tune polish work).
+**Status (agent-maintained):** **Notarized** (submission `615fc1c0-…`, Accepted + stapled). Public ship = GitHub `v1.2.3` + appcast = **`releases/latest`**.  
+**Historical version for this cut:** **1.2.3** (repo `main` may already point at a newer beta string — that does not retire 1.2.3 as Latest).  
+**Ship from:** `main` only.  
+**Do not ship from:** `feat/native-lfm-polish` (or any LFM / Sotto fine-tune polish work).  
+
+**Successor beta (not Latest):** [1.2.4-beta.1](./RELEASE_1.2.4_BETA.md) — bundled Qwen polish; GitHub **pre-release** only.
 
 ## What’s in 1.2.3 (`main`)
 

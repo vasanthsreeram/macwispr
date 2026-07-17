@@ -16,7 +16,8 @@ We’re training a **tiny on-device polish model** that cleans dictation *after*
 6. **Targeted second pass** — extra data for bullets / numbered vs checklist; continued training.
 7. **Full 500 holdout** — **94.6%** pass, **0%** answer-leak, ~0.6 s mean.
 8. **General enumeration** — train spoken list *intent* (not keyword rules); continue SFT → `qwen35-08b-polish-enum`.
-9. **App wire-up** — MLX polish, bare train prompt, **paste after polish**, bundle weights in FormatTest.
+9. **App wire-up** — MLX polish, bare train prompt, **paste after polish**, bundle weights.
+10. **Beta ship** — **1.2.4-beta.1** GitHub pre-release (Developer ID; not Sparkle/latest).
 
 ## Result tables
 
