@@ -99,6 +99,34 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Developer") {
+                Toggle("Save audio + text locally", isOn: Binding(
+                    get: { appState.devCaptureEnabled },
+                    set: { appState.setDevCaptureEnabled($0) }
+                ))
+                Text(
+                    "Dev mode: each dictation writes a WAV plus raw STT / post-process / polished text under Application Support → MacWispr → dev-captures. Stays on this Mac only — never uploaded. Keeps the last \(DevCaptureStore.maxCaptures) captures."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                if ProcessInfo.processInfo.environment["MACWISPR_DEV_CAPTURE"] == "1" {
+                    Text("Forced on by MACWISPR_DEV_CAPTURE=1 for this process.")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
+                HStack {
+                    Button("Open captures folder") {
+                        DevCaptureStore.openInFinder()
+                    }
+                    Button("Clear captures", role: .destructive) {
+                        DevCaptureStore.clearAll()
+                    }
+                }
+                Text("\(DevCaptureStore.captureCount()) capture(s) on disk")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
             // Advanced cleanup options — last on General.
             Section("Post-Processing") {
                 Toggle("Remove filler words (uh, um, like…)", isOn: $appState.removeFillerWords)

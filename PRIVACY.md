@@ -60,6 +60,16 @@ The following **never** leave your device as telemetry (and local history/settin
 - Precise location  
 - Raw timestamps or durations that could fingerprint (we bucket)
 
+### Optional local developer capture (not telemetry)
+
+Settings → General → **Developer → Save audio + text locally** (off by default) writes **WAV audio** and **text stages** (raw STT, light post-process, polished) to  
+`~/Library/Application Support/MacWispr/dev-captures/` on this Mac only.
+
+- Used for debugging dictation / polish quality.
+- **Never uploaded** by MacWispr telemetry (still subject to whatever *you* do with the folder).
+- Caps at the last 100 captures; you can clear from Settings.
+- Can also be forced for a process with env `MACWISPR_DEV_CAPTURE=1`.
+
 ---
 
 ## Where data goes

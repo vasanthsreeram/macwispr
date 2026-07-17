@@ -53,6 +53,7 @@ Instructions for coding agents working in this repository.
 | `SettingsView.swift` | Simplified tabs: General / Transcription / Hotkeys / About |
 | `TextPolisher.swift` | On-device MLX polish (bare `### Input`/`### Output`; polish **before** paste) |
 | `PolishLocalModel.swift` | Local polish pack catalog (default `PolishModel` = Qwen enum SFT; optional LFM) |
+| `DevCaptureStore.swift` | Opt-in **dev mode**: local WAV + raw/polished text under Application Support |
 | `SparkleUpdater.swift` | Check for Updates |
 
 ## Privacy & telemetry (must not regress)
@@ -64,6 +65,7 @@ Instructions for coding agents working in this repository.
 - Project write key lives in `Telemetry.swift` (client `phc_…` key — not a personal API secret).
 - Public contract: `PRIVACY.md`. Update it if the collect list changes.
 - Fail-silent: network errors must never block dictation.
+- **Dev capture** (Settings → Developer, or `MACWISPR_DEV_CAPTURE=1`): local WAV + text stages only; never telemetry. `DevCaptureStore`.
 
 ## UX conventions (current)
 
