@@ -20,8 +20,10 @@ if [[ ! -d "$APP" ]]; then
 fi
 
 APP_BYTES=$(du -sk "$APP" | awk '{print $1}')
-# HFS+ image size in MB: app + Applications link + padding
-SIZE_MB=$(( APP_BYTES / 1024 + 80 ))
+# HFS+ image size in MB: app + Applications link + padding.
+# Large polish bundles need more headroom than du implies (APFS vs HFS+,
+# non-sparse copy). Use ~25% + 256 MB floor padding.
+SIZE_MB=$(( APP_BYTES / 1024 + APP_BYTES / 4096 + 256 ))
 if (( SIZE_MB < 200 )); then SIZE_MB=200; fi
 
 mkdir -p "$DIST_DIR"
