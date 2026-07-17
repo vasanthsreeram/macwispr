@@ -64,7 +64,7 @@ enum PolishProvider: String, CaseIterable, Identifiable, Codable {
         case .off:
             return "Insert the raw transcript after light cleanup only."
         case .local:
-            return "On-device Qwen3 chat model fixes grammar and punctuation (~0.3–1s)."
+            return "On-device Qwen3.5 polish (lists, cleanup, course-correction). Optional LFM pack if installed."
         case .openAI:
             return "Uses your OpenAI key with a small chat model to polish sentences. Requires network."
         }

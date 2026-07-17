@@ -1,99 +1,159 @@
 import Foundation
-import Qwen3Chat
+import MLX
+import MLXLMCommon
+import MLXLLM
+import MLXHuggingFace
+import Tokenizers
+import HuggingFace
 
-/// On-device LLM polish for ASR transcripts (grammar / punctuation / structure).
+/// On-device MLX polish for ASR transcripts (cleanup + lists + course-correction).
 ///
-/// Uses Qwen3-0.6B-Chat (CoreML) from speech-swift — same stack as ASR, ~300 MB,
-/// Neural Engine + GPU. Loaded lazily when the user enables polishing.
+/// Default weights: **Qwen3.5-0.8B polish SFT** (not Liquid). User can switch to
+/// optional LFM pack in Settings when present. Prompt format matches train:
+/// bare `### Input:` / `### Output:` (no few-shot, no chat thinking).
 actor TextPolisher {
-    static let modelId = "aufklarer/Qwen3-0.6B-Chat-CoreML"
-    static let displayName = "Qwen3-0.6B-Chat (CoreML)"
+    /// UI label for the currently selected local pack.
+    static var displayName: String {
+        currentModelPreference().displayName
+    }
 
-    private var model: Qwen3ChatModel?
+    private var container: ModelContainer?
+    private var loadedModel: PolishLocalModel?
     private var isLoading = false
 
-    var isLoaded: Bool { model != nil }
+    var isLoaded: Bool { container != nil }
 
-    private static let systemPrompt = """
-        You are a careful editor for voice dictation transcripts.
-        Fix grammar, punctuation, capitalization, and sentence structure.
-        Keep the original meaning and wording as close as possible.
-        Do not add explanations, quotes, or commentary.
-        Output only the corrected transcript.
-        """
+    var activeModel: PolishLocalModel? { loadedModel }
 
-    func load(progressHandler: (@Sendable (Double, String) -> Void)? = nil) async throws {
-        if model != nil { return }
+    private static let preferenceKey = "polishLocalModel"
+
+    static func currentModelPreference() -> PolishLocalModel {
+        if let raw = UserDefaults.standard.string(forKey: preferenceKey),
+           let m = PolishLocalModel(rawValue: raw),
+           m.isAvailable
+        {
+            return m
+        }
+        // Default MiniCPM — never silently stick on Liquid.
+        if PolishLocalModel.miniCPM.isAvailable { return .miniCPM }
+        return PolishLocalModel.availableCases.first ?? .miniCPM
+    }
+
+    static func setModelPreference(_ model: PolishLocalModel) {
+        UserDefaults.standard.set(model.rawValue, forKey: preferenceKey)
+    }
+
+    func unload() {
+        container = nil
+        loadedModel = nil
+    }
+
+    func load(
+        model: PolishLocalModel? = nil,
+        progressHandler: (@Sendable (Double, String) -> Void)? = nil
+    ) async throws {
+        let target = model ?? Self.currentModelPreference()
+        if container != nil, loadedModel == target { return }
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 
-        let loaded = try await Qwen3ChatModel.fromPretrained(
-            modelId: Self.modelId,
-            quantization: .int4
-        ) { progress, status in
-            progressHandler?(progress, status)
+        // Switching packs drops the previous container.
+        container = nil
+        loadedModel = nil
+
+        guard let dir = PolishLocalModel.resolveDirectory(for: target) else {
+            throw NSError(domain: "TextPolisher", code: 1, userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Polish model not found for \(target.shortName). Bundle \(target.resourceFolderName) or set \(target.envKey)."
+            ])
         }
-        self.model = loaded
+        progressHandler?(0.1, "Loading \(target.shortName)")
+        let loaded = try await loadModelContainer(
+            from: dir, using: #huggingFaceTokenizerLoader())
+        progressHandler?(1.0, "Ready · \(target.shortName)")
+        self.container = loaded
+        self.loadedModel = target
+        Self.setModelPreference(target)
     }
 
-    /// Polish a transcript. Returns the original text on failure or empty input.
+    /// Polish a transcript. Returns original text on failure or tiny input.
     func polish(_ text: String) async -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return text }
-        // Skip tiny fragments — not worth LLM latency.
         guard trimmed.split(whereSeparator: \.isWhitespace).count >= 3 else { return text }
+        guard let container else { return text }
 
-        guard let model else { return text }
-
-        // Cap generation roughly to input length so we don't ramble.
         let wordCount = trimmed.split(whereSeparator: \.isWhitespace).count
-        let maxTokens = min(256, max(32, wordCount * 3))
-        let sampling = ChatSamplingConfig(
-            temperature: 0.2,
-            topK: 20,
-            topP: 0.85,
-            maxTokens: maxTokens,
-            repetitionPenalty: 1.05
-        )
+        // Lists expand with newlines; allow more room than raw word count.
+        let maxTokens = min(280, max(48, wordCount * 5))
+        let prompt = Self.buildPrompt(for: trimmed)
 
         do {
-            let messages = [
-                ChatMessage(role: .system, content: Self.systemPrompt),
-                ChatMessage(role: .user, content: trimmed),
-            ]
-            let result = try model.generate(messages: messages, sampling: sampling)
-            let cleaned = sanitize(result, original: trimmed)
+            let output: String = try await container.perform { context in
+                let ids = context.tokenizer.encode(text: prompt)
+                let input = LMInput(tokens: MLXArray(ids))
+                let params = GenerateParameters(maxTokens: maxTokens, temperature: 0.0)
+                var result = ""
+                let stream = try MLXLMCommon.generate(
+                    input: input,
+                    cache: nil,
+                    parameters: params,
+                    context: context
+                )
+                for try await item in stream {
+                    if case .chunk(let chunk) = item {
+                        result += chunk
+                        // Stop if model starts a new example / think block
+                        if result.contains("### Input:") || result.contains("<think>") {
+                            break
+                        }
+                    }
+                }
+                return result
+            }
+            let cleaned = sanitize(output, original: trimmed)
             return cleaned.isEmpty ? text : cleaned
         } catch {
-            NSLog("MacWispr TextPolisher: \(error.localizedDescription)")
+            NSLog("MacWispr TextPolisher (MLX) failed: \(error.localizedDescription)")
             return text
         }
     }
 
-    /// Strip common model junk (quotes, labels, empty lines).
+    /// Bare completion prompt — matches Qwen3.5 polish SFT training format.
+    private static func buildPrompt(for text: String) -> String {
+        "### Input:\n\(text)\n\n### Output:\n"
+    }
+
     private func sanitize(_ output: String, original: String) -> String {
         var s = output.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // Drop a single surrounding quote pair.
+        for stop in ["### Input:", "### Output:", "\n###", "<think>", "</think>", "<|im_end|>"] {
+            if let r = s.range(of: stop) {
+                s = String(s[..<r.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
         if (s.hasPrefix("\"") && s.hasSuffix("\"")) || (s.hasPrefix("'") && s.hasSuffix("'")),
            s.count > 1
         {
             s = String(s.dropFirst().dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
         }
-
-        // If the model prefixed with "Corrected:" / "Transcript:" strip it.
-        for prefix in ["Corrected:", "Transcript:", "Output:", "Here is the corrected text:"] {
+        for prefix in ["Corrected:", "Transcript:", "Output:", "Cleaned:", "Rewrite:"] {
             if s.lowercased().hasPrefix(prefix.lowercased()) {
                 s = String(s.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
-
-        // Reject wildly longer rewrites (hallucination guard).
-        if s.count > max(original.count * 3, original.count + 80) {
+        // Reject meta reasoning / chain-of-thought — not legitimate polished starts.
+        let low = s.lowercased()
+        if low.hasPrefix("i need") || low.hasPrefix("let me") || low.hasPrefix("the user")
+            || low.hasPrefix("okay, let's") || low.hasPrefix("first, i ")
+        {
             return original
         }
-
+        if s.count > max(original.count * 4, original.count + 200) {
+            return original
+        }
+        // Near-identical to input → model failed to format; keep original
+        // only if it didn't at least introduce list markers.
         return s
     }
 }

@@ -11,7 +11,7 @@ Instructions for coding agents working in this repository.
   - **Parakeet v3 (En + EU)** via **Core ML** (Neural Engine)
 - Dashboard chip shows **Local** (or OpenAI / ElevenLabs); model detail is in the menu / subtitle
 - Default model: **Qwen 1.7B** when system RAM **> 16 GB**, else **Qwen 0.6B** (user can override; Parakeet is opt-in)
-- Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional polish
+- Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional **local polish** (Qwen3.5-0.8B SFT via MLX; R&D — see [POLISH_TRAINING.md](docs/context/POLISH_TRAINING.md))
 - Global hotkey: **⌥Space** (hold or toggle)
 - Inserts text system-wide (Accessibility required for paste / event tap)
 - Marketing site: [fuckwisprflow.com](https://fuckwisprflow.com)
@@ -51,6 +51,8 @@ Instructions for coding agents working in this repository.
 | `FailureBannerController.swift` | Non-activating failure banner |
 | `OnboardingView.swift` | First-run checklist |
 | `SettingsView.swift` | Simplified tabs: General / Transcription / Hotkeys / About |
+| `TextPolisher.swift` | On-device MLX polish (bare `### Input`/`### Output`; polish **before** paste) |
+| `PolishLocalModel.swift` | Local polish pack catalog (default `PolishModel` = Qwen enum SFT; optional LFM) |
 | `SparkleUpdater.swift` | Check for Updates |
 
 ## Privacy & telemetry (must not regress)

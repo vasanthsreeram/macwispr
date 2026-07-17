@@ -94,6 +94,38 @@ fi
 
 # Embed Sparkle.framework (SPM binary target) next to the app binary path layout.
 # Without this, Check for Updates fails at load time on the packaged .app.
+
+# Bundle polish model (default: Qwen3.5-0.8B enum-continued full SFT).
+# Override with POLISH_MODEL_SRC; optional LFM via POLISH_MODEL_LFM_SRC.
+POLISH_MODEL_SRC="${POLISH_MODEL_SRC:-$HOME/.cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-enum}"
+if [[ ! -d "$POLISH_MODEL_SRC" ]]; then
+  # Fall back to earlier packs if enum not fused yet.
+  for candidate in \
+    "$HOME/.cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-targeted" \
+    "$HOME/.cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-500"
+  do
+    if [[ -d "$candidate" ]]; then
+      POLISH_MODEL_SRC="$candidate"
+      break
+    fi
+  done
+fi
+if [[ -d "$POLISH_MODEL_SRC" ]]; then
+  echo "==> Bundling polish model from $POLISH_MODEL_SRC"
+  rm -rf "$APP/Contents/Resources/PolishModel"
+  mkdir -p "$APP/Contents/Resources/PolishModel"
+  cp -R "$POLISH_MODEL_SRC"/* "$APP/Contents/Resources/PolishModel/"
+else
+  echo "⚠  Qwen polish model not found (set POLISH_MODEL_SRC)"
+fi
+POLISH_MODEL_LFM_SRC="${POLISH_MODEL_LFM_SRC:-}"
+if [[ -n "$POLISH_MODEL_LFM_SRC" && -d "$POLISH_MODEL_LFM_SRC" ]]; then
+  echo "==> Bundling optional Liquid LFM polish from $POLISH_MODEL_LFM_SRC"
+  rm -rf "$APP/Contents/Resources/PolishModel-LFM"
+  mkdir -p "$APP/Contents/Resources/PolishModel-LFM"
+  cp -R "$POLISH_MODEL_LFM_SRC"/* "$APP/Contents/Resources/PolishModel-LFM/"
+fi
+
 echo "==> Embedding Sparkle.framework..."
 FRAMEWORKS_DIR="$APP/Contents/Frameworks"
 mkdir -p "$FRAMEWORKS_DIR"
