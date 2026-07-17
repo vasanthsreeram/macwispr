@@ -32,12 +32,13 @@ Hold a hotkey, speak, release — text appears in whatever app you're typing in.
 
 ### Beta (1.2.4-beta.1) — bundled on-device polish
 
-Opt-in **pre-release** with **Qwen3.5-0.8B polish** bundled (~1.2 GB download). Does **not** replace stable Latest or Sparkle.
+Opt-in **pre-release** with **Qwen3.5-0.8B polish** bundled (~1.2 GB download). Does **not** replace stable Latest or Sparkle. **Developer ID + notarized.**
 
 - Release: **[v1.2.4-beta.1](https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.4-beta.1)**
 - DMG: [MacWispr-1.2.4-beta.1-macos-arm64.dmg](https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.4-beta.1/MacWispr-1.2.4-beta.1-macos-arm64.dmg)
-- After install: Settings → Post-Processing → **Local LLM** to enable polish  
-- Scope / notes: [docs/context/RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md)
+- Also includes multi-window / history fixes (#14 / #15) and content-free polish telemetry (opt-in)
+- After install: open **from Applications** (not a repo `dist/` copy) · Settings → Post-Processing → **Local LLM** for polish  
+- Scope / clean-install notes: [docs/context/RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md)
 
 ### One-command build & install (from source)
 

@@ -157,7 +157,7 @@ The model kept prose. **Fix is training, not `if contains("first one")` heuristi
 - `PolishLocalModel` catalog; default pack folder `PolishModel` = Qwen enum SFT (~1.4 GB)
 - Polish runs **before** paste/type-out (`AppState.stopRecordingAndTranscribe`)
 - `scripts/build-app.sh` bundles `POLISH_MODEL_SRC` (default: `fused/qwen35-08b-polish-enum`)
-- **Shipped beta:** GitHub `v1.2.4-beta.1` (Developer ID; polish weights in-app)
+- **Shipped beta:** GitHub `v1.2.4-beta.1` (Developer ID **+ notarized**; polish weights in-app; #14/#15 window/history; content-free polish telemetry)
 
 Offline smoke: fruit / “first one is…” style inputs list correctly on enum pack. Live STT wording still varies — if prose returns, check history raw vs polished and that Local polish is loaded.
 
