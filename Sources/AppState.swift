@@ -68,7 +68,7 @@ final class AppState: ObservableObject {
     @Published var transcriptionHistory: [TranscriptionEntry] = []
     @Published var selectedLanguage: String? = nil
     @Published var insertionMode: InsertionMode = .both
-    @Published var removeFillerWords = true
+    /// Light first-letter capitalize only — no hardcoded filler/word lists (polish model owns cleanup).
     @Published var autoCapitalize = true
     /// Legacy flag kept in sync with polishProvider == .local for older UI bindings.
     @Published var llmPolishEnabled = false
@@ -1185,27 +1185,17 @@ final class AppState: ObservableObject {
         UserDefaults.standard.set(customVocabulary, forKey: Self.customVocabularyKey)
     }
 
+    /// Minimal non-semantic cleanup only. **No** hardcoded filler/word stripping —
+    /// that belongs in the polish SFT model (regexes break phrases like "and so on").
     private func postProcess(_ text: String) -> String {
         var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if removeFillerWords {
-            let fillers = ["uh", "um", "like", "you know", "I mean", "so", "actually", "basically", "right"]
-            for filler in fillers {
-                result = result.replacingOccurrences(
-                    of: "\\b\(filler)\\b[,]?\\s*",
-                    with: "",
-                    options: [.regularExpression, .caseInsensitive]
-                )
-            }
-            while result.contains("  ") {
-                result = result.replacingOccurrences(of: "  ", with: " ")
-            }
+        // Collapse runs of whitespace / newlines from STT glitches — not word content.
+        while result.contains("  ") {
+            result = result.replacingOccurrences(of: "  ", with: " ")
         }
-
         if autoCapitalize && !result.isEmpty {
             result = result.prefix(1).uppercased() + result.dropFirst()
         }
-
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
