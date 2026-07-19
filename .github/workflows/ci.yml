@@ -1,0 +1,52 @@
+# Build + smoke test on every push/PR to main.
+# No signing secrets required (ad-hoc packaged build).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & self-test
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare Xcode + Metal
+        run: |
+          xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -runFirstLaunch
+          xcodebuild -downloadComponent MetalToolchain
+          ./scripts/preflight-xcode.sh
+
+      - name: Build app bundle
+        run: ./scripts/build-app.sh
+
+      - name: Verify Developer ID not required for CI
+        run: |
+          codesign -dv dist/MacWispr.app 2>&1 | grep -E 'Signature|Identifier' || true
+          test -f dist/MacWispr.app/Contents/MacOS/mlx.metallib
+          test -f dist/MacWispr.app/Contents/Frameworks/Sparkle.framework/Sparkle
+
+      - name: Self-test
+        run: dist/MacWispr.app/Contents/MacOS/MacWispr --self-test
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MacWispr-ci-${{ github.sha }}
+          path: |
+            dist/MacWispr.app
+            dist/MacWispr-*-macos-arm64.zip
+          retention-days: 7
+          if-no-files-found: error

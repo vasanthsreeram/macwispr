@@ -131,13 +131,21 @@ open -a MacWispr
 | **Stable 1.2.3** | [RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md) | `latest` + Sparkle appcast |
 | **Beta 1.2.4-beta.1** | [RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md) | **pre-release only** (do not `--latest` / do not appcast) |
 
+### GitHub Actions (preferred)
+
+1. Add signing secrets — [docs/CI.md](docs/CI.md)
+2. Bump `Info.plist` on `main`
+3. `git tag -a vX.Y.Z && git push origin vX.Y.Z` → **Release** workflow signs, notarizes, publishes, updates appcast
+
+### Manual (local)
+
 1. Confirm branch is `main` (not `feat/native-lfm-polish`)
 2. Bump `Info.plist` / scripts version if shipping a new version number
 3. `source .env.signing && export MACWISPR_VERSION=… && ./scripts/build-app.sh` (Developer ID + notary for stable; notary optional for beta)
 4. For **stable** only: `sign_update` on zip → update `website/appcast.xml` → `./scripts/release.sh vX.Y.Z` → deploy appcast
 5. For **beta**: `gh release create v… --prerelease` with zip+DMG (see RELEASE_1.2.4_BETA.md)
 
-See `docs/SPARKLE.md` and `docs/context/SIGNING.md`.
+See `docs/CI.md`, `docs/SPARKLE.md`, and `docs/context/SIGNING.md`.
 
 **Stack choice:** stay on **Swift**. Size/RAM are model + MLX-bound, not language-bound. Do not rewrite in Rust/Zig/Bun for “lighter” alone — [docs/context/LANGUAGE_STACK.md](docs/context/LANGUAGE_STACK.md).
 
