@@ -134,7 +134,7 @@ final class AppState: ObservableObject {
     /// History id for the latest dictation (so Dictate edits update the same row).
     private var lastTranscriptionId: UUID?
     /// Bumped when starting a local load or leaving `.local` so a finishing
-    /// mid-download load cannot stomp cloud readiness / UI flags.
+    /// mid-load progress cannot stomp cloud readiness / UI flags.
     private var modelLoadGeneration = 0
     /// Debounced history persistence — avoids rewriting history.json every dictation.
     private var historySaveTask: Task<Void, Never>?
@@ -538,9 +538,24 @@ final class AppState: ObservableObject {
                     DispatchQueue.main.async { [weak self] in
                         guard let self, self.modelLoadGeneration == generation else { return }
                         self.modelLoadProgress = progress
-                        self.modelLoadStatus = status.isEmpty
-                            ? "Downloading... \(Int(progress * 100))%"
-                            : "\(status) (\(Int(progress * 100))%)"
+                        // Weights stay on disk after first fetch; always say "load"
+                        // even if speech-swift still reports "download" in status.
+                        var label = status.replacingOccurrences(
+                            of: "Download",
+                            with: "Load",
+                            options: .caseInsensitive
+                        )
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        while label.hasSuffix("…") || label.hasSuffix("...") || label.hasSuffix(".") {
+                            if label.hasSuffix("...") {
+                                label = String(label.dropLast(3))
+                            } else {
+                                label = String(label.dropLast())
+                            }
+                            label = label.trimmingCharacters(in: .whitespacesAndNewlines)
+                        }
+                        if label.isEmpty { label = "Loading model" }
+                        self.modelLoadStatus = "\(label)… \(Int(progress * 100))%"
                     }
                 }
             }.value
