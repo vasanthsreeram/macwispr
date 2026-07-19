@@ -1,8 +1,11 @@
 import AVFoundation
 import Accelerate
+import AudioToolbox
 
 final class AudioRecorder: @unchecked Sendable {
     private let engine = AVAudioEngine()
+    /// Core Audio device UID. `nil` / empty → system default input.
+    var inputDeviceUID: String?
     private var samples: [Float] = []
     private let targetSampleRate: Double = 16000
     private let lock = NSLock()
@@ -50,9 +53,12 @@ final class AudioRecorder: @unchecked Sendable {
         if engine.isRunning {
             engine.stop()
         }
+        engine.reset()
         converter = nil
         convertBuffer = nil
         usesPassthrough = false
+
+        applyInputDeviceUID(inputDeviceUID)
 
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
@@ -144,6 +150,32 @@ final class AudioRecorder: @unchecked Sendable {
         let n = samples.count
         lock.unlock()
         return Double(n) / targetSampleRate
+    }
+
+    /// Binds `AVAudioEngine` to a specific input device before capture starts.
+    private func applyInputDeviceUID(_ uid: String?) {
+        let trimmed = uid?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return }
+        guard let deviceID = AudioInputDevices.deviceID(forUID: trimmed) else {
+            NSLog("AudioRecorder: input device uid=%@ not found — using system default", trimmed)
+            return
+        }
+        guard let audioUnit = engine.inputNode.audioUnit else {
+            NSLog("AudioRecorder: input node has no audio unit")
+            return
+        }
+        var device = deviceID
+        let status = AudioUnitSetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &device,
+            UInt32(MemoryLayout<AudioDeviceID>.size)
+        )
+        if status != noErr {
+            NSLog("AudioRecorder: failed to set input device (OSStatus %d)", status)
+        }
     }
 
     // MARK: - Audio thread
