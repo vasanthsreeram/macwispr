@@ -1,0 +1,159 @@
+# Signed + notarized release on version tags (v*).
+#
+# Required repo secrets — see docs/CI.md:
+#   DEVELOPER_ID_CERTIFICATE_P12
+#   DEVELOPER_ID_CERTIFICATE_PASSWORD
+#   APPLE_ID
+#   APPLE_TEAM_ID
+#   APPLE_APP_PASSWORD
+#   SPARKLE_PRIVATE_KEY
+#
+# Optional:
+#   MACWISPR_SIGN_IDENTITY
+#   CLOUDFLARE_API_TOKEN
+#   CLOUDFLARE_ACCOUNT_ID
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release (e.g. v1.2.4)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, sign, publish
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      - name: Resolve version
+        id: meta
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing MacWispr $VERSION ($TAG)"
+
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.meta.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Validate secrets
+        env:
+          DEVELOPER_ID_CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_CERTIFICATE_P12 }}
+          DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          for name in DEVELOPER_ID_CERTIFICATE_P12 DEVELOPER_ID_CERTIFICATE_PASSWORD \
+                      APPLE_ID APPLE_TEAM_ID APPLE_APP_PASSWORD SPARKLE_PRIVATE_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing required secret: $name (see docs/CI.md)"
+              exit 1
+            fi
+          done
+
+      - name: Prepare Xcode + Metal
+        run: |
+          xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -runFirstLaunch
+          xcodebuild -downloadComponent MetalToolchain
+          ./scripts/preflight-xcode.sh
+
+      - name: Import signing certificate
+        env:
+          DEVELOPER_ID_CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_CERTIFICATE_P12 }}
+          DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          MACWISPR_SIGN_IDENTITY: ${{ secrets.MACWISPR_SIGN_IDENTITY }}
+        run: ./scripts/ci-import-signing.sh
+
+      - name: Build, sign, and notarize
+        env:
+          MACWISPR_VERSION: ${{ steps.meta.outputs.version }}
+          MACWISPR_APPLE_ID: ${{ secrets.APPLE_ID }}
+          MACWISPR_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MACWISPR_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          ./scripts/build-app.sh
+          ./scripts/build-dmg.sh
+          codesign -dv --verbose=4 dist/MacWispr.app 2>&1 | grep -E 'Authority|TeamIdentifier|Signature'
+
+      - name: Sparkle-sign zip
+        id: sparkle
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          ZIP="dist/MacWispr-${{ steps.meta.outputs.version }}-macos-arm64.zip"
+          ./scripts/ci-sparkle-sign.sh "$ZIP" | tee sparkle.out
+          echo "ed_signature=$(sed -n 's/^SPARKLE_ED_SIGNATURE=//p' sparkle.out)" >> "$GITHUB_OUTPUT"
+          echo "enclosure_length=$(sed -n 's/^SPARKLE_ENCLOSURE_LENGTH=//p' sparkle.out)" >> "$GITHUB_OUTPUT"
+
+      - name: Update appcast
+        run: |
+          ./scripts/ci-update-appcast.sh \
+            "${{ steps.meta.outputs.version }}" \
+            "${{ steps.sparkle.outputs.ed_signature }}" \
+            "${{ steps.sparkle.outputs.enclosure_length }}"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/ci-publish-github-release.sh "${{ steps.meta.outputs.tag }}"
+
+      - name: Deploy appcast to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "Skipping Cloudflare deploy (CLOUDFLARE_API_TOKEN not set). Deploy manually:"
+            echo "  wrangler pages deploy website --project-name=fuckwisprflow"
+            exit 0
+          fi
+          npm install -g wrangler
+          wrangler pages deploy website --project-name=fuckwisprflow
+
+      - name: Commit appcast to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          APPCAST_TMP="$(mktemp)"
+          cp website/appcast.xml "$APPCAST_TMP"
+          git fetch origin main
+          git checkout main
+          cp "$APPCAST_TMP" website/appcast.xml
+          if git diff --quiet website/appcast.xml; then
+            echo "appcast unchanged on main"
+            exit 0
+          fi
+          git add website/appcast.xml
+          git commit -m "chore(appcast): MacWispr ${{ steps.meta.outputs.version }}"
+          git push origin main
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MacWispr-${{ steps.meta.outputs.version }}
+          path: |
+            dist/MacWispr.app
+            dist/MacWispr-*-macos-arm64.zip
+            dist/MacWispr-*-macos-arm64.dmg
+          retention-days: 30
