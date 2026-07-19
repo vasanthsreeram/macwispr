@@ -10,8 +10,8 @@ MacWispr shows a **live draft transcript while the mic is open** when the active
 |-------|----------------|
 | **Hold / Toggle start** | Mic starts; optional monochrome “Listening · m:ss” until first draft |
 | **While speaking** | Every ~1.1 s, snapshot PCM → `TranscriptionEngine.transcribe` (full buffer so far) → HUD morphs words in |
-| **Release / stop** | Stop live loop → one **final** full-buffer pass → insert text |
-| **Polish** | Runs **only after** final insert (never mid-stream) |
+| **Release / stop** | Stop live loop → **reuse live draft when buffer barely grew** (fast paste); otherwise one final full-buffer pass → insert |
+| **Polish** | Optional; runs after STT (never mid-stream). Off by default. |
 
 Short clips (&lt; ~1 s of audio) may not show a live draft before release; final pass still runs.
 
@@ -58,9 +58,13 @@ Default local model: **Qwen 0.6B** (`ASRModelSize.recommendedDefault` → `.smal
 
 1. Stop live task; `stopRecording()` → full PCM  
 2. Keep last draft visible (phase **Finalizing**)  
-3. Final `transcribe` on full buffer  
-4. Light `postProcess` → insert via `TextInserter`  
-5. If polish enabled → `polishAndUpdate` (history + clipboard only; **no second paste**)
+3. Drain any **in-flight** live ASR briefly (so release can use a fresh draft)  
+4. **Fast path:** if last live draft covered almost the whole buffer (≤ ~0.75 s of new audio after that snapshot), **paste the draft** — no second full STT  
+5. **Slow path:** otherwise final `transcribe` on full buffer (missed tail / no draft)  
+6. Light `postProcess` → insert via `TextInserter`  
+7. If polish enabled → polish then insert  
+
+This avoids the common 2–3 s lag where the HUD already showed the full text but release re-ran Qwen on the entire buffer (and often waited behind the last live pass on the same actor).
 
 ## Listening HUD design
 
