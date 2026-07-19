@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="${MACWISPR_VERSION:-1.2.4-beta.4}"
+VERSION="${MACWISPR_VERSION:-1.2.4}"
 APP="${1:-$ROOT/dist/MacWispr.app}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 DMG_VERSIONED="$DIST_DIR/MacWispr-${VERSION}-macos-arm64.dmg"

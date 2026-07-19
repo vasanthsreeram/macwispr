@@ -10,15 +10,16 @@ Instructions for coding agents working in this repository.
   - **Qwen 0.6B (En + Asian)** / **Qwen 1.7B (En + Asian)** via **MLX** (GPU)
   - **Parakeet v3 (En + EU)** via **Core ML** (Neural Engine)
 - Dashboard chip shows **Local** (or OpenAI / ElevenLabs); model detail is in the menu / subtitle
-- Default model: **Qwen 1.7B** when system RAM **> 16 GB**, else **Qwen 0.6B** (user can override; Parakeet is opt-in)
-- Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional **local polish** (Qwen3.5-0.8B SFT via MLX; R&D — see [POLISH_TRAINING.md](docs/context/POLISH_TRAINING.md))
+- Default model: **Qwen 0.6B** (lighter; user can switch to 1.7B or Parakeet)
+- **Live partials (local Qwen only):** while the mic is open, re-run Qwen on the growing buffer and show a monochrome multi-line draft HUD; **final full pass on release** — [docs/context/LIVE_PARTIALS.md](docs/context/LIVE_PARTIALS.md)
+- Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional **local polish** (off by default; Qwen3.5 SFT via MLX — [POLISH_TRAINING.md](docs/context/POLISH_TRAINING.md))
 - Global hotkey: **⌥Space** (hold or toggle)
 - Inserts text system-wide (Accessibility required for paste / event tap)
 - Marketing site: [fuckwisprflow.com](https://fuckwisprflow.com)
 - Sparkle updates: appcast at `https://fuckwisprflow.com/appcast.xml`
-- Latest **stable** ship line: **1.2.3** from **`main`** (Developer ID Team `UTSTY3J6NS`; Parakeet + Qwen)
-- **Beta:** **1.2.4-beta.1** — Qwen polish SFT + polish-before-paste + no filler regex + #14/#15 window/history + content-free polish telemetry; **notarized** ([docs/context/RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md)); GitHub **pre-release** (does not replace `latest` = 1.2.3). **Do not launch repo `dist/MacWispr.app`** — LaunchServices can prefer it over `/Applications`
-- **Do not** include branch `feat/native-lfm-polish` (LFM2.5 fine-tuned polish) in 1.2.3 / 1.2.4-beta — keep that branch separate ([docs/context/RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md))
+- Latest **stable** ship line: **1.2.4** from **`main`** only (Developer ID Team `UTSTY3J6NS`; Parakeet + Qwen + live partials)
+- **Do not** launch repo `dist/MacWispr.app` — LaunchServices can prefer it over `/Applications`
+- **Do not** include branch `feat/native-lfm-polish` (LFM2.5 fine-tuned polish) in 1.2.4 — keep that branch separate
 
 ## Repo map
 
@@ -116,7 +117,7 @@ Catalog: `ASRModelSize.swift` (`displayName` / `shortName`).
 # Local install (Developer ID if .env.signing present; skip notary with unset MACWISPR_NOTARY_PROFILE)
 set -a && source .env.signing && set +a
 unset MACWISPR_NOTARY_PROFILE
-export MACWISPR_VERSION=1.2.3
+export MACWISPR_VERSION=1.2.4
 ./scripts/build-app.sh
 rm -rf /Applications/MacWispr.app && cp -R dist/MacWispr.app /Applications/
 open -a MacWispr
@@ -128,8 +129,8 @@ open -a MacWispr
 
 | Line | Doc | GitHub |
 |------|-----|--------|
-| **Stable 1.2.3** | [RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md) | `latest` + Sparkle appcast |
-| **Beta 1.2.4-beta.1** | [RELEASE_1.2.4_BETA.md](docs/context/RELEASE_1.2.4_BETA.md) | **pre-release only** (do not `--latest` / do not appcast) |
+| **Stable 1.2.4** | [RELEASE_1.2.4.md](docs/context/RELEASE_1.2.4.md) | `latest` + Sparkle appcast |
+| **Prior stable 1.2.3** | [RELEASE_1.2.3.md](docs/context/RELEASE_1.2.3.md) | previous production |
 
 ### GitHub Actions (preferred)
 
