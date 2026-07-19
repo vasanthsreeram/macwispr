@@ -142,11 +142,18 @@ final class AppState: ObservableObject {
     private var livePartialTask: Task<Void, Never>?
     /// Prevents overlapping live ASR calls on the engine actor.
     private var livePartialInFlight = false
+    /// PCM sample count that produced the last accepted live draft (for release fast-path).
+    private var lastLivePartialSampleCount = 0
     private static let historySaveDebounceNs: UInt64 = 750_000_000 // 0.75s
     /// How often to re-transcribe the growing buffer while listening.
     private static let livePartialIntervalNs: UInt64 = 1_100_000_000 // 1.1s
     /// Wait for at least this much audio before first live pass.
     private static let livePartialMinSamples = 16_000 // 1.0s @ 16 kHz
+    /// If less audio than this arrived after the last live draft, paste the draft
+    /// instead of re-running a full STT pass (avoids 2–3s “finalizing” lag).
+    private static let liveDraftReuseMaxNewSamples = 12_000 // 0.75s @ 16 kHz
+    /// Max time to wait for an in-flight live pass to finish on release.
+    private static let livePartialDrainTimeoutNs: UInt64 = 1_500_000_000 // 1.5s
     private static let customVocabularyKey = "customVocabulary"
     private static let asrModelSizeKey = "asrModelSize"
     private static let transcriptionProviderKey = "transcriptionProvider"
@@ -710,6 +717,7 @@ final class AppState: ObservableObject {
         lastFailureMessage = nil
         isRecording = true
         currentTranscription = ""
+        lastLivePartialSampleCount = 0
         recordingSession += 1
         let session = recordingSession
         setPhase(.listening, detail: dictationMode == .hold
@@ -757,6 +765,7 @@ final class AppState: ObservableObject {
                         let language = self.selectedLanguage
                         let engine = self.transcriptionEngine
                         let sessionAtStart = session
+                        let snapCount = snap.count
                         Task { [weak self] in
                             defer {
                                 Task { @MainActor [weak self] in
@@ -771,13 +780,19 @@ final class AppState: ObservableObject {
                                 )
                                 await MainActor.run { [weak self] in
                                     guard let self else { return }
-                                    guard self.isRecording, self.recordingSession == sessionAtStart else { return }
-                                    guard self.dictationPhase == .listening else { return }
+                                    // Accept draft while listening, or during the brief
+                                    // release drain window (session already advanced).
+                                    let stillThisSession = self.recordingSession == sessionAtStart
+                                        || self.recordingSession == sessionAtStart + 1
+                                    guard stillThisSession else { return }
                                     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
                                     guard !trimmed.isEmpty else { return }
                                     self.currentTranscription = trimmed
-                                    self.phaseDetail = trimmed
-                                    ListeningHUDController.shared.sync(with: self)
+                                    self.lastLivePartialSampleCount = snapCount
+                                    if self.dictationPhase == .listening {
+                                        self.phaseDetail = trimmed
+                                        ListeningHUDController.shared.sync(with: self)
+                                    }
                                 }
                             } catch {
                                 // Ignore transient live failures; final pass still runs on release.
@@ -794,7 +809,28 @@ final class AppState: ObservableObject {
     private func stopLivePartialLoop() {
         livePartialTask?.cancel()
         livePartialTask = nil
-        livePartialInFlight = false
+        // Leave `livePartialInFlight` alone — an in-flight ASR call clears it
+        // when done so release can await a fresher draft before pasting.
+    }
+
+    /// Wait briefly for an in-flight live partial so we can paste it instead of
+    /// kicking off another full-buffer STT (the main source of 2–3s lag).
+    private func drainInFlightLivePartial() async {
+        let deadline = DispatchTime.now().uptimeNanoseconds + Self.livePartialDrainTimeoutNs
+        while livePartialInFlight {
+            if DispatchTime.now().uptimeNanoseconds >= deadline { break }
+            try? await Task.sleep(nanoseconds: 40_000_000)
+        }
+    }
+
+    /// Prefer the live HUD draft when almost no new audio arrived after it.
+    private func shouldReuseLiveDraft(draft: String, totalSamples: Int) -> Bool {
+        guard !draft.isEmpty else { return false }
+        guard transcriptionProvider == .local, asrModelSize.engine == .qwenMLX else { return false }
+        guard lastLivePartialSampleCount >= Self.livePartialMinSamples else { return false }
+        let newSamples = totalSamples - lastLivePartialSampleCount
+        // Draft covered nearly the whole buffer (or was slightly ahead of stop).
+        return newSamples <= Self.liveDraftReuseMaxNewSamples
     }
 
     func stopRecordingAndTranscribe() async {
@@ -818,17 +854,45 @@ final class AppState: ObservableObject {
         }
 
         // Keep any live draft visible while we finalize.
-        let draft = currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
+        var draft = currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
         setPhase(
             .transcribing,
             detail: draft.isEmpty ? "Finalizing…" : draft
         )
         ListeningHUDController.shared.sync(with: self)
 
+        // If a live pass is still running, wait for it — that result is usually
+        // the full utterance and avoids a second multi-second STT on the actor.
+        if livePartialInFlight {
+            await drainInFlightLivePartial()
+            draft = currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !draft.isEmpty {
+                phaseDetail = draft
+                ListeningHUDController.shared.sync(with: self)
+            }
+        }
+
         let audioDuration = Double(samples.count) / 16000.0
         let sttStarted = Date()
         do {
-            let text = try await transcribeSamples(samples)
+            let text: String
+            let reusedLiveDraft = shouldReuseLiveDraft(draft: draft, totalSamples: samples.count)
+            if reusedLiveDraft {
+                // Fast path: HUD already showed this text — paste without re-STT.
+                text = draft
+                NSLog(
+                    "MacWispr: release using live draft (new samples=%d ≤ %d)",
+                    samples.count - lastLivePartialSampleCount,
+                    Self.liveDraftReuseMaxNewSamples
+                )
+            } else {
+                // Buffer grew after last draft (or no draft) — full final pass.
+                if !draft.isEmpty {
+                    setPhase(.transcribing, detail: draft)
+                    ListeningHUDController.shared.sync(with: self)
+                }
+                text = try await transcribeSamples(samples)
+            }
             let sttLatency = Date().timeIntervalSince(sttStarted)
             let afterLight = postProcess(text)
             var processed = afterLight
