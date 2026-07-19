@@ -62,11 +62,11 @@ enum PolishProvider: String, CaseIterable, Identifiable, Codable {
     var help: String {
         switch self {
         case .off:
-            return "Insert the raw transcript after light cleanup only."
+            return "Default. Inserts speech-to-text as-is (optional first-letter capitalize only). No polish model."
         case .local:
-            return "On-device Qwen3.5 polish (lists, cleanup, course-correction). Optional LFM pack if installed."
+            return "Optional. On-device Qwen3.5 polish (lists, cleanup, course-correction). Experimental — enable only if you want it."
         case .openAI:
-            return "Uses your OpenAI key with a small chat model to polish sentences. Requires network."
+            return "Optional. Uses your OpenAI key with a small chat model. Requires network."
         }
     }
 }
