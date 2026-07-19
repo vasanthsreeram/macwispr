@@ -17,6 +17,31 @@
     <language>en</language>
 
     <item>
+      <title>MacWispr 1.2.4</title>
+      <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.4</link>
+      <sparkle:version>1.2.4</sparkle:version>
+      <sparkle:shortVersionString>1.2.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Sun, 19 Jul 2026 18:38:22 +0000</pubDate>
+      <description><![CDATA[
+        <h2>MacWispr 1.2.4</h2>
+        <ul>
+          <li><strong>Live Qwen partials</strong> — draft transcript while you hold ⌥Space; card grows with text</li>
+          <li><strong>Faster release paste</strong> — reuses live draft when already complete (no multi-second re-STT)</li>
+          <li><strong>Polish off by default</strong> — raw STT insert; enable Local/OpenAI polish in Settings</li>
+          <li><strong>Mic input picker</strong> — choose built-in / AirPods / USB</li>
+          <li><strong>Window + history fixes</strong> — single dashboard, Cmd+Q, cleaner history</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.4/MacWispr-1.2.4-macos-arm64.zip"
+        length="1310283692"
+        type="application/octet-stream"
+        sparkle:edSignature="26elsDtPOH9SF0Z5K3ELKJU/MYHE4YzNP5zNWwsqBGSxW9PrrF3vQTUbbleRUKu5v+4SbdVDSdlqh3X6E1XdDw=="
+      />
+    </item>
+
+    <item>
       <title>MacWispr 1.2.3</title>
       <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.3</link>
       <sparkle:version>1.2.3</sparkle:version>
