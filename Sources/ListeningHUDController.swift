@@ -13,7 +13,8 @@ final class ListeningHUDController {
 
     /// ~30% narrower than the old 520pt strip.
     private static let minWidth: CGFloat = 180
-    private static let liveWidth: CGFloat = 364
+    /// Live transcript card width (shared with SwiftUI so wrap never uses chrome width).
+    static let liveWidth: CGFloat = 364
     private static let compactHeight: CGFloat = 40
     /// Vertical padding inside the live card (matches SwiftUI `.padding(.vertical, 12)` × 2).
     static let liveVerticalPadding: CGFloat = 24
@@ -75,19 +76,7 @@ final class ListeningHUDController {
 
         // Show chrome (Listening / timer) only before any transcript exists.
         let showChrome = !hasLive
-
-        // Leaving live mode resets measured height so the next session starts compact.
-        if !hasLive {
-            box.liveContentHeight = 0
-        }
-
-        box.model = ListeningBannerModel(
-            phase: state.dictationPhase,
-            timerLabel: showChrome ? timer : nil,
-            liveTranscript: hasLive ? live : nil,
-            statusLine: statusLine,
-            showChrome: showChrome
-        )
+        let wasLive = box.model.liveTranscript.map { !$0.isEmpty } ?? false
 
         ensurePanel()
 
@@ -99,7 +88,34 @@ final class ListeningHUDController {
             host = view
         }
 
-        applyPanelSize(animated: hasLive)
+        // Leaving live mode resets measured height so the next session starts compact.
+        if !hasLive {
+            box.liveContentHeight = 0
+        }
+
+        // First partial: open at live width + one-line height *before* SwiftUI lays out
+        // the transcript. Avoids the 180→364 width reflow that glitches line 1.
+        if hasLive && !wasLive {
+            box.liveContentHeight = Self.liveLineHeight
+            applyPanelSize(hasLive: true, animated: false)
+        }
+
+        box.model = ListeningBannerModel(
+            phase: state.dictationPhase,
+            timerLabel: showChrome ? timer : nil,
+            liveTranscript: hasLive ? live : nil,
+            statusLine: statusLine,
+            showChrome: showChrome
+        )
+
+        // Chrome / leave-live: snap. Ongoing live height growth: animate.
+        if !hasLive {
+            applyPanelSize(hasLive: false, animated: false)
+        } else if wasLive {
+            applyPanelSize(hasLive: true, animated: true)
+        }
+        // else: already sized for first live word above
+
         panel?.orderFrontRegardless()
     }
 
@@ -138,8 +154,12 @@ final class ListeningHUDController {
         sizeCancellable = box.$liveContentHeight
             .removeDuplicates()
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.applyPanelSize(animated: true)
+            .sink { [weak self] height in
+                guard let self else { return }
+                // Only react to real multi-line growth after first seed (one-line).
+                let hasLive = self.box.model.liveTranscript.map { !$0.isEmpty } ?? false
+                guard hasLive, height > Self.liveLineHeight + 0.5 else { return }
+                self.applyPanelSize(hasLive: true, animated: true)
             }
     }
 
@@ -150,42 +170,33 @@ final class ListeningHUDController {
         return min(liveMaxHeight, max(liveMinHeight, total))
     }
 
-    private func applyPanelSize(animated: Bool) {
-        guard let panel else { return }
-        let hasLive = box.model.liveTranscript.map { !$0.isEmpty } ?? false
+    private func applyPanelSize(hasLive: Bool, animated: Bool) {
+        guard let panel, let screen = NSScreen.main else { return }
         let width = hasLive ? Self.liveWidth : Self.minWidth
         let height = hasLive
             ? Self.livePanelHeight(contentBody: box.liveContentHeight)
             : Self.compactHeight
 
-        var frame = panel.frame
-        // Keep top edge pinned under the menu bar while growing downward.
-        let top = frame.maxY
-        frame.size = NSSize(width: width, height: height)
-        frame.origin.y = top - height
+        let visible = screen.visibleFrame
+        let x = visible.midX - width / 2
+        let y = visible.maxY - height - 10
+        let frame = NSRect(x: x, y: y, width: width, height: height)
 
-        if animated, panel.isVisible {
+        // Never animate a width change (chrome ↔ live) — only smooth height growth.
+        let widthJump = abs(panel.frame.width - width) > 1
+        let heightDelta = abs(panel.frame.height - height)
+        let shouldAnimate = animated && panel.isVisible && !widthJump && heightDelta > 0.5
+
+        if shouldAnimate {
             NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.18
+                ctx.duration = 0.16
                 ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                ctx.allowsImplicitAnimation = true
                 panel.animator().setFrame(frame, display: true)
             }
         } else {
             panel.setFrame(frame, display: true)
         }
-        // Recenter horizontally / clamp to visible screen.
-        position(panel, preserveTop: true)
-    }
-
-    private func position(_ panel: NSPanel, preserveTop: Bool = false) {
-        guard let screen = NSScreen.main else { return }
-        let visible = screen.visibleFrame
-        let size = panel.frame.size
-        let x = visible.midX - size.width / 2
-        // Always pin under the menu bar so growth expands downward.
-        let y = visible.maxY - size.height - 10
-        _ = preserveTop
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }
 
@@ -282,6 +293,10 @@ struct ListeningBannerView: View {
             morph(to: newValue ?? "")
         }
         .onAppear {
+            // Seed one-line size so the first frame isn't empty/zero-height.
+            if measuredContentHeight < 1 {
+                measuredContentHeight = Self.transcriptLineHeight + Self.verticalPadding
+            }
             if let live = model.liveTranscript {
                 morph(to: live)
             }
@@ -296,11 +311,14 @@ struct ListeningBannerView: View {
     // MARK: Live transcript (B&W, no Listening chrome)
 
     private var liveTranscriptCard: some View {
-        ScrollViewReader { proxy in
+        // Fixed live width so wrap/measure never use the compact chrome width (180).
+        let cardWidth = ListeningHUDController.liveWidth
+
+        return ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
                 // Flow layout: words wrap left→right, top→bottom.
                 TranscriptFlowView(words: words, fadingIDs: fadingIDs)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .frame(width: cardWidth - 28, alignment: .topLeading)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                     .background(
@@ -318,16 +336,18 @@ struct ListeningBannerView: View {
                     .id("transcript-bottom")
             }
             // Viewport matches content until the 4-line cap, then scrolls.
-            .frame(height: liveCardHeight)
+            .frame(width: cardWidth, height: liveCardHeight, alignment: .top)
             .onPreferenceChange(LiveTranscriptHeightKey.self) { height in
-                guard height > 0 else { return }
+                guard height > 1 else { return }
                 // Avoid layout thrash on sub-point differences.
-                if abs(height - measuredContentHeight) > 0.5 {
+                if abs(height - measuredContentHeight) > 1 {
                     measuredContentHeight = height
                 }
-                // Body height without outer chrome — controller adds padding clamp.
-                let body = max(0, height - Self.verticalPadding)
-                if abs(body - box.liveContentHeight) > 0.5 {
+                // Body height without vertical padding — controller adds padding clamp.
+                let body = max(Self.transcriptLineHeight, height - Self.verticalPadding)
+                // Ignore noisy first layout if it's below one line (partial measure).
+                guard body >= Self.transcriptLineHeight - 1 else { return }
+                if abs(body - box.liveContentHeight) > 1 {
                     box.liveContentHeight = body
                 }
             }
@@ -342,15 +362,20 @@ struct ListeningBannerView: View {
                 scrollToken &+= 1
             }
         }
-        .frame(width: nil, height: liveCardHeight, alignment: .topLeading)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(width: cardWidth, height: liveCardHeight, alignment: .topLeading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.20), radius: 10, y: 3)
-        .animation(.easeInOut(duration: 0.18), value: liveCardHeight)
+        // Height growth only after first line is stable (no springy first-frame).
+        .animation(
+            measuredContentHeight > Self.minCardHeight + 2
+                ? .easeInOut(duration: 0.16)
+                : nil,
+            value: liveCardHeight
+        )
         .accessibilityLabel(words.map(\.text).joined())
     }
 
