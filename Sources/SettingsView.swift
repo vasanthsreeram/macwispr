@@ -127,10 +127,10 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Polish owns cleanup/lists; avoid hardcoded word filters.
+            // Polish is opt-in (Off by default). Raw STT inserts unless the user enables it.
             Section("Post-Processing") {
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
-                Text("Filler words and formatting are handled by the polish model when Local polish is on — not by a fixed word list.")
+                Text("By default MacWispr inserts the transcript as spoken. Polish is optional and off until you turn it on.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -142,6 +142,9 @@ struct SettingsView: View {
                         Text(mode.displayName).tag(mode)
                     }
                 }
+                Text(appState.polishProvider.help)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 if appState.polishProvider == .local {
                     // Model pack switcher — MiniCPM default; Liquid only if installed.

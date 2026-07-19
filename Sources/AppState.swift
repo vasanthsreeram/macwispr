@@ -283,7 +283,9 @@ final class AppState: ObservableObject {
         {
             transcriptionProvider = provider
         }
-        // Polish: prefer new key; migrate old llmPolishEnabled bool.
+        // Polish is Off by default. Only restore a saved choice; never auto-enable.
+        // Legacy: llmPolishEnabled=true alone used to imply Local — keep that one-time
+        // migration so upgrades don't surprise people who already opted in.
         if let raw = UserDefaults.standard.string(forKey: Self.polishProviderKey),
            let polish = PolishProvider(rawValue: raw)
         {
@@ -292,6 +294,13 @@ final class AppState: ObservableObject {
                   UserDefaults.standard.bool(forKey: "llmPolishEnabled")
         {
             polishProvider = .local
+            UserDefaults.standard.set(PolishProvider.local.rawValue, forKey: Self.polishProviderKey)
+        } else {
+            polishProvider = .off
+            // Persist Off so Settings shows the product default on first run.
+            if UserDefaults.standard.string(forKey: Self.polishProviderKey) == nil {
+                UserDefaults.standard.set(PolishProvider.off.rawValue, forKey: Self.polishProviderKey)
+            }
         }
         llmPolishEnabled = polishProvider == .local
 
