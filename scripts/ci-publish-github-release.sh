@@ -49,14 +49,24 @@ EOF
 )"
 fi
 
+# Pre-release tags (beta/rc/alpha) must not steal GitHub "Latest" from stable.
+PRERELEASE_ARGS=()
+LATEST_ARGS=()
+if [[ "$VERSION" =~ (beta|rc|alpha) ]]; then
+  PRERELEASE_ARGS=(--prerelease)
+else
+  LATEST_ARGS=(--latest)
+fi
+
 if gh release view "$TAG" >/dev/null 2>&1; then
   gh release upload "$TAG" "$ZIP" "$DMG" "$DMG_STABLE" --clobber
-  gh release edit "$TAG" --title "MacWispr $TAG" --notes "$NOTES" --latest
+  gh release edit "$TAG" --title "MacWispr $TAG" --notes "$NOTES" "${PRERELEASE_ARGS[@]}" "${LATEST_ARGS[@]}"
 else
   gh release create "$TAG" "$ZIP" "$DMG" "$DMG_STABLE" \
     --title "MacWispr $TAG" \
     --notes "$NOTES" \
-    --latest
+    "${PRERELEASE_ARGS[@]}" \
+    "${LATEST_ARGS[@]}"
 fi
 
 echo "✓ Published GitHub Release $TAG"

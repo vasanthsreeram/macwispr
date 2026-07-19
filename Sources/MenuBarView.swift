@@ -118,6 +118,8 @@ struct MenuBarView: View {
             }
 
             VStack(spacing: 2) {
+                micPickerRow
+                Divider().padding(.vertical, 4)
                 menuRow(title: "Open Dashboard", systemImage: "chart.bar.fill") {
                     StatusBarController.shared.closePopover()
                     openMainWindow()
@@ -154,6 +156,7 @@ struct MenuBarView: View {
         .onAppear {
             AppDelegate.shared?.appState = appState
             appState.refreshOutputMuteState()
+            appState.refreshInputDevices()
         }
     }
 
@@ -188,6 +191,62 @@ struct MenuBarView: View {
             }
         }
         .padding(.horizontal)
+    }
+
+    private var currentInputDeviceLabel: String {
+        if appState.selectedInputDeviceUID.isEmpty {
+            return "System Default"
+        }
+        return appState.availableInputDevices
+            .first(where: { $0.uid == appState.selectedInputDeviceUID })?
+            .name ?? "System Default"
+    }
+
+    private var micPickerRow: some View {
+        Menu {
+            Button {
+                appState.setInputDeviceUID("")
+            } label: {
+                if appState.selectedInputDeviceUID.isEmpty {
+                    Label("System Default", systemImage: "checkmark")
+                } else {
+                    Text("System Default")
+                }
+            }
+            if !appState.availableInputDevices.isEmpty {
+                Divider()
+                ForEach(appState.availableInputDevices) { device in
+                    Button {
+                        appState.setInputDeviceUID(device.uid)
+                    } label: {
+                        if appState.selectedInputDeviceUID == device.uid {
+                            Label(device.name, systemImage: "checkmark")
+                        } else {
+                            Text(device.name)
+                        }
+                    }
+                }
+            }
+            Divider()
+            Button("Refresh device list") {
+                appState.refreshInputDevices()
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Label(currentInputDeviceLabel, systemImage: "mic.fill")
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .padding(.vertical, 6)
+            .padding(.horizontal, 4)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func menuRow(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
