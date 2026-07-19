@@ -1,11 +1,12 @@
 import AppKit
 import SwiftUI
 import Combine
+import QuartzCore
 
 /// Floating banner under the menu bar while dictating.
 ///
-/// Live monochrome transcript with fade-in words, 4-line scroll, and smooth
-/// in-place morphs when ASR rewrites the hypothesis.
+/// Live monochrome transcript with fade-in words. Card **grows with text**
+/// up to ~4 lines, then stops expanding and auto-scrolls.
 @MainActor
 final class ListeningHUDController {
     static let shared = ListeningHUDController()
@@ -14,12 +15,22 @@ final class ListeningHUDController {
     private static let minWidth: CGFloat = 180
     private static let liveWidth: CGFloat = 364
     private static let compactHeight: CGFloat = 40
-    /// Header-less live card: 4 lines of body text + padding.
-    private static let liveHeight: CGFloat = 118
+    /// Vertical padding inside the live card (matches SwiftUI `.padding(.vertical, 12)` × 2).
+    static let liveVerticalPadding: CGFloat = 24
+    /// Approx one line of 14pt rounded body (+ layout line spacing).
+    static let liveLineHeight: CGFloat = 20
+    static let liveMaxLines: CGFloat = 4
+    /// Minimum live card when only a word or two is on screen.
+    static var liveMinHeight: CGFloat { liveLineHeight + liveVerticalPadding }
+    /// Cap: ~4 lines of body + padding (no further growth; scroll instead).
+    static var liveMaxHeight: CGFloat {
+        liveLineHeight * liveMaxLines + 5 * (liveMaxLines - 1) + liveVerticalPadding
+    }
 
     private var panel: NSPanel?
     private var host: NSHostingView<ListeningBannerView>?
     private let box = ListeningBannerBox()
+    private var sizeCancellable: AnyCancellable?
 
     private init() {}
 
@@ -65,6 +76,11 @@ final class ListeningHUDController {
         // Show chrome (Listening / timer) only before any transcript exists.
         let showChrome = !hasLive
 
+        // Leaving live mode resets measured height so the next session starts compact.
+        if !hasLive {
+            box.liveContentHeight = 0
+        }
+
         box.model = ListeningBannerModel(
             phase: state.dictationPhase,
             timerLabel: showChrome ? timer : nil,
@@ -83,23 +99,20 @@ final class ListeningHUDController {
             host = view
         }
 
-        if let panel {
-            let width = hasLive ? Self.liveWidth : Self.minWidth
-            let height = hasLive ? Self.liveHeight : Self.compactHeight
-            var frame = panel.frame
-            frame.size = NSSize(width: width, height: height)
-            panel.setFrame(frame, display: true)
-            position(panel)
-            panel.orderFrontRegardless()
-        }
+        applyPanelSize(animated: hasLive)
+        panel?.orderFrontRegardless()
     }
 
     func hide() {
         panel?.orderOut(nil)
+        box.liveContentHeight = 0
     }
 
     private func ensurePanel() {
-        if panel != nil { return }
+        if panel != nil {
+            observeContentHeightIfNeeded()
+            return
+        }
         let p = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: Self.minWidth, height: Self.compactHeight),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -117,14 +130,61 @@ final class ListeningHUDController {
         p.isReleasedWhenClosed = false
         p.ignoresMouseEvents = true
         panel = p
+        observeContentHeightIfNeeded()
     }
 
-    private func position(_ panel: NSPanel) {
+    private func observeContentHeightIfNeeded() {
+        guard sizeCancellable == nil else { return }
+        sizeCancellable = box.$liveContentHeight
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.applyPanelSize(animated: true)
+            }
+    }
+
+    /// Grow with measured transcript body up to 4 lines, then hold max height.
+    private static func livePanelHeight(contentBody: CGFloat) -> CGFloat {
+        let body = contentBody > 1 ? contentBody : liveLineHeight
+        let total = body + liveVerticalPadding
+        return min(liveMaxHeight, max(liveMinHeight, total))
+    }
+
+    private func applyPanelSize(animated: Bool) {
+        guard let panel else { return }
+        let hasLive = box.model.liveTranscript.map { !$0.isEmpty } ?? false
+        let width = hasLive ? Self.liveWidth : Self.minWidth
+        let height = hasLive
+            ? Self.livePanelHeight(contentBody: box.liveContentHeight)
+            : Self.compactHeight
+
+        var frame = panel.frame
+        // Keep top edge pinned under the menu bar while growing downward.
+        let top = frame.maxY
+        frame.size = NSSize(width: width, height: height)
+        frame.origin.y = top - height
+
+        if animated, panel.isVisible {
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.18
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                panel.animator().setFrame(frame, display: true)
+            }
+        } else {
+            panel.setFrame(frame, display: true)
+        }
+        // Recenter horizontally / clamp to visible screen.
+        position(panel, preserveTop: true)
+    }
+
+    private func position(_ panel: NSPanel, preserveTop: Bool = false) {
         guard let screen = NSScreen.main else { return }
         let visible = screen.visibleFrame
         let size = panel.frame.size
         let x = visible.midX - size.width / 2
+        // Always pin under the menu bar so growth expands downward.
         let y = visible.maxY - size.height - 10
+        _ = preserveTop
         panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }
@@ -151,6 +211,17 @@ struct ListeningBannerModel: Equatable {
 @MainActor
 final class ListeningBannerBox: ObservableObject {
     @Published var model: ListeningBannerModel = .empty
+    /// Measured height of the live transcript body (incl. inner vertical padding).
+    /// Drives panel growth; clamped to 1…4 lines in the controller.
+    @Published var liveContentHeight: CGFloat = 0
+}
+
+/// Reports laid-out transcript size so the panel can grow with content.
+private struct LiveTranscriptHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
 }
 
 // MARK: - Word token for fade-in
@@ -177,11 +248,26 @@ struct ListeningBannerView: View {
 
     private var model: ListeningBannerModel { box.model }
 
-    /// Visible height for ~4 lines of 13.5pt body.
-    private static let transcriptLineHeight: CGFloat = 20
-    private static let visibleLines: CGFloat = 4
-    private static var transcriptViewportHeight: CGFloat {
-        transcriptLineHeight * visibleLines
+    /// Visible body cap for ~4 lines of 14pt body (+ inter-line spacing).
+    private static let transcriptLineHeight: CGFloat = ListeningHUDController.liveLineHeight
+    private static let visibleLines: CGFloat = ListeningHUDController.liveMaxLines
+    private static let verticalPadding: CGFloat = ListeningHUDController.liveVerticalPadding
+    private static var maxBodyHeight: CGFloat {
+        // 4 lines of text + 3 gaps of ~5pt (WordWrapLayout lineSpacing).
+        transcriptLineHeight * visibleLines + 5 * (visibleLines - 1)
+    }
+    private static var maxCardHeight: CGFloat { ListeningHUDController.liveMaxHeight }
+    private static var minCardHeight: CGFloat { ListeningHUDController.liveMinHeight }
+
+    /// Intrinsic content height from layout (includes vertical padding).
+    @State private var measuredContentHeight: CGFloat = 0
+
+    /// Card height: grows with content, stops at 4 lines.
+    private var liveCardHeight: CGFloat {
+        let measured = measuredContentHeight > 1
+            ? measuredContentHeight
+            : Self.transcriptLineHeight + Self.verticalPadding
+        return min(Self.maxCardHeight, max(Self.minCardHeight, measured))
     }
 
     var body: some View {
@@ -202,6 +288,8 @@ struct ListeningBannerView: View {
         }
         .onDisappear {
             morphTask?.cancel()
+            measuredContentHeight = 0
+            box.liveContentHeight = 0
         }
     }
 
@@ -215,14 +303,37 @@ struct ListeningBannerView: View {
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.preference(
+                                key: LiveTranscriptHeightKey.self,
+                                value: geo.size.height
+                            )
+                        }
+                    )
                     .id("transcript-top")
 
                 Color.clear
                     .frame(height: 1)
                     .id("transcript-bottom")
             }
-            .frame(height: Self.transcriptViewportHeight + 24)
+            // Viewport matches content until the 4-line cap, then scrolls.
+            .frame(height: liveCardHeight)
+            .onPreferenceChange(LiveTranscriptHeightKey.self) { height in
+                guard height > 0 else { return }
+                // Avoid layout thrash on sub-point differences.
+                if abs(height - measuredContentHeight) > 0.5 {
+                    measuredContentHeight = height
+                }
+                // Body height without outer chrome — controller adds padding clamp.
+                let body = max(0, height - Self.verticalPadding)
+                if abs(body - box.liveContentHeight) > 0.5 {
+                    box.liveContentHeight = body
+                }
+            }
             .onChange(of: scrollToken) { _, _ in
+                // Only auto-scroll once content has hit the 4-line cap.
+                guard measuredContentHeight >= Self.maxCardHeight - 1 else { return }
                 withAnimation(.easeOut(duration: 0.28)) {
                     proxy.scrollTo("transcript-bottom", anchor: .bottom)
                 }
@@ -231,13 +342,15 @@ struct ListeningBannerView: View {
                 scrollToken &+= 1
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(width: nil, height: liveCardHeight, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.20), radius: 10, y: 3)
+        .animation(.easeInOut(duration: 0.18), value: liveCardHeight)
         .accessibilityLabel(words.map(\.text).joined())
     }
 
