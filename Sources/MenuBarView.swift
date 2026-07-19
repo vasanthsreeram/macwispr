@@ -165,7 +165,7 @@ struct MenuBarView: View {
             if appState.transcriptionProvider == .local && appState.isModelLoading {
                 ProgressView(value: appState.modelLoadProgress) {
                     Text(appState.modelLoadStatus.isEmpty
-                          ? "Downloading model… \(Int(appState.modelLoadProgress * 100))%"
+                          ? "Loading model… \(Int(appState.modelLoadProgress * 100))%"
                           : appState.modelLoadStatus)
                         .font(.caption)
                 }

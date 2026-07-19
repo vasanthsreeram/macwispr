@@ -15,7 +15,7 @@ actor TranscriptionEngine {
     private var isWarmedUp = false
     private(set) var loadedModelId: String?
     private var loadedEngine: ASRModelSize.Engine?
-    /// Bumped on each load start and on unload so a finishing stale download
+    /// Bumped on each load start and on unload so a finishing stale load
     /// cannot reinstall weights after the user switched provider/size.
     private var loadGeneration = 0
 
@@ -65,7 +65,7 @@ actor TranscriptionEngine {
         case .parakeetCoreML:
             // Free VAD when not on Qwen.
             vadModel = nil
-            progressHandler(0.05, "Downloading Parakeet…")
+            progressHandler(0.05, "Loading Parakeet…")
             let loaded = try await ParakeetASRModel.fromPretrained(
                 modelId: modelId
             ) { progress, status in
