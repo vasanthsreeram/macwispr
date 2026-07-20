@@ -17,6 +17,31 @@
     <language>en</language>
 
     <item>
+      <title>MacWispr 1.2.7</title>
+      <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.7</link>
+      <sparkle:version>1.2.7</sparkle:version>
+      <sparkle:shortVersionString>1.2.7</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Mon, 20 Jul 2026 15:00:29 +0000</pubDate>
+      <description><![CDATA[
+        <h2>MacWispr 1.2.7</h2>
+<ul>
+  <li><strong>Mic picker</strong> — choose input device from the top-right / Home / menu bar</li>
+  <li><strong>Crash fix</strong> — macOS 26 crash when clicking the old toolbar Dictate button</li>
+  <li><strong>Recordable hotkeys</strong> — Configuration → click Dictation / Cancel to record a new shortcut</li>
+  <li><strong>AI Models</strong> — polish packs behind “Show experimental models”</li>
+  <li><strong>Cleaner UI</strong> — no Dictate sidebar; toolbar Icon Only menu disabled</li>
+</ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.7/MacWispr-1.2.7-macos-arm64.zip"
+        length="45881683"
+        type="application/octet-stream"
+        sparkle:edSignature="MYZZZuxIL7y4sgulwJLaoxoMuyTdjvaeSzChWawBnIUC1pA5h9XnHlE4aP2iOyDLzomevBVc2jhFoEJ2YHbsCA=="
+      />
+    </item>
+
+    <item>
       <title>MacWispr 1.2.6</title>
       <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.6</link>
       <sparkle:version>1.2.6</sparkle:version>
