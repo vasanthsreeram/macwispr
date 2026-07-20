@@ -17,6 +17,30 @@
     <language>en</language>
 
     <item>
+      <title>MacWispr 1.2.5</title>
+      <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.5</link>
+      <sparkle:version>1.2.5</sparkle:version>
+      <sparkle:shortVersionString>1.2.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Mon, 20 Jul 2026 03:16:42 +0000</pubDate>
+      <description><![CDATA[
+                <h2>MacWispr 1.2.5</h2>
+        <ul>
+          <li><strong>Much smaller update</strong> — polish model no longer inside the app (~1.2 GB → ~44 MB zip)</li>
+          <li><strong>Polish download-on-enable</strong> — optional Local LLM polish downloads ~400 MB (4-bit) from Hugging Face only if you turn it on</li>
+          <li><strong>Leaner packaging</strong> — single Metal shader library (no duplicate metallibs)</li>
+          <li>ASR models still download separately as before</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.5/MacWispr-1.2.5-macos-arm64.zip"
+        length="45749863"
+        type="application/octet-stream"
+        sparkle:edSignature="Xyp322Qxks/COH8hDs8v3sMLluIqNuE2QhXwIEuPBHvLccKpxBBh1VU+mjaLIakbqiNn5wR8Xr4itVHMNUW1BQ=="
+      />
+    </item>
+
+    <item>
       <title>MacWispr 1.2.4</title>
       <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.4</link>
       <sparkle:version>1.2.4</sparkle:version>

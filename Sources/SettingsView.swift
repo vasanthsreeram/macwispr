@@ -147,7 +147,7 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
 
                 if appState.polishProvider == .local {
-                    // Model pack switcher — MiniCPM default; Liquid only if installed.
+                    // Model pack switcher — default Qwen polish; Liquid only if selectable.
                     let available = PolishLocalModel.availableCases
                     if available.count > 1 {
                         Picker("Local polish model", selection: Binding(
@@ -158,38 +158,68 @@ struct SettingsView: View {
                                 Text(model.displayName).tag(model)
                             }
                         }
-                        Text(appState.polishLocalModel.help)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     } else {
                         Text(appState.polishLocalModel.displayName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
                     }
-                    HStack {
-                        Text(appState.isLLMLoaded
-                             ? "Active: \(appState.polishLocalModel.shortName)"
-                             : "Not loaded")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        if appState.isLLMLoaded {
-                            Label("Loaded", systemImage: "checkmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.green)
-                        } else if appState.isLLMLoading {
-                            ProgressView()
-                                .controlSize(.small)
+                    Text(appState.polishLocalModel.help)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if appState.isLLMLoading {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ProgressView(value: appState.llmLoadProgress)
                             Text(appState.llmLoadStatus)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                                .lineLimit(1)
+                                .lineLimit(2)
+                        }
+                    } else if appState.isLLMLoaded {
+                        HStack {
+                            Label("Active: \(appState.polishLocalModel.shortName)", systemImage: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                            Spacer()
+                        }
+                    } else if !appState.isPolishModelOnDisk {
+                        // Production path: weights not in the Sparkle zip.
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Polish model not installed. One-time download \(appState.polishLocalModel.downloadSizeLabel) from Hugging Face (saved under Application Support).")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button("Download polish model (\(appState.polishLocalModel.downloadSizeLabel))") {
+                                Task { await appState.downloadPolishModel() }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            if !appState.llmLoadStatus.isEmpty {
+                                Text(appState.llmLoadStatus)
+                                    .font(.caption2)
+                                    .foregroundStyle(.orange)
+                                    .lineLimit(3)
+                            }
+                        }
+                    } else {
+                        HStack {
+                            Text("On disk · not loaded")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Load \(appState.polishLocalModel.shortName)") {
+                                Task { await appState.loadLLM(force: true) }
+                            }
                         }
                     }
-                    if !appState.isLLMLoaded && !appState.isLLMLoading {
-                        Button("Load \(appState.polishLocalModel.shortName)") {
-                            Task { await appState.loadLLM(force: true) }
+
+                    // Only offer delete for Application Support installs (not bundle/dev).
+                    if appState.isPolishModelOnDisk,
+                       PolishLocalModel.applicationSupportDirectory(for: appState.polishLocalModel)
+                        .map({ FileManager.default.fileExists(atPath: $0.path)
+                            && PolishLocalModel.looksLikeCompletePack(at: $0) }) == true
+                    {
+                        Button("Remove downloaded polish model", role: .destructive) {
+                            Task { await appState.deleteDownloadedPolishModel() }
                         }
+                        .font(.caption)
                     }
                 } else if appState.polishProvider == .openAI {
                     if appState.hasOpenAIKey {

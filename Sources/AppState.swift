@@ -75,6 +75,10 @@ final class AppState: ObservableObject {
     @Published var isLLMLoaded = false
     @Published var isLLMLoading = false
     @Published var llmLoadStatus: String = ""
+    /// 0…1 while downloading / loading the local polish pack (Settings progress).
+    @Published var llmLoadProgress: Double = 0
+    /// True when Application Support (or bundle/env) has complete polish weights.
+    @Published var isPolishModelOnDisk: Bool = PolishLocalModel.miniCPM.isAvailable
     @Published var soundFeedbackEnabled = true
     /// Default output is muted / volume ~0 — chimes will be silent until unmuted.
     @Published var outputMuted = false
@@ -312,15 +316,15 @@ final class AppState: ObservableObject {
         llmPolishEnabled = polishProvider == .local
 
         if let raw = UserDefaults.standard.string(forKey: Self.polishLocalModelKey),
-           let m = PolishLocalModel(rawValue: raw)
+           let m = PolishLocalModel(rawValue: raw),
+           m.isSelectable
         {
-            polishLocalModel = m.isAvailable ? m : (PolishLocalModel.availableCases.first ?? .miniCPM)
-        } else if PolishLocalModel.miniCPM.isAvailable {
-            polishLocalModel = .miniCPM
+            polishLocalModel = m
         } else {
-            polishLocalModel = PolishLocalModel.availableCases.first ?? .miniCPM
+            polishLocalModel = .miniCPM
         }
         TextPolisher.setModelPreference(polishLocalModel)
+        isPolishModelOnDisk = polishLocalModel.isAvailable
         if let saved = UserDefaults.standard.stringArray(forKey: Self.customVocabularyKey) {
             customVocabulary = saved
         }
@@ -477,21 +481,28 @@ final class AppState: ObservableObject {
     }
 
     func setPolishLocalModel(_ model: PolishLocalModel) {
-        guard model.isAvailable else { return }
+        guard model.isSelectable else { return }
         polishLocalModel = model
         TextPolisher.setModelPreference(model)
         UserDefaults.standard.set(model.rawValue, forKey: Self.polishLocalModelKey)
+        isPolishModelOnDisk = model.isAvailable
         // Drop in-memory weights so the next load uses the new pack.
         Task {
             await textPolisher.unload()
             await MainActor.run {
                 isLLMLoaded = false
-                llmLoadStatus = ""
+                llmLoadStatus = model.isAvailable ? "" : "Download required (\(model.downloadSizeLabel))"
+                llmLoadProgress = 0
             }
             if polishProvider == .local {
                 await loadLLM(force: true)
             }
         }
+    }
+
+    /// Refresh whether polish weights are on disk (Settings badge).
+    func refreshPolishModelOnDisk() {
+        isPolishModelOnDisk = polishLocalModel.isAvailable
     }
 
     /// Marks cloud providers ready when a key exists; loads local model otherwise.
@@ -1299,22 +1310,50 @@ final class AppState: ObservableObject {
         isLLMLoading = true
         isLLMLoaded = false
         let pack = polishLocalModel
-        llmLoadStatus = "Loading \(pack.shortName)…"
+        let needsDownload = !pack.isAvailable
+        llmLoadProgress = 0
+        llmLoadStatus = needsDownload
+            ? "Downloading \(pack.shortName) (\(pack.downloadSizeLabel))…"
+            : "Loading \(pack.shortName)…"
         do {
             let polisher = textPolisher
             try await polisher.load(model: pack) { progress, status in
                 Task { @MainActor in
+                    self.llmLoadProgress = progress
                     self.llmLoadStatus = status
                 }
             }
             isLLMLoaded = true
+            isPolishModelOnDisk = true
+            llmLoadProgress = 1
             llmLoadStatus = "Ready · \(pack.shortName)"
         } catch {
             isLLMLoaded = false
+            isPolishModelOnDisk = pack.isAvailable
+            llmLoadProgress = 0
             llmLoadStatus = error.localizedDescription
             NSLog("MacWispr polish load failed: \(error.localizedDescription)")
         }
         isLLMLoading = false
+    }
+
+    /// Explicit download button (same path as load when missing).
+    func downloadPolishModel() async {
+        await loadLLM(force: true)
+    }
+
+    /// Remove Application Support polish pack (Settings → free space).
+    func deleteDownloadedPolishModel() async {
+        await textPolisher.unload()
+        isLLMLoaded = false
+        do {
+            try PolishLocalModel.deleteDownloaded(polishLocalModel)
+            isPolishModelOnDisk = polishLocalModel.isAvailable
+            llmLoadStatus = "Removed downloaded pack"
+            llmLoadProgress = 0
+        } catch {
+            llmLoadStatus = error.localizedDescription
+        }
     }
 
     /// Toggle mode: start if idle, stop+transcribe if listening.

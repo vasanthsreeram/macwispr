@@ -11,6 +11,9 @@ import HuggingFace
 /// Default weights: **Qwen3.5-0.8B polish SFT** (not Liquid). User can switch to
 /// optional LFM pack in Settings when present. Prompt format matches train:
 /// bare `### Input:` / `### Output:` (no few-shot, no chat thinking).
+///
+/// Weights resolve from env → Application Support (HF download) → app bundle →
+/// dev cache. Production Sparkle builds do not embed the ~1.4 GB pack.
 actor TextPolisher {
     /// UI label for the currently selected local pack.
     static var displayName: String {
@@ -30,12 +33,12 @@ actor TextPolisher {
     static func currentModelPreference() -> PolishLocalModel {
         if let raw = UserDefaults.standard.string(forKey: preferenceKey),
            let m = PolishLocalModel(rawValue: raw),
-           m.isAvailable
+           m.isSelectable
         {
             return m
         }
         // Default MiniCPM — never silently stick on Liquid.
-        if PolishLocalModel.miniCPM.isAvailable { return .miniCPM }
+        if PolishLocalModel.miniCPM.isSelectable { return .miniCPM }
         return PolishLocalModel.availableCases.first ?? .miniCPM
     }
 
@@ -62,13 +65,18 @@ actor TextPolisher {
         container = nil
         loadedModel = nil
 
-        guard let dir = PolishLocalModel.resolveDirectory(for: target) else {
+        // Download to Application Support when missing (HF); no-op if already present.
+        let dir: URL
+        do {
+            dir = try await PolishLocalModel.ensureDownloaded(target, progressHandler: progressHandler)
+        } catch {
             throw NSError(domain: "TextPolisher", code: 1, userInfo: [
                 NSLocalizedDescriptionKey:
-                    "Polish model not found for \(target.shortName). Bundle \(target.resourceFolderName) or set \(target.envKey)."
+                    "Polish model not available for \(target.shortName): \(error.localizedDescription)"
             ])
         }
-        progressHandler?(0.1, "Loading \(target.shortName)")
+
+        progressHandler?(0.97, "Loading \(target.shortName)")
         let loaded = try await loadModelContainer(
             from: dir, using: #huggingFaceTokenizerLoader())
         progressHandler?(1.0, "Ready · \(target.shortName)")
