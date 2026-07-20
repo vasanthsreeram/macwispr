@@ -1,9 +1,47 @@
 import SwiftUI
 import AppKit
 
+/// Left-sidebar destinations (SuperWhisper-style). Used by the main window rail.
+enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
+    case models
+    case vocabulary
+    case appearance
+    case configuration
+    case sound
+    case about
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .models: return "Models"
+        case .vocabulary: return "Vocabulary"
+        case .appearance: return "Appearance"
+        case .configuration: return "Configuration"
+        case .sound: return "Sound"
+        case .about: return "About"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .models: return "square.stack.3d.up.fill"
+        case .vocabulary: return "text.book.closed.fill"
+        case .appearance: return "paintbrush.fill"
+        case .configuration: return "gearshape.fill"
+        case .sound: return "speaker.wave.2.fill"
+        case .about: return "info.circle.fill"
+        }
+    }
+}
+
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
+    /// Which pane to show (driven by main window sidebar).
+    var pane: SettingsPane = .configuration
+
     @State private var newVocabTerm: String = ""
+    @State private var vocabSearch: String = ""
     @State private var openAIKeyDraft: String = ""
     @State private var elevenLabsKeyDraft: String = ""
     @State private var keySaveMessage: String?
@@ -33,20 +71,33 @@ struct SettingsView: View {
     ]
 
     var body: some View {
-        TabView {
-            generalSettings
-                .tabItem { Label("General", systemImage: "gear") }
-
-            transcriptionSettings
-                .tabItem { Label("Transcription", systemImage: "text.bubble") }
-
-            hotkeySettings
-                .tabItem { Label("Hotkeys", systemImage: "keyboard") }
-
-            aboutView
-                .tabItem { Label("About", systemImage: "info.circle") }
+        Group {
+            switch pane {
+            case .models: modelsSettings
+            case .vocabulary: vocabularySettings
+            case .appearance: appearanceSettings
+            case .configuration: configurationSettings
+            case .sound: soundSettings
+            case .about: aboutView
+            }
         }
-        .padding(.top, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// Configuration = former General + Transcription (no nested tabs).
+    private var configurationSettings: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                generalSettings
+                Divider().padding(.vertical, 8)
+                transcriptionSettings
+            }
+        }
+    }
+
+    /// Sound = hotkeys + chimes (SuperWhisper “Sound” grouping).
+    private var soundSettings: some View {
+        hotkeySettings
     }
 
     private var generalSettings: some View {
@@ -127,12 +178,9 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Polish is opt-in (Off by default). Raw STT inserts unless the user enables it.
+            // Polish mode here; LLM weights live under Models → LLM models.
             Section("Post-Processing") {
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
-                Text("By default MacWispr inserts the transcript as spoken. Polish is optional and off until you turn it on.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
 
                 Picker("Polish transcript", selection: Binding(
                     get: { appState.polishProvider },
@@ -147,95 +195,565 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
 
                 if appState.polishProvider == .local {
-                    // Model pack switcher — default Qwen polish; Liquid only if selectable.
-                    let available = PolishLocalModel.availableCases
-                    if available.count > 1 {
-                        Picker("Local polish model", selection: Binding(
-                            get: { appState.polishLocalModel },
-                            set: { appState.setPolishLocalModel($0) }
-                        )) {
-                            ForEach(available) { model in
-                                Text(model.displayName).tag(model)
-                            }
-                        }
-                    } else {
-                        Text(appState.polishLocalModel.displayName)
-                            .font(.subheadline)
-                    }
-                    Text(appState.polishLocalModel.help)
+                    Text("Active pack: \(appState.polishLocalModel.catalogTitle)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-
+                    Text("Download, switch, or remove LLM packs in the Models sidebar.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                     if appState.isLLMLoading {
-                        VStack(alignment: .leading, spacing: 6) {
-                            ProgressView(value: appState.llmLoadProgress)
-                            Text(appState.llmLoadStatus)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
+                        ProgressView(value: appState.llmLoadProgress) {
+                            Text(appState.llmLoadStatus).font(.caption)
                         }
                     } else if appState.isLLMLoaded {
-                        HStack {
-                            Label("Active: \(appState.polishLocalModel.shortName)", systemImage: "checkmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.green)
-                            Spacer()
-                        }
-                    } else if !appState.isPolishModelOnDisk {
-                        // Production path: weights not in the Sparkle zip.
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Polish model not installed. One-time download \(appState.polishLocalModel.downloadSizeLabel) from Hugging Face (saved under Application Support).")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Button("Download polish model (\(appState.polishLocalModel.downloadSizeLabel))") {
-                                Task { await appState.downloadPolishModel() }
-                            }
-                            .buttonStyle(.borderedProminent)
-                            if !appState.llmLoadStatus.isEmpty {
-                                Text(appState.llmLoadStatus)
-                                    .font(.caption2)
-                                    .foregroundStyle(.orange)
-                                    .lineLimit(3)
-                            }
-                        }
-                    } else {
-                        HStack {
-                            Text("On disk · not loaded")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Button("Load \(appState.polishLocalModel.shortName)") {
-                                Task { await appState.loadLLM(force: true) }
-                            }
-                        }
-                    }
-
-                    // Only offer delete for Application Support installs (not bundle/dev).
-                    if appState.isPolishModelOnDisk,
-                       PolishLocalModel.applicationSupportDirectory(for: appState.polishLocalModel)
-                        .map({ FileManager.default.fileExists(atPath: $0.path)
-                            && PolishLocalModel.looksLikeCompletePack(at: $0) }) == true
-                    {
-                        Button("Remove downloaded polish model", role: .destructive) {
-                            Task { await appState.deleteDownloadedPolishModel() }
-                        }
-                        .font(.caption)
-                    }
-                } else if appState.polishProvider == .openAI {
-                    if appState.hasOpenAIKey {
-                        Label("Using saved OpenAI key", systemImage: "key.fill")
+                        Label("Loaded", systemImage: "checkmark.circle.fill")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Label("Add an OpenAI key under Transcription → API keys", systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.green)
+                    } else if !appState.isPolishModelOnDisk {
+                        Label("Not downloaded — open Models → LLM models", systemImage: "arrow.down.circle")
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
+                } else if appState.polishProvider == .openAI, !appState.hasOpenAIKey {
+                    Label("Add an OpenAI key under Speech provider below", systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             }
         }
         .formStyle(.grouped)
         .padding()
+    }
+
+    // MARK: - Models (Voice + LLM) — icon-first, minimal copy
+
+    private var modelsSettings: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Models")
+                    .font(.title2.weight(.semibold))
+
+                if appState.isModelLoading {
+                    ProgressView(value: appState.modelLoadProgress)
+                        .controlSize(.small)
+                }
+                if appState.isLLMLoading {
+                    ProgressView(value: appState.llmLoadProgress)
+                        .controlSize(.small)
+                }
+
+                // Voice
+                catalogSection(icon: "waveform", title: "Voice") {
+                    ForEach(ASRModelSize.dashboardChoices) { size in
+                        voiceModelRow(size)
+                        if size != ASRModelSize.dashboardChoices.last {
+                            Divider().opacity(0.3).padding(.leading, 44)
+                        }
+                    }
+                }
+
+                // LLM polish (Off is just a row of icons — no long copy)
+                catalogSection(icon: "text.badge.checkmark", title: "Polish") {
+                    polishOffRow
+                    Divider().opacity(0.3).padding(.leading, 44)
+                    // Only show packs that are downloadable or already on disk — skip empty LFM noise.
+                    ForEach(PolishLocalModel.catalogCases.filter { $0.huggingfaceRepoId != nil || $0.isAvailable }) { model in
+                        llmModelRow(model)
+                    }
+                }
+
+                // Cloud — icons only
+                catalogSection(icon: "cloud", title: "Cloud") {
+                    cloudProviderRow(.openAI, title: "OpenAI", symbol: "cloud")
+                    Divider().opacity(0.3).padding(.leading, 44)
+                    cloudProviderRow(.elevenLabs, title: "ElevenLabs", symbol: "cloud")
+                }
+            }
+            .padding(20)
+        }
+    }
+
+    private func catalogSection<Content: View>(
+        icon: String,
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .labelStyle(.titleAndIcon)
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+            )
+        }
+    }
+
+    private func voiceModelRow(_ size: ASRModelSize) -> some View {
+        let isActive = appState.transcriptionProvider == .local
+            && (appState.asrModelSize == size
+                || (size == .parakeetInt8
+                    && (appState.asrModelSize == .parakeetInt8 || appState.asrModelSize == .parakeetInt4)))
+        return compactModelRow(
+            title: size.catalogTitle,
+            badge: size.languageBadge,
+            sizeLabel: size.downloadSizeLabel,
+            symbol: size.dashboardSymbol,
+            isActive: isActive,
+            onDisk: size.isDownloaded,
+            busy: appState.isModelLoading || appState.isRecording,
+            onSelect: { appState.selectAndLoadASRModel(size) },
+            onDelete: { Task { await appState.deleteDownloadedASRModel(size) } }
+        )
+    }
+
+    private var polishOffRow: some View {
+        let isActive = appState.polishProvider == .off
+        return HStack(spacing: 12) {
+            Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .font(.body)
+                .frame(width: 22)
+            Image(systemName: "xmark.circle")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+                .frame(width: 26)
+            Text("Off")
+                .font(.body.weight(.medium))
+            Spacer()
+            if isActive {
+                Image(systemName: "checkmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
+        .onTapGesture { appState.disableLocalPolish() }
+    }
+
+    private func llmModelRow(_ model: PolishLocalModel) -> some View {
+        let isActive = appState.polishProvider == .local && appState.polishLocalModel == model
+        return compactModelRow(
+            title: model.catalogTitle,
+            badge: model.catalogBadge,
+            sizeLabel: model.downloadSizeLabel,
+            symbol: "text.badge.checkmark",
+            isActive: isActive,
+            onDisk: model.isAvailable,
+            busy: appState.isLLMLoading,
+            onSelect: { appState.selectAndLoadPolishModel(model) },
+            onDelete: {
+                Task {
+                    if appState.polishLocalModel == model {
+                        await appState.deleteDownloadedPolishModel()
+                    } else {
+                        try? PolishLocalModel.deleteDownloaded(model)
+                        appState.refreshPolishModelOnDisk()
+                    }
+                }
+            }
+        )
+    }
+
+    /// Icon-first row: check · type icon · name · badge · size · download/trash.
+    private func compactModelRow(
+        title: String,
+        badge: String,
+        sizeLabel: String,
+        symbol: String,
+        isActive: Bool,
+        onDisk: Bool,
+        busy: Bool,
+        onSelect: @escaping () -> Void,
+        onDelete: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .font(.body)
+                .frame(width: 22)
+
+            Image(systemName: symbol)
+                .font(.title3)
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .frame(width: 26)
+
+            Text(title)
+                .font(.body.weight(.medium))
+                .lineLimit(1)
+
+            Text(badge)
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.primary.opacity(0.08), in: Capsule())
+
+            Spacer(minLength: 8)
+
+            Text(sizeLabel)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.tertiary)
+
+            if onDisk {
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.body)
+                }
+                .buttonStyle(.borderless)
+                .help("Remove")
+                .disabled(busy)
+            } else {
+                Button(action: onSelect) {
+                    Image(systemName: "arrow.down.circle")
+                        .font(.title3)
+                }
+                .buttonStyle(.borderless)
+                .help("Download \(sizeLabel)")
+                .disabled(busy)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !busy else { return }
+            onSelect()
+        }
+    }
+
+    private func cloudProviderRow(_ provider: TranscriptionProvider, title: String, symbol: String) -> some View {
+        let isActive = appState.transcriptionProvider == provider
+        return HStack(spacing: 12) {
+            Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .font(.body)
+                .frame(width: 22)
+            Image(systemName: symbol)
+                .font(.title3)
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .frame(width: 26)
+            Text(title)
+                .font(.body.weight(.medium))
+            Spacer()
+            if isActive {
+                Image(systemName: "checkmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !appState.isRecording else { return }
+            appState.setTranscriptionProvider(provider)
+        }
+    }
+
+    // MARK: - Vocabulary
+
+    private var vocabularySettings: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Vocabulary")
+                    .font(.title2.weight(.semibold))
+                Text("Names and jargon the speech model should prefer. Used as context for Qwen (Parakeet ignores this).")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 12)
+
+            // SuperWhisper-style add bar
+            HStack(spacing: 10) {
+                Image(systemName: "plus.circle.fill")
+                    .foregroundStyle(.secondary)
+                TextField("Add a word or name…", text: $newVocabTerm)
+                    .textFieldStyle(.plain)
+                    .onSubmit { addVocabTerm() }
+                Button("Add word") { addVocabTerm() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(newVocabTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(14)
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.tertiary)
+                TextField("Search vocabulary", text: $vocabSearch)
+                    .textFieldStyle(.plain)
+            }
+            .padding(10)
+            .background(Color(nsColor: .controlBackgroundColor).opacity(0.7), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .padding(.horizontal, 20)
+            .padding(.bottom, 8)
+
+            if filteredVocabulary.isEmpty {
+                ContentUnavailableView(
+                    vocabSearch.isEmpty ? "No words yet" : "No matches",
+                    systemImage: "text.book.closed",
+                    description: Text(vocabSearch.isEmpty
+                        ? "Add product names, people, or jargon you dictate often."
+                        : "Try a different search.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(filteredVocabulary, id: \.self) { term in
+                        HStack {
+                            Text(term)
+                                .font(.body)
+                            Spacer()
+                            Button {
+                                appState.removeVocabularyTerm(term)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                        .padding(.vertical, 2)
+                        .listRowSeparator(.visible)
+                    }
+                }
+                .listStyle(.inset)
+                .scrollContentBackground(.hidden)
+
+                if !appState.customVocabulary.isEmpty {
+                    HStack {
+                        Text("\(appState.customVocabulary.count) word(s)")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Spacer()
+                        Button("Clear all", role: .destructive) {
+                            appState.clearVocabulary()
+                        }
+                        .font(.caption)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                }
+            }
+        }
+    }
+
+    private var filteredVocabulary: [String] {
+        let q = vocabSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        if q.isEmpty { return appState.customVocabulary }
+        return appState.customVocabulary.filter { $0.localizedCaseInsensitiveContains(q) }
+    }
+
+    // MARK: - Appearance (System Settings–style icon tiles)
+
+    private var appearanceSettings: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Appearance")
+                    .font(.title2.weight(.semibold))
+
+                // One grouped card like System Settings → Appearance
+                VStack(spacing: 0) {
+                    appearanceIconRow(
+                        label: "Window",
+                        items: RecordingWindowStyle.allCases.map { style in
+                            AppearanceTileItem(
+                                id: style.rawValue,
+                                title: style.displayName,
+                                isSelected: appState.recordingWindowStyle == style,
+                                select: { appState.setRecordingWindowStyle(style) },
+                                preview: { AnyView(recordingWindowPreview(style)) }
+                            )
+                        }
+                    )
+
+                    Divider().padding(.leading, 16)
+
+                    appearanceIconRow(
+                        label: "Liquid Glass",
+                        items: LiquidGlassStyle.allCases.map { glass in
+                            AppearanceTileItem(
+                                id: glass.rawValue,
+                                title: glass.displayName,
+                                isSelected: appState.liquidGlassStyle == glass,
+                                select: { appState.setLiquidGlassStyle(glass) },
+                                preview: { AnyView(liquidGlassPreview(glass)) }
+                            )
+                        }
+                    )
+
+                    if appState.recordingWindowStyle == .classic {
+                        Divider().padding(.leading, 16)
+                        HStack {
+                            Text("Live draft")
+                                .font(.body)
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { appState.livePartialsEnabled },
+                                set: { appState.setLivePartialsEnabled($0) }
+                            ))
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+                }
+                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                )
+            }
+            .padding(20)
+        }
+    }
+
+    /// System Settings–style row: left label, right icon tiles with short titles under them.
+    private func appearanceIconRow(
+        label: String,
+        items: [AppearanceTileItem]
+    ) -> some View {
+        HStack(alignment: .center, spacing: 16) {
+            Text(label)
+                .font(.body)
+                .frame(width: 110, alignment: .leading)
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 16) {
+                ForEach(items) { item in
+                    Button(action: item.select) {
+                        VStack(spacing: 8) {
+                            item.preview()
+                                .frame(width: 72, height: 52)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .strokeBorder(
+                                            item.isSelected ? Color.accentColor : Color.primary.opacity(0.12),
+                                            lineWidth: item.isSelected ? 2.5 : 1
+                                        )
+                                )
+                            Text(item.title)
+                                .font(.caption)
+                                .foregroundStyle(item.isSelected ? Color.primary : Color.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+
+    /// Mini mock of Classic / Mini / None recording windows.
+    private func recordingWindowPreview(_ style: RecordingWindowStyle) -> some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.12, green: 0.18, blue: 0.45),
+                    Color(red: 0.25, green: 0.35, blue: 0.75),
+                    Color(red: 0.45, green: 0.55, blue: 0.95)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            switch style {
+            case .classic:
+                VStack(spacing: 3) {
+                    Capsule().fill(Color.white.opacity(0.35)).frame(width: 36, height: 3)
+                    Capsule().fill(Color.white.opacity(0.55)).frame(width: 48, height: 3)
+                    Capsule().fill(Color.white.opacity(0.40)).frame(width: 28, height: 3)
+                }
+                .padding(8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.black.opacity(0.35))
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                )
+                .frame(width: 56, height: 32)
+            case .mini:
+                HStack(spacing: 4) {
+                    Circle().fill(Color.white.opacity(0.85)).frame(width: 5, height: 5)
+                    Capsule().fill(Color.white.opacity(0.5)).frame(width: 22, height: 4)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(Color.black.opacity(0.4)))
+            case .none:
+                Image(systemName: "eye.slash")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.45))
+            }
+        }
+    }
+
+    /// Liquid Glass Clear / Tinted swatches (same idea as System Settings).
+    private func liquidGlassPreview(_ style: LiquidGlassStyle) -> some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.15, green: 0.10, blue: 0.55),
+                    Color(red: 0.35, green: 0.20, blue: 0.85),
+                    Color(red: 0.55, green: 0.40, blue: 0.95)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Capsule()
+                .fill(Color.white.opacity(style == .clear ? 0.22 : 0.12))
+                .frame(width: 40, height: 22)
+                .overlay {
+                    if #available(macOS 26.0, *) {
+                        Capsule()
+                            .fill(Color.clear)
+                            .glassEffect(
+                                style == .clear
+                                    ? .clear
+                                    : .regular.tint(Color.accentColor.opacity(0.55)),
+                                in: Capsule()
+                            )
+                    } else {
+                        Capsule()
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                Capsule().fill(
+                                    style == .tinted
+                                        ? Color.accentColor.opacity(0.35)
+                                        : Color.white.opacity(0.15)
+                                )
+                            )
+                    }
+                }
+                .overlay(
+                    // Diagonal sheen like Apple’s glass tiles
+                    Capsule()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.white.opacity(0.55), .white.opacity(0.05)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        }
     }
 
     private var transcriptionSettings: some View {
@@ -265,67 +783,14 @@ struct SettingsView: View {
                         Text(lang.1).tag(lang.0)
                     }
                 }
-            }
 
-            if appState.transcriptionProvider == .local {
-                Section("On-device model") {
-                    Picker("Model", selection: Binding(
-                        get: { appState.asrModelSize },
-                        set: { appState.setASRModelSize($0) }
-                    )) {
-                        Section("Qwen — En + Asian (GPU)") {
-                            ForEach([ASRModelSize.small, .large], id: \.id) { size in
-                                Text(size.pickerLabel).tag(size)
-                            }
-                        }
-                        Section("Parakeet — En + EU (Neural Engine)") {
-                            // Single INT8 fixed-shape export (INT4 HF retired).
-                            // Legacy Parakeet-INT4 UserDefaults still load via ASRModelSize.
-                            ForEach([ASRModelSize.parakeetInt8], id: \.id) { size in
-                                Text(size.pickerLabel).tag(size)
-                            }
-                        }
-                    }
-                    .disabled(appState.isModelLoading || appState.isRecording)
-
-                    Text(appState.asrModelSize.subtitle)
+                if appState.transcriptionProvider == .local {
+                    Text("Speech model: \(appState.asrModelSize.displayName)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                }
-            }
-
-            Section("Custom vocabulary") {
-                HStack {
-                    TextField("Add words… e.g. MacWispr, Grok", text: $newVocabTerm)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit { addVocabTerm() }
-                    Button("Add") { addVocabTerm() }
-                        .disabled(newVocabTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-
-                if appState.customVocabulary.isEmpty {
-                    Text("Optional — names and jargon the model mishears.")
-                        .font(.caption)
+                    Text("Change or download models in the Models tab.")
+                        .font(.caption2)
                         .foregroundStyle(.tertiary)
-                } else {
-                    ForEach(appState.customVocabulary, id: \.self) { term in
-                        HStack {
-                            Text(term)
-                            Spacer()
-                            Button {
-                                appState.removeVocabularyTerm(term)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .help("Remove \(term)")
-                        }
-                    }
-
-                    Button("Clear all", role: .destructive) {
-                        appState.clearVocabulary()
-                    }
                 }
             }
 
@@ -502,12 +967,7 @@ struct SettingsView: View {
                     get: { appState.soundFeedbackEnabled },
                     set: { appState.setSoundFeedbackEnabled($0) }
                 ))
-
-                Toggle("Show listening banner", isOn: Binding(
-                    get: { appState.listeningHUDEnabled },
-                    set: { appState.setListeningHUDEnabled($0) }
-                ))
-                Text("Floating “Listening” / “Done” banner under the menu bar. Menu bar mic also turns red with a timer.")
+                Text("Recording window (Classic / Mini / None) is under Appearance.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -763,6 +1223,15 @@ struct SettingsView: View {
             Spacer(minLength: 0)
         }
     }
+}
+
+/// Icon tile for Appearance pickers (System Settings pattern).
+private struct AppearanceTileItem: Identifiable {
+    let id: String
+    let title: String
+    let isSelected: Bool
+    let select: () -> Void
+    let preview: () -> AnyView
 }
 
 /// Single source for the About tab / marketing version string.

@@ -74,8 +74,8 @@ struct OnboardingView: View {
             }
 
             Toggle("Show listening banner under the menu bar", isOn: Binding(
-                get: { appState.listeningHUDEnabled },
-                set: { appState.setListeningHUDEnabled($0) }
+                get: { appState.recordingWindowStyle != .none },
+                set: { appState.setRecordingWindowStyle($0 ? .classic : .none) }
             ))
             .toggleStyle(.checkbox)
             Text("Also: menu bar mic turns red with a timer while you speak.")

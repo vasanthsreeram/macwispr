@@ -77,6 +77,35 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// Short title for Models catalog.
+    var catalogTitle: String {
+        switch self {
+        case .miniCPM: return "Qwen3.5 Polish"
+        case .liquid: return "Liquid LFM Polish"
+        }
+    }
+
+    var catalogSubtitle: String {
+        switch self {
+        case .miniCPM:
+            return "Post-dictation cleanup · lists · course-correction · on-device 4-bit"
+        case .liquid:
+            return "Optional smaller course-correction pack (if installed)"
+        }
+    }
+
+    var catalogBadge: String {
+        switch self {
+        case .miniCPM: return "LLM · 4-bit"
+        case .liquid: return "LLM · LoRA"
+        }
+    }
+
+    /// Catalog rows (downloadable or already on disk).
+    static var catalogCases: [PolishLocalModel] {
+        allCases.filter(\.isSelectable)
+    }
+
     /// Whether weights exist for this model on disk (complete enough to load).
     var isAvailable: Bool {
         Self.resolveDirectory(for: self) != nil

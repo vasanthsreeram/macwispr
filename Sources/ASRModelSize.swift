@@ -129,4 +129,89 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
         let gb = systemMemoryGB
         return "This Mac has \(gb) GB — default is Qwen 0.6B (lighter). Switch to 1.7B for higher accuracy, or Parakeet (ANE) for speed."
     }
+
+    // MARK: - Catalog (Settings → Models)
+
+    /// Short catalog title (SuperWhisper-style list row).
+    var catalogTitle: String {
+        switch self {
+        case .small: return "Qwen 0.6B"
+        case .large: return "Qwen 1.7B"
+        case .parakeetInt4, .parakeetInt8: return "Parakeet v3"
+        }
+    }
+
+    /// Language / region chip.
+    var languageBadge: String {
+        switch self {
+        case .small, .large: return "En + Asian"
+        case .parakeetInt4, .parakeetInt8: return "En + EU"
+        }
+    }
+
+    /// Approximate download size for the catalog UI.
+    var downloadSizeLabel: String {
+        switch self {
+        case .small: return "~1.0 GB"
+        case .large: return "~2.3 GB"
+        case .parakeetInt4, .parakeetInt8: return "~600 MB"
+        }
+    }
+
+    /// Whether this pack is fully present under the HF cache.
+    var isDownloaded: Bool {
+        ASRModelCache.looksComplete(size: self)
+    }
+}
+
+/// Floating listening UI style (SuperWhisper-style Classic / Mini / None).
+enum RecordingWindowStyle: String, CaseIterable, Identifiable, Codable {
+    case classic = "classic"
+    case mini = "mini"
+    case none = "none"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .classic: return "Classic"
+        case .mini: return "Mini"
+        case .none: return "None"
+        }
+    }
+
+    var help: String {
+        switch self {
+        case .classic:
+            return "Full floating card with live draft transcript while you speak."
+        case .mini:
+            return "Compact Listening timer only — no live text card."
+        case .none:
+            return "No floating recording window. Menu bar status still updates."
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .classic: return "rectangle.and.pencil.and.ellipsis"
+        case .mini: return "capsule"
+        case .none: return "eye.slash"
+        }
+    }
+}
+
+/// Liquid Glass look for the floating recording window (macOS 26+).
+/// Mirrors System Settings → Appearance → Liquid Glass (Clear / Tinted).
+enum LiquidGlassStyle: String, CaseIterable, Identifiable, Codable {
+    case clear = "clear"
+    case tinted = "tinted"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .clear: return "Clear"
+        case .tinted: return "Tinted"
+        }
+    }
 }

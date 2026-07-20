@@ -2,18 +2,18 @@ import SwiftUI
 
 struct MainWindowView: View {
     @EnvironmentObject var appState: AppState
-    @State private var selectedSidebar: SidebarItem = .dashboard
+    @State private var selectedSidebar: SidebarItem = .home
     @State private var editingTranscription: String = ""
     @State private var isEditingTranscription = false
 
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 200, ideal: 230, max: 300)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
         } detail: {
             detailView
         }
-        .navigationTitle("MacWispr")
+        .navigationTitle(selectedSidebar.title)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -42,20 +42,38 @@ struct MainWindowView: View {
         }
     }
 
+    /// SuperWhisper-style left rail — one item per destination, no nested tab bar.
     private var sidebar: some View {
         List(selection: $selectedSidebar) {
-            Section("MacWispr") {
-                Label("Dashboard", systemImage: "chart.bar.fill")
-                    .tag(SidebarItem.dashboard)
+            Section {
+                Label("Home", systemImage: "house.fill")
+                    .tag(SidebarItem.home)
+            }
+
+            Section("Library") {
+                Label("Models", systemImage: "square.stack.3d.up.fill")
+                    .tag(SidebarItem.models)
+                Label("Vocabulary", systemImage: "text.book.closed.fill")
+                    .tag(SidebarItem.vocabulary)
+            }
+
+            Section("App") {
+                Label("Appearance", systemImage: "paintbrush.fill")
+                    .tag(SidebarItem.appearance)
+                Label("Configuration", systemImage: "gearshape.fill")
+                    .tag(SidebarItem.configuration)
+                Label("Sound", systemImage: "speaker.wave.2.fill")
+                    .tag(SidebarItem.sound)
+            }
+
+            Section {
+                Label("History", systemImage: "clock.fill")
+                    .tag(SidebarItem.history)
                 Label("Dictate", systemImage: "mic.fill")
                     .tag(SidebarItem.dictate)
-                Label("History", systemImage: "clock")
-                    .tag(SidebarItem.history)
-                Label("Settings", systemImage: "gear")
-                    .tag(SidebarItem.settings)
+                Label("About", systemImage: "info.circle.fill")
+                    .tag(SidebarItem.about)
             }
-            // History lives only in the detail pane (GitHub #14 — avoid duplicating
-            // the same list in the sidebar "menu" and the main content area).
         }
         .listStyle(.sidebar)
     }
@@ -63,28 +81,40 @@ struct MainWindowView: View {
     private var detailView: some View {
         Group {
             switch selectedSidebar {
-            case .dashboard:
+            case .home:
                 DashboardView()
-            case .dictate:
-                dictateDetail
+            case .models:
+                SettingsView(pane: .models)
+            case .vocabulary:
+                SettingsView(pane: .vocabulary)
+            case .appearance:
+                SettingsView(pane: .appearance)
+            case .configuration:
+                SettingsView(pane: .configuration)
+            case .sound:
+                SettingsView(pane: .sound)
             case .history:
                 historyDetail
-            case .settings:
-                SettingsView()
+            case .dictate:
+                dictateDetail
+            case .about:
+                SettingsView(pane: .about)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: selectedSidebar) { _, item in
             // Content-free nav telemetry (whitelisted surfaces only).
             switch item {
-            case .dashboard: Telemetry.shared.reportUIOpen(surface: "dashboard")
+            case .home: Telemetry.shared.reportUIOpen(surface: "dashboard")
             case .history: Telemetry.shared.reportUIOpen(surface: "history")
-            case .settings: Telemetry.shared.reportUIOpen(surface: "settings")
+            case .configuration, .models, .vocabulary, .appearance, .sound, .about:
+                Telemetry.shared.reportUIOpen(surface: "settings")
             case .dictate: break
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .macWisprShowSettings)) { _ in
-            selectedSidebar = .settings
+            // Menu “Settings…” → Configuration (not a nested tab strip).
+            selectedSidebar = .configuration
         }
     }
 
@@ -386,10 +416,29 @@ private struct EditableHistoryRow: View {
 }
 
 private enum SidebarItem: Hashable {
-    case dashboard
-    case dictate
+    case home
+    case models
+    case vocabulary
+    case appearance
+    case configuration
+    case sound
     case history
-    case settings
+    case dictate
+    case about
+
+    var title: String {
+        switch self {
+        case .home: return "Home"
+        case .models: return "Models"
+        case .vocabulary: return "Vocabulary"
+        case .appearance: return "Appearance"
+        case .configuration: return "Configuration"
+        case .sound: return "Sound"
+        case .history: return "History"
+        case .dictate: return "Dictate"
+        case .about: return "About"
+        }
+    }
 }
 
 extension Notification.Name {

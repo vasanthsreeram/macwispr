@@ -36,7 +36,8 @@ final class ListeningHUDController {
     private init() {}
 
     func sync(with state: AppState) {
-        guard state.listeningHUDEnabled else {
+        // None = fully off. Also honor legacy listeningHUDEnabled.
+        guard state.recordingWindowStyle != .none, state.listeningHUDEnabled else {
             hide()
             return
         }
@@ -49,9 +50,13 @@ final class ListeningHUDController {
             return
         }
 
+        // Mini: compact timer / status only — never expand into live text card.
+        let allowLiveText = state.recordingWindowStyle == .classic
+
         let live = state.currentTranscription
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        let hasLive = !live.isEmpty
+        let hasLive = allowLiveText
+            && !live.isEmpty
             && (state.dictationPhase == .listening || state.dictationPhase == .transcribing)
 
         let timer: String?
@@ -105,7 +110,8 @@ final class ListeningHUDController {
             timerLabel: showChrome ? timer : nil,
             liveTranscript: hasLive ? live : nil,
             statusLine: statusLine,
-            showChrome: showChrome
+            showChrome: showChrome,
+            glassStyle: state.liquidGlassStyle
         )
 
         // Chrome / leave-live: snap. Ongoing live height growth: animate.
@@ -209,13 +215,16 @@ struct ListeningBannerModel: Equatable {
     var statusLine: String?
     /// When false, hide Listening / red chrome — only the transcript card.
     var showChrome: Bool
+    /// Liquid Glass Clear / Tinted (macOS 26+).
+    var glassStyle: LiquidGlassStyle
 
     static let empty = ListeningBannerModel(
         phase: .ready,
         timerLabel: nil,
         liveTranscript: nil,
         statusLine: nil,
-        showChrome: true
+        showChrome: true,
+        glassStyle: .clear
     )
 }
 
@@ -363,12 +372,10 @@ struct ListeningBannerView: View {
             }
         }
         .frame(width: cardWidth, height: liveCardHeight, alignment: .topLeading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.20), radius: 10, y: 3)
+        .modifier(LiquidGlassSurface(
+            style: model.glassStyle,
+            shape: RoundedRectangle(cornerRadius: 16, style: .continuous)
+        ))
         // Height growth only after first line is stable (no springy first-frame).
         .animation(
             measuredContentHeight > Self.minCardHeight + 2
@@ -405,12 +412,10 @@ struct ListeningBannerView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: Capsule(style: .continuous))
-        .overlay(
-            Capsule(style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
+        .modifier(LiquidGlassSurface(
+            style: model.glassStyle,
+            shape: Capsule(style: .continuous)
+        ))
     }
 
     private var chromeTitle: String {
@@ -640,6 +645,40 @@ private struct WordWrapLayout: Layout {
             )
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
+// MARK: - Liquid Glass (macOS 26+)
+
+/// System Liquid Glass for the floating HUD. Falls back to materials on older OS.
+/// Public API: `glassEffect(.clear)` / `glassEffect(.regular.tint(...))` — not the private
+/// System Settings Assets.car tiles (AppearanceAuto / GlassClear / …).
+struct LiquidGlassSurface<S: InsettableShape>: ViewModifier {
+    let style: LiquidGlassStyle
+    let shape: S
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .glassEffect(glassVariant, in: shape)
+                .shadow(color: .black.opacity(0.16), radius: 10, y: 3)
+        } else {
+            content
+                .background(.regularMaterial, in: shape)
+                .overlay(shape.strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
+        }
+    }
+
+    @available(macOS 26.0, *)
+    private var glassVariant: Glass {
+        switch style {
+        case .clear:
+            return .clear
+        case .tinted:
+            // Soft accent tint — same idea as System Settings “Tinted”.
+            return .regular.tint(Color.accentColor.opacity(0.45))
         }
     }
 }

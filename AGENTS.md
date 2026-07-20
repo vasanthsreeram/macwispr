@@ -84,12 +84,18 @@ Instructions for coding agents working in this repository.
 - Soft ceiling so 100% isn’t ear-splitting next to a laptop mic.
 - Optional mute detection when chimes are enabled but output is muted.
 
-### Settings layout
+### Main window layout (left sidebar — SuperWhisper-style)
 
-- **General:** insertion → time saved (WPM up to **200**) → history → privacy → **post-processing last**
-- **Transcription:** status + language → model dropdown → vocabulary → **provider + BYOK keys last** (keys expand only for cloud)
-- **Hotkeys:** mode, sounds, banner, permissions
-- **Dashboard:** top-right **Local** chip with model menu (same catalog as Settings)
+No nested top TabView. One left rail:
+
+- **Home** — dashboard (time saved)
+- **Models** — download / delete / select ASR catalog
+- **Vocabulary** — custom words
+- **Appearance** — recording window Classic / Mini / None + live draft toggle
+- **Configuration** — insertion, WPM, privacy, polish, language, cloud keys
+- **Sound** — dictation mode, chimes, hotkey help
+- **History** / **Dictate** / **About**
+- **Dashboard chip** — quick model switch (same catalog as Models)
 
 ### Dictation modes
 

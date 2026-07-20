@@ -112,7 +112,14 @@ final class AppState: ObservableObject {
     @Published var lastFailureMessage: String? = nil
     /// Show a simple floating banner under the menu bar while dictating.
     /// (Not a Dynamic Island — plain app UI, easy to see.)
+    /// Prefer `recordingWindowStyle`; this stays in sync for older call sites.
     @Published var listeningHUDEnabled = true
+    /// SuperWhisper-style: Classic (live draft) / Mini (timer) / None (off).
+    @Published var recordingWindowStyle: RecordingWindowStyle = .classic
+    /// Liquid Glass look for the floating recording window (Clear / Tinted).
+    @Published var liquidGlassStyle: LiquidGlassStyle = .clear
+    /// Live draft while mic is open (only applies when recording window is Classic).
+    @Published var livePartialsEnabled = true
     /// First-run setup checklist until the user dismisses it.
     @Published var showOnboarding = false
     /// Connected microphones (refreshed when Settings opens).
@@ -164,6 +171,9 @@ final class AppState: ObservableObject {
     private static let polishProviderKey = "polishProvider"
     private static let polishLocalModelKey = "polishLocalModel"
     private static let listeningHUDKey = "listeningHUDEnabled"
+    private static let recordingWindowStyleKey = "recordingWindowStyle"
+    private static let liquidGlassStyleKey = "liquidGlassStyle"
+    private static let livePartialsEnabledKey = "livePartialsEnabled"
     private static let onboardingCompletedKey = "hasCompletedOnboarding"
     private static let inputDeviceUIDKey = "inputDeviceUID"
 
@@ -253,15 +263,35 @@ final class AppState: ObservableObject {
         stopChime = FeedbackSoundPreferences.stopChime
         successChime = FeedbackSoundPreferences.successChime
         failureChime = FeedbackSoundPreferences.failureChime
-        // Banner is on by default. Re-enable if an older build forced it off.
-        if UserDefaults.standard.object(forKey: "listeningBannerV2") == nil {
-            listeningHUDEnabled = true
-            UserDefaults.standard.set(true, forKey: Self.listeningHUDKey)
-            UserDefaults.standard.set(true, forKey: "listeningBannerV2")
-        } else if UserDefaults.standard.object(forKey: Self.listeningHUDKey) != nil {
-            listeningHUDEnabled = UserDefaults.standard.bool(forKey: Self.listeningHUDKey)
+        // Recording window: Classic / Mini / None (SuperWhisper-style).
+        // Migrate legacy listeningHUDEnabled boolean if style key missing.
+        if let raw = UserDefaults.standard.string(forKey: Self.recordingWindowStyleKey),
+           let style = RecordingWindowStyle(rawValue: raw)
+        {
+            recordingWindowStyle = style
+        } else if UserDefaults.standard.object(forKey: Self.listeningHUDKey) != nil,
+                  !UserDefaults.standard.bool(forKey: Self.listeningHUDKey)
+        {
+            recordingWindowStyle = .none
         } else {
-            listeningHUDEnabled = true
+            recordingWindowStyle = .classic
+        }
+        listeningHUDEnabled = recordingWindowStyle != .none
+        UserDefaults.standard.set(recordingWindowStyle.rawValue, forKey: Self.recordingWindowStyleKey)
+        UserDefaults.standard.set(listeningHUDEnabled, forKey: Self.listeningHUDKey)
+
+        if let raw = UserDefaults.standard.string(forKey: Self.liquidGlassStyleKey),
+           let glass = LiquidGlassStyle(rawValue: raw)
+        {
+            liquidGlassStyle = glass
+        } else {
+            liquidGlassStyle = .clear
+        }
+
+        if UserDefaults.standard.object(forKey: Self.livePartialsEnabledKey) != nil {
+            livePartialsEnabled = UserDefaults.standard.bool(forKey: Self.livePartialsEnabledKey)
+        } else {
+            livePartialsEnabled = true
         }
         refreshOutputMuteState()
         if let raw = UserDefaults.standard.string(forKey: "insertionMode"),
@@ -641,12 +671,77 @@ final class AppState: ObservableObject {
     }
 
     func setListeningHUDEnabled(_ enabled: Bool) {
-        listeningHUDEnabled = enabled
-        UserDefaults.standard.set(enabled, forKey: Self.listeningHUDKey)
-        if !enabled {
+        setRecordingWindowStyle(enabled ? .classic : .none)
+    }
+
+    func setRecordingWindowStyle(_ style: RecordingWindowStyle) {
+        recordingWindowStyle = style
+        listeningHUDEnabled = style != .none
+        UserDefaults.standard.set(style.rawValue, forKey: Self.recordingWindowStyleKey)
+        UserDefaults.standard.set(listeningHUDEnabled, forKey: Self.listeningHUDKey)
+        if style == .none {
             ListeningHUDController.shared.hide()
         } else {
             ListeningHUDController.shared.sync(with: self)
+        }
+    }
+
+    func setLiquidGlassStyle(_ style: LiquidGlassStyle) {
+        liquidGlassStyle = style
+        UserDefaults.standard.set(style.rawValue, forKey: Self.liquidGlassStyleKey)
+        ListeningHUDController.shared.sync(with: self)
+    }
+
+    func setLivePartialsEnabled(_ enabled: Bool) {
+        livePartialsEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.livePartialsEnabledKey)
+    }
+
+    /// Remove on-disk ASR weights for this catalog model (frees cache). Active
+    /// model is unloaded so the next load re-downloads.
+    func deleteDownloadedASRModel(_ size: ASRModelSize) async {
+        if asrModelSize == size || (size == .parakeetInt8 && asrModelSize == .parakeetInt4) {
+            await unloadLocalModelForProviderSwitch()
+            isModelLoaded = false
+            modelLoadStatus = "Model removed — download again to use"
+            modelLoadProgress = 0
+        }
+        ASRModelCache.purge(modelId: size.modelId)
+        if size == .parakeetInt8 {
+            ASRModelCache.purge(modelId: ASRModelSize.parakeetInt4.modelId)
+        }
+        objectWillChange.send()
+    }
+
+    /// Select + ensure model is loaded (download if needed).
+    func selectAndLoadASRModel(_ size: ASRModelSize) {
+        setTranscriptionProvider(.local)
+        if size != asrModelSize {
+            setASRModelSize(size)
+        } else if !isModelLoaded && !isModelLoading {
+            Task { await loadModel() }
+        }
+    }
+
+    /// Enable local polish and download/load this LLM pack.
+    func selectAndLoadPolishModel(_ model: PolishLocalModel) {
+        setPolishLocalModel(model)
+        setPolishProvider(.local)
+        if !isLLMLoaded && !isLLMLoading {
+            Task { await loadLLM(force: true) }
+        }
+    }
+
+    /// Turn off local polish without deleting weights.
+    func disableLocalPolish() {
+        setPolishProvider(.off)
+        Task {
+            await textPolisher.unload()
+            await MainActor.run {
+                isLLMLoaded = false
+                llmLoadStatus = ""
+                llmLoadProgress = 0
+            }
         }
     }
 
@@ -765,8 +860,9 @@ final class AppState: ObservableObject {
         livePartialTask?.cancel()
         livePartialInFlight = false
 
-        // Live draft for all local engines (not cloud STT).
-        guard transcriptionProvider == .local else { return }
+        // Live draft for local engines when enabled and window can show text (Classic)
+        // or still compute for mini when user wants drafts in menu status.
+        guard transcriptionProvider == .local, livePartialsEnabled else { return }
 
         livePartialTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 850_000_000)
