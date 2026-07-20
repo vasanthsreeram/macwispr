@@ -84,7 +84,7 @@ enum ASRModelSize: String, CaseIterable, Identifiable, Codable {
         case .large:
             return "Qwen3 1.7B on the GPU. Same En + Asian coverage with better accuracy on names, accents, and noise."
         case .parakeetInt4, .parakeetInt8:
-            return "Parakeet TDT v3 on the Neural Engine. Optimized for English and European languages; very fast batch dictation."
+            return "Parakeet TDT v3 on the Neural Engine. English + European languages; live draft while you speak, final pass on release."
         }
     }
 

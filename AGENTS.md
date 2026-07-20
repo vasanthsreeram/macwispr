@@ -11,7 +11,7 @@ Instructions for coding agents working in this repository.
   - **Parakeet v3 (En + EU)** via **Core ML** (Neural Engine)
 - Dashboard chip shows **Local** (or OpenAI / ElevenLabs); model detail is in the menu / subtitle
 - Default model: **Qwen 0.6B** (lighter; user can switch to 1.7B or Parakeet)
-- **Live partials (local Qwen only):** while the mic is open, re-run Qwen on the growing buffer and show a monochrome multi-line draft HUD; **final full pass on release** — [docs/context/LIVE_PARTIALS.md](docs/context/LIVE_PARTIALS.md)
+- **Live partials (local Qwen + Parakeet):** while the mic is open, re-run ASR on the growing buffer and show a monochrome multi-line draft HUD; **final full pass on release** — [docs/context/LIVE_PARTIALS.md](docs/context/LIVE_PARTIALS.md)
 - Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional **local polish** (off by default; Qwen3.5 SFT via MLX **4-bit** — **not** in Sparkle zip; downloads ~400 MB from HF on enable into Application Support — [POLISH_TRAINING.md](docs/context/POLISH_TRAINING.md))
 - Global hotkey: **⌥Space** (hold or toggle)
 - Inserts text system-wide (Accessibility required for paste / event tap)

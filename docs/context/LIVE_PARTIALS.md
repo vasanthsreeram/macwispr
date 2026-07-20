@@ -1,8 +1,8 @@
-# Live partials (local Qwen)
+# Live partials (local Qwen + Parakeet)
 
-Last updated: **2026-07-17**.
+Last updated: **2026-07-20**.
 
-MacWispr shows a **live draft transcript while the mic is open** when the active engine is **local Qwen** (MLX). This is **not** native causal streaming (unlike Parakeet-EOU). It is **orchestrated live batch**: re-run Qwen on the growing 16 kHz buffer and morph the HUD.
+MacWispr shows a **live draft transcript while the mic is open** for **local** engines (**Qwen** MLX and **Parakeet** Core ML). This is **not** native causal / token streaming. It is **orchestrated live batch**: re-run ASR on the growing 16 kHz buffer and morph the HUD.
 
 ## User-visible flow
 
@@ -19,17 +19,17 @@ Short clips (&lt; ~1 s of audio) may not show a live draft before release; final
 
 | | |
 |--|--|
-| **Is** | Live **feel** for Qwen 0.6B / 1.7B; monochrome multi-line HUD; polish deferred to post-insert |
-| **Is not** | Parakeet-EOU 120M native chunk streaming (`ParakeetStreamingASR` — not wired in-app) |
+| **Is** | Live **feel** for Qwen 0.6B / 1.7B **and Parakeet v3**; monochrome multi-line HUD; polish deferred to post-insert |
+| **Is not** | Parakeet-EOU 120M native chunk streaming (`ParakeetStreamingASR` — not wired; TDT uses batch re-runs) |
 | **Is not** | Token-level streaming from the Qwen decoder API |
-| **Is not** | Live path for Parakeet TDT or cloud STT (those stay batch-on-release) |
+| **Is not** | Live path for cloud STT (OpenAI / ElevenLabs stay batch-on-release) |
 
 ## Engines
 
 | Engine | Live partials while mic open? | On release |
 |--------|-------------------------------|------------|
 | **Qwen 0.6B / 1.7B (MLX)** | Yes | Final full-buffer batch → insert → optional polish |
-| **Parakeet v3 (Core ML)** | No | Batch only |
+| **Parakeet v3 (Core ML)** | Yes (same growing-buffer batch re-run) | Final full-buffer batch → insert |
 | **OpenAI / ElevenLabs** | No | Batch only |
 
 Default local model: **Qwen 0.6B** (`ASRModelSize.recommendedDefault` → `.small`) for lower RAM / download. Live partials work for **both** 0.6B and 1.7B; user can pick 1.7B for accuracy.
@@ -48,7 +48,7 @@ Default local model: **Qwen 0.6B** (`ASRModelSize.recommendedDefault` → `.smal
 
 ### Live loop rules
 
-- Only when `transcriptionProvider == .local` **and** `asrModelSize.engine == .qwenMLX`
+- When `transcriptionProvider == .local` (Qwen **or** Parakeet)
 - Minimum samples before first pass: **16_000** (~1.0 s @ 16 kHz)
 - Interval: **~1.1 s**; at most one in-flight live ASR (`livePartialInFlight`)
 - Session / `recordingSession` guards drop stale results after release
@@ -98,7 +98,7 @@ Live drafts are **on-device only**. Telemetry still must **never** include trans
 - Do **not** run polish before insert completes
 - Do **not** block the mic audio thread on ASR — live ASR is async on `TranscriptionEngine` actor
 - Replacing root SwiftUI view every tick **resets** animation state — keep `ListeningBannerBox` stable
-- Parakeet-EOU native streaming is a **separate** product path (`ParakeetStreamingASR` in newer speech-swift); do not confuse with this Qwen live-batch feature
+- Parakeet-EOU native streaming is a **separate** product path if added later; current Parakeet live path is the same growing-buffer batch re-run as Qwen
 
 ## Related
 

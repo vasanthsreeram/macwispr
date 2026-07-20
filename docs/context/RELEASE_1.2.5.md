@@ -20,7 +20,7 @@ Polish remains **off by default**. ASR models still download separately to cache
 ```bash
 set -a && source .env.signing && set +a
 export MACWISPR_VERSION=1.2.5
-# Do NOT set MACWISPR_BUNDLE_POLISH
+# Models are never embedded (no BUNDLE_POLISH flag).
 ./scripts/build-app.sh
 ./scripts/build-dmg.sh
 

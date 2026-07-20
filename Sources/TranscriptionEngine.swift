@@ -41,6 +41,43 @@ actor TranscriptionEngine {
         // Explicit unload frees weights + Metal/ANE footprint.
         releaseModel()
 
+        // Drop incomplete/corrupt HF cache *before* load so speech-swift does not
+        // treat a stub `model.safetensors` as “already downloaded”.
+        ASRModelCache.prepareForLoad(size: size)
+
+        do {
+            try await loadModelOnce(
+                size: size,
+                modelId: modelId,
+                generation: generation,
+                progressHandler: progressHandler
+            )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            // Common on flaky first downloads: partial weights → “file couldn’t be opened”.
+            guard ASRModelCache.shouldRetryAfterPurge(error) else { throw error }
+            guard generation == loadGeneration else { throw CancellationError() }
+            NSLog(
+                "MacWispr: ASR load failed (\(error.localizedDescription)); purging cache and re-downloading \(modelId)"
+            )
+            progressHandler(0.01, "Re-downloading model (previous cache was incomplete)…")
+            ASRModelCache.purge(modelId: modelId)
+            try await loadModelOnce(
+                size: size,
+                modelId: modelId,
+                generation: generation,
+                progressHandler: progressHandler
+            )
+        }
+    }
+
+    private func loadModelOnce(
+        size: ASRModelSize,
+        modelId: String,
+        generation: Int,
+        progressHandler: @escaping @Sendable (Double, String) -> Void
+    ) async throws {
         switch size.engine {
         case .qwenMLX:
             progressHandler(0.02, "Loading Qwen…")
@@ -79,6 +116,7 @@ actor TranscriptionEngine {
             self.loadedModelId = modelId
             self.loadedEngine = .parakeetCoreML
             try warmUpParakeet(loaded)
+            progressHandler(1.0, "Ready")
         }
     }
 

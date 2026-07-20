@@ -54,6 +54,22 @@ Checklist:
 /Applications/MacWispr.app/Contents/MacOS/MacWispr --self-test
 ```
 
+## Qwen 0.6B / 1.7B: “The file couldn’t be opened” on model load
+
+**Symptom:** First (or later) load of Qwen ASR fails with something like *The file … couldn’t be opened* / Error status in Settings. Common on new Macs or flaky networks.
+
+**Cause:** Hugging Face download was interrupted. A partial `model.safetensors` remains under `~/Library/Caches/qwen3-speech/…`. speech-swift only checks that *some* `.safetensors` exists, so it skips re-download and MLX fails opening the truncated file.
+
+**Fix (app):** `ASRModelCache` validates weight size + required tokenizer files before load, and on open/corrupt errors **purges the cache and re-downloads once**.
+
+**Manual recovery:**
+
+```bash
+rm -rf ~/Library/Caches/qwen3-speech/models/mlx-community/Qwen3-ASR-0.6B-8bit
+rm -rf ~/Library/Caches/qwen3-speech/models/mlx-community/Qwen3-ASR-1.7B-8bit
+# Then reopen MacWispr and pick the model again
+```
+
 ## Parakeet: MultiArray shape (1×128×200) vs (1×128×3000)
 
 **Symptom:** Banner/error

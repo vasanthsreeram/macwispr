@@ -4,10 +4,10 @@ import HuggingFace
 /// On-device polish weight packs (MLX directories). User can switch in Settings.
 /// Default pack (`PolishModel`) is Qwen3.5-0.8B Base full-SFT polish (not Liquid).
 ///
-/// Production: weights are **not** bundled in the Sparkle zip. When the user enables
-/// Local polish, MacWispr downloads the pack from Hugging Face into
-/// `Application Support/MacWispr/PolishModel/`. Bundle / env / dev paths still work
-/// for offline QA and development.
+/// Weights are **never** shipped inside the app. When the user enables Local polish,
+/// MacWispr downloads the pack from Hugging Face into
+/// `Application Support/MacWispr/PolishModel/`. Env / Application Support / dev cache
+/// paths work for offline QA — not the app bundle.
 enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
     case miniCPM = "minicpm"  // rawValue kept for prefs; UI label is Qwen3.5 polish
     case liquid = "liquid"
@@ -137,11 +137,7 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
             let u = URL(fileURLWithPath: override)
             if looksLikeCompletePack(at: u) { return u }
         }
-        if let bundled = Bundle.main.url(forResource: model.resourceFolderName, withExtension: nil),
-           looksLikeCompletePack(at: bundled)
-        {
-            return bundled
-        }
+        // Do not load from the app bundle — models are never packaged there.
         // Application Support installs (download-on-enable target)
         if let dir = applicationSupportDirectory(for: model),
            looksLikeCompletePack(at: dir)
@@ -191,7 +187,7 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
         else {
             throw NSError(domain: "PolishLocalModel", code: 1, userInfo: [
                 NSLocalizedDescriptionKey:
-                    "Polish model not found for \(model.shortName). Bundle \(model.resourceFolderName), set \(model.envKey), or configure a Hugging Face repo."
+                    "Polish model not found for \(model.shortName). Enable Local polish to download, set \(model.envKey), or install under Application Support/\(model.resourceFolderName)."
             ])
         }
         guard let dest = applicationSupportDirectory(for: model) else {

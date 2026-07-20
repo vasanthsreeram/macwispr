@@ -95,40 +95,13 @@ fi
 # Embed Sparkle.framework (SPM binary target) next to the app binary path layout.
 # Without this, Check for Updates fails at load time on the packaged .app.
 
-# Polish weights are NOT bundled by default (~1.4 GB). Production downloads
-# from Hugging Face when the user enables Local polish (see PolishLocalModel).
-# Opt-in bundle for offline QA: MACWISPR_BUNDLE_POLISH=1 [POLISH_MODEL_SRC=…].
-if [[ "${MACWISPR_BUNDLE_POLISH:-0}" == "1" ]]; then
-  POLISH_MODEL_SRC="${POLISH_MODEL_SRC:-$HOME/.cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-enum}"
-  if [[ ! -d "$POLISH_MODEL_SRC" ]]; then
-    for candidate in \
-      "$HOME/.cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-targeted" \
-      "$HOME/.cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-500"
-    do
-      if [[ -d "$candidate" ]]; then
-        POLISH_MODEL_SRC="$candidate"
-        break
-      fi
-    done
-  fi
-  if [[ -d "$POLISH_MODEL_SRC" ]]; then
-    echo "==> Bundling polish model (MACWISPR_BUNDLE_POLISH=1) from $POLISH_MODEL_SRC"
-    rm -rf "$APP/Contents/Resources/PolishModel"
-    mkdir -p "$APP/Contents/Resources/PolishModel"
-    cp -R "$POLISH_MODEL_SRC"/* "$APP/Contents/Resources/PolishModel/"
-  else
-    echo "⚠  MACWISPR_BUNDLE_POLISH=1 but polish model not found (set POLISH_MODEL_SRC)"
-  fi
-  POLISH_MODEL_LFM_SRC="${POLISH_MODEL_LFM_SRC:-}"
-  if [[ -n "$POLISH_MODEL_LFM_SRC" && -d "$POLISH_MODEL_LFM_SRC" ]]; then
-    echo "==> Bundling optional Liquid LFM polish from $POLISH_MODEL_LFM_SRC"
-    rm -rf "$APP/Contents/Resources/PolishModel-LFM"
-    mkdir -p "$APP/Contents/Resources/PolishModel-LFM"
-    cp -R "$POLISH_MODEL_LFM_SRC"/* "$APP/Contents/Resources/PolishModel-LFM/"
-  fi
-else
-  echo "==> Skipping polish bundle (download-on-enable; set MACWISPR_BUNDLE_POLISH=1 to embed)"
-fi
+# Never embed STT or polish model weights in the .app / Sparkle zip.
+# - ASR (Qwen / Parakeet): on-demand cache (~/Library/Caches/…)
+# - Polish: download-on-enable → Application Support (Hugging Face)
+# Dev: MACWISPR_POLISH_MODEL=/path or ~/.cache fused packs still work at runtime.
+echo "==> No model weights in app (download-on-enable / cache only)"
+rm -rf "$APP/Contents/Resources/PolishModel" \
+       "$APP/Contents/Resources/PolishModel-LFM"
 
 echo "==> Embedding Sparkle.framework..."
 FRAMEWORKS_DIR="$APP/Contents/Frameworks"

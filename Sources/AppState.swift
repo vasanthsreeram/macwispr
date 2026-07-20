@@ -142,7 +142,7 @@ final class AppState: ObservableObject {
     private var modelLoadGeneration = 0
     /// Debounced history persistence — avoids rewriting history.json every dictation.
     private var historySaveTask: Task<Void, Never>?
-    /// Live partial ASR while the mic is open (local Qwen only).
+    /// Live partial ASR while the mic is open (local Qwen + Parakeet).
     private var livePartialTask: Task<Void, Never>?
     /// Prevents overlapping live ASR calls on the engine actor.
     private var livePartialInFlight = false
@@ -561,18 +561,21 @@ final class AppState: ObservableObject {
             let engine = transcriptionEngine
             let size = asrModelSize
             try await Task.detached {
+                // Keep "Download" wording when the pack is not on disk yet so users
+                // know a multi‑hundred‑MB HF fetch is in progress (not a local load).
+                let alreadyCached = ASRModelCache.looksComplete(size: size)
                 try await engine.loadModel(size: size) { progress, status in
                     DispatchQueue.main.async { [weak self] in
                         guard let self, self.modelLoadGeneration == generation else { return }
                         self.modelLoadProgress = progress
-                        // Weights stay on disk after first fetch; always say "load"
-                        // even if speech-swift still reports "download" in status.
-                        var label = status.replacingOccurrences(
-                            of: "Download",
-                            with: "Load",
-                            options: .caseInsensitive
-                        )
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        var label = status.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if alreadyCached {
+                            label = label.replacingOccurrences(
+                                of: "Download",
+                                with: "Load",
+                                options: .caseInsensitive
+                            )
+                        }
                         while label.hasSuffix("…") || label.hasSuffix("...") || label.hasSuffix(".") {
                             if label.hasSuffix("...") {
                                 label = String(label.dropLast(3))
@@ -581,7 +584,9 @@ final class AppState: ObservableObject {
                             }
                             label = label.trimmingCharacters(in: .whitespacesAndNewlines)
                         }
-                        if label.isEmpty { label = "Loading model" }
+                        if label.isEmpty {
+                            label = alreadyCached ? "Loading model" : "Downloading model"
+                        }
                         self.modelLoadStatus = "\(label)… \(Int(progress * 100))%"
                     }
                 }
@@ -748,18 +753,20 @@ final class AppState: ObservableObject {
             }
             guard isRecording, recordingSession == session else { return }
             audioRecorder.startRecording()
-            // Live partials while the mic is open (local Qwen) — words appear as you speak.
+            // Live partials while the mic is open (local Qwen + Parakeet).
             startLivePartialLoop(session: session)
         }
     }
 
     /// Periodically re-transcribe the growing mic buffer so the HUD types live.
+    /// Works for **Qwen (MLX)** and **Parakeet (Core ML)** — both use full-buffer
+    /// batch re-runs (Parakeet has no separate token stream API in-app).
     private func startLivePartialLoop(session: Int) {
         livePartialTask?.cancel()
         livePartialInFlight = false
 
-        // Live draft only for local Qwen (AR batch on growing buffer).
-        guard transcriptionProvider == .local, asrModelSize.engine == .qwenMLX else { return }
+        // Live draft for all local engines (not cloud STT).
+        guard transcriptionProvider == .local else { return }
 
         livePartialTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 850_000_000)
@@ -837,7 +844,7 @@ final class AppState: ObservableObject {
     /// Prefer the live HUD draft when almost no new audio arrived after it.
     private func shouldReuseLiveDraft(draft: String, totalSamples: Int) -> Bool {
         guard !draft.isEmpty else { return false }
-        guard transcriptionProvider == .local, asrModelSize.engine == .qwenMLX else { return false }
+        guard transcriptionProvider == .local else { return false }
         guard lastLivePartialSampleCount >= Self.livePartialMinSamples else { return false }
         let newSamples = totalSamples - lastLivePartialSampleCount
         // Draft covered nearly the whole buffer (or was slightly ahead of stop).
