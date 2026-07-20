@@ -279,12 +279,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
-
-        // One more kick after layout — fixes rare blank first frame.
+        // SwiftUI installs the toolbar asynchronously — lock it after layout.
+        lockDashboardToolbar(window)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
+            self.lockDashboardToolbar(window)
         }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.lockDashboardToolbar(window)
+        }
+    }
+
+    /// Kill the macOS “Icon and Text / Icon Only” toolbar menu (right-click /
+    /// double-click on the titlebar toolbar). Users don’t customize this chrome.
+    @MainActor
+    private func lockDashboardToolbar(_ window: NSWindow) {
+        guard let toolbar = window.toolbar else { return }
+        toolbar.allowsUserCustomization = false
+        toolbar.autosavesConfiguration = false
+        if #available(macOS 15.0, *) {
+            toolbar.allowsDisplayModeCustomization = false
+        }
+        // Keep a stable look; don’t let a double-click flip display modes.
+        toolbar.displayMode = .iconAndLabel
     }
 
     /// Closes extra titled MacWispr windows so only our retained dashboard remains.

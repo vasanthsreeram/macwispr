@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Carbon
 
 /// Left-sidebar destinations (SuperWhisper-style). Used by the main window rail.
 enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
@@ -90,14 +91,22 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 0) {
                 generalSettings
                 Divider().padding(.vertical, 8)
+                keyboardShortcutsSettings
+                Divider().padding(.vertical, 8)
+                microphoneAndPermissionsSettings
+                Divider().padding(.vertical, 8)
                 transcriptionSettings
             }
         }
     }
 
-    /// Sound = hotkeys + chimes (SuperWhisper “Sound” grouping).
+    /// Sound = chimes only (hotkeys live under Configuration).
     private var soundSettings: some View {
-        hotkeySettings
+        Form {
+            soundAndChimesSection
+        }
+        .formStyle(.grouped)
+        .padding()
     }
 
     private var generalSettings: some View {
@@ -178,29 +187,29 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Polish mode here; LLM weights live under Models → LLM models.
+            // Light post-process only; polish packs live under Models → AI Models.
             Section("Post-Processing") {
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
 
-                Picker("Polish transcript", selection: Binding(
-                    get: { appState.polishProvider },
-                    set: { appState.setPolishProvider($0) }
-                )) {
-                    ForEach(PolishProvider.allCases) { mode in
-                        Text(mode.displayName).tag(mode)
+                HStack {
+                    Text("Polish")
+                    Spacer()
+                    if appState.polishProvider == .off {
+                        Text("Off")
+                            .foregroundStyle(.secondary)
+                    } else if appState.polishProvider == .local {
+                        Text(appState.polishLocalModel.catalogTitle)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        Text(appState.polishProvider.displayName)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                Text(appState.polishProvider.help)
+                Text("Enable packs in Models → AI Models → Show experimental models.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-
                 if appState.polishProvider == .local {
-                    Text("Active pack: \(appState.polishLocalModel.catalogTitle)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("Download, switch, or remove LLM packs in the Models sidebar.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
                     if appState.isLLMLoading {
                         ProgressView(value: appState.llmLoadProgress) {
                             Text(appState.llmLoadStatus).font(.caption)
@@ -210,7 +219,7 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.green)
                     } else if !appState.isPolishModelOnDisk {
-                        Label("Not downloaded — open Models → LLM models", systemImage: "arrow.down.circle")
+                        Label("Not downloaded — open Models → AI Models", systemImage: "arrow.down.circle")
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
@@ -242,7 +251,7 @@ struct SettingsView: View {
                         .controlSize(.small)
                 }
 
-                // Voice
+                // Voice STT
                 catalogSection(icon: "waveform", title: "Voice") {
                     ForEach(ASRModelSize.dashboardChoices) { size in
                         voiceModelRow(size)
@@ -252,17 +261,22 @@ struct SettingsView: View {
                     }
                 }
 
-                // LLM polish (Off is just a row of icons — no long copy)
-                catalogSection(icon: "text.badge.checkmark", title: "Polish") {
-                    polishOffRow
-                    Divider().opacity(0.3).padding(.leading, 44)
-                    // Only show packs that are downloadable or already on disk — skip empty LFM noise.
-                    ForEach(PolishLocalModel.catalogCases.filter { $0.huggingfaceRepoId != nil || $0.isAvailable }) { model in
-                        llmModelRow(model)
+                // AI Models — SuperWhisper-style: polish packs gated behind experimental toggle
+                catalogSection(icon: "atom", title: "AI Models") {
+                    experimentalAIModelsToggleRow
+
+                    if appState.showExperimentalAIModels {
+                        Divider().opacity(0.3).padding(.leading, 14)
+                        polishOffRow
+                        // Only show packs that are downloadable or already on disk.
+                        ForEach(PolishLocalModel.catalogCases.filter { $0.huggingfaceRepoId != nil || $0.isAvailable }) { model in
+                            Divider().opacity(0.3).padding(.leading, 44)
+                            llmModelRow(model)
+                        }
                     }
                 }
 
-                // Cloud — icons only
+                // Cloud STT — icons only
                 catalogSection(icon: "cloud", title: "Cloud") {
                     cloudProviderRow(.openAI, title: "OpenAI", symbol: "cloud")
                     Divider().opacity(0.3).padding(.leading, 44)
@@ -311,6 +325,38 @@ struct SettingsView: View {
             onSelect: { appState.selectAndLoadASRModel(size) },
             onDelete: { Task { await appState.deleteDownloadedASRModel(size) } }
         )
+    }
+
+    /// SuperWhisper-style row: “Show experimental models” + toggle.
+    private var experimentalAIModelsToggleRow: some View {
+        HStack(spacing: 12) {
+            Text("Show experimental models")
+                .font(.body)
+            Button {
+                // Tiny help affordance (popover)
+            } label: {
+                Image(systemName: "questionmark.circle")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Optional on-device polish LLMs that clean up dictation after STT. Downloads only when you pick a pack.")
+            Spacer(minLength: 8)
+            Image(systemName: "atom")
+                .font(.body)
+                .foregroundStyle(.secondary)
+            Toggle(
+                "",
+                isOn: Binding(
+                    get: { appState.showExperimentalAIModels },
+                    set: { appState.setShowExperimentalAIModels($0) }
+                )
+            )
+            .toggleStyle(.switch)
+            .labelsHidden()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
     }
 
     private var polishOffRow: some View {
@@ -928,7 +974,9 @@ struct SettingsView: View {
         }
     }
 
-    private var hotkeySettings: some View {
+    // MARK: - Keyboard shortcuts (Configuration)
+
+    private var keyboardShortcutsSettings: some View {
         Form {
             Section("Dictation Mode") {
                 Picker("Mode", selection: Binding(
@@ -944,126 +992,192 @@ struct SettingsView: View {
                 Text(appState.dictationMode.help)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-
-                HStack {
-                    Text("Hotkey")
-                    Spacer()
-                    Text("⌥ Space")
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.quaternary)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
-                Text("Menu bar shows only the control for your current mode (Hold button or Start/Stop).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("Also available via Shortcuts / Spotlight: Start, Stop, Toggle dictation.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
-            Section("Sound & status") {
-                Toggle("Play feedback sounds", isOn: Binding(
-                    get: { appState.soundFeedbackEnabled },
-                    set: { appState.setSoundFeedbackEnabled($0) }
-                ))
-                Text("Recording window (Classic / Mini / None) is under Appearance.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Section {
+                shortcutRow(
+                    title: "Dictation",
+                    subtitle: appState.dictationMode == .hold
+                        ? "Hold to record, release when done"
+                        : "Starts and stops recording",
+                    chord: appState.dictationHotkey,
+                    onRecorded: { appState.setDictationHotkey($0) },
+                    onReset: { appState.resetDictationHotkey() },
+                    requireSafeGlobal: true
+                )
+                shortcutRow(
+                    title: "Cancel Recording",
+                    subtitle: "Discards the active recording",
+                    chord: appState.cancelHotkey,
+                    onRecorded: { appState.setCancelHotkey($0) },
+                    onReset: { appState.resetCancelHotkey() },
+                    requireSafeGlobal: false
+                )
+            } header: {
+                Text("Keyboard Shortcuts")
+            } footer: {
+                Text("Click a shortcut, then press the keys you want. Esc cancels capture. Also available via Shortcuts / Spotlight: Start, Stop, Toggle dictation.")
+            }
 
-                if appState.soundFeedbackEnabled {
-                    if appState.outputMuted {
-                        Label(
-                            "Mac sound is muted (or volume is zero). Unmute to hear chimes.",
-                            systemImage: "speaker.slash.fill"
-                        )
+            if appState.hotkeyArmed {
+                Section {
+                    Label("Hotkey armed · \(appState.dictationHotkey.displayString)", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
                         .font(.caption)
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Volume")
-                            Spacer()
-                            Text("\(Int(appState.feedbackSoundVolume * 100))%")
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                        Slider(
-                            value: Binding(
-                                get: { appState.feedbackSoundVolume },
-                                set: { appState.setFeedbackSoundVolume($0) }
-                            ),
-                            in: 0...1,
-                            step: 0.05
-                        )
-                        Text("Applies to all MacWispr chimes (separate from system volume).")
+                }
+            } else {
+                Section {
+                    HStack {
+                        Label("Hotkey not armed", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    chimePicker(
-                        title: "Start listening",
-                        selection: Binding(
-                            get: { appState.startChime },
-                            set: { appState.setStartChime($0) }
-                        ),
-                        preview: { FeedbackSounds.playListeningStarted() }
-                    )
-                    chimePicker(
-                        title: "Stop / release",
-                        selection: Binding(
-                            get: { appState.stopChime },
-                            set: { appState.setStopChime($0) }
-                        ),
-                        preview: { FeedbackSounds.playListeningStopped() }
-                    )
-                    chimePicker(
-                        title: "Done (final chime)",
-                        selection: Binding(
-                            get: { appState.successChime },
-                            set: { appState.setSuccessChime($0) }
-                        ),
-                        preview: { FeedbackSounds.playSuccess() }
-                    )
-                    chimePicker(
-                        title: "Error / not ready",
-                        selection: Binding(
-                            get: { appState.failureChime },
-                            set: { appState.setFailureChime($0) }
-                        ),
-                        preview: { FeedbackSounds.playFailure() }
-                    )
-
-                    HStack(spacing: 12) {
-                        Button("Preview all") {
-                            appState.refreshOutputMuteState()
-                            FeedbackSounds.playListeningStarted()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-                                FeedbackSounds.playListeningStopped()
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                                FeedbackSounds.playSuccess()
-                            }
-                        }
-                        Button("Recheck mute") {
-                            appState.refreshOutputMuteState()
-                        }
-                        .font(.caption)
+                        Spacer()
+                        Button("Repair") { appState.repairHotkey() }
+                            .controlSize(.small)
                     }
                 }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
 
-                Button("Show setup checklist again…") {
-                    appState.reopenOnboarding()
-                }
+    private func shortcutRow(
+        title: String,
+        subtitle: String,
+        chord: KeyChord,
+        onRecorded: @escaping (KeyChord) -> Void,
+        onReset: @escaping () -> Void,
+        requireSafeGlobal: Bool
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            Button {
+                onReset()
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Reset to default")
+
+            ShortcutRecorderControl(
+                chord: chord,
+                requireSafeGlobal: requireSafeGlobal,
+                onRecorded: onRecorded
+            )
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var soundAndChimesSection: some View {
+        Section("Sound") {
+            Toggle("Play feedback sounds", isOn: Binding(
+                get: { appState.soundFeedbackEnabled },
+                set: { appState.setSoundFeedbackEnabled($0) }
+            ))
+            Text("Recording window (Classic / Mini / None) is under Appearance.")
                 .font(.caption)
-            }
-            .onAppear {
-                appState.refreshOutputMuteState()
-                appState.refreshInputDevices()
-            }
+                .foregroundStyle(.secondary)
 
+            if appState.soundFeedbackEnabled {
+                if appState.outputMuted {
+                    Label(
+                        "Mac sound is muted (or volume is zero). Unmute to hear chimes.",
+                        systemImage: "speaker.slash.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Volume")
+                        Spacer()
+                        Text("\(Int(appState.feedbackSoundVolume * 100))%")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(
+                        value: Binding(
+                            get: { appState.feedbackSoundVolume },
+                            set: { appState.setFeedbackSoundVolume($0) }
+                        ),
+                        in: 0...1,
+                        step: 0.05
+                    )
+                    Text("Applies to all MacWispr chimes (separate from system volume).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                chimePicker(
+                    title: "Start listening",
+                    selection: Binding(
+                        get: { appState.startChime },
+                        set: { appState.setStartChime($0) }
+                    ),
+                    preview: { FeedbackSounds.playListeningStarted() }
+                )
+                chimePicker(
+                    title: "Stop / release",
+                    selection: Binding(
+                        get: { appState.stopChime },
+                        set: { appState.setStopChime($0) }
+                    ),
+                    preview: { FeedbackSounds.playListeningStopped() }
+                )
+                chimePicker(
+                    title: "Done (final chime)",
+                    selection: Binding(
+                        get: { appState.successChime },
+                        set: { appState.setSuccessChime($0) }
+                    ),
+                    preview: { FeedbackSounds.playSuccess() }
+                )
+                chimePicker(
+                    title: "Error / not ready",
+                    selection: Binding(
+                        get: { appState.failureChime },
+                        set: { appState.setFailureChime($0) }
+                    ),
+                    preview: { FeedbackSounds.playFailure() }
+                )
+
+                HStack(spacing: 12) {
+                    Button("Preview all") {
+                        appState.refreshOutputMuteState()
+                        FeedbackSounds.playListeningStarted()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                            FeedbackSounds.playListeningStopped()
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                            FeedbackSounds.playSuccess()
+                        }
+                    }
+                    Button("Recheck mute") {
+                        appState.refreshOutputMuteState()
+                    }
+                    .font(.caption)
+                }
+            }
+        }
+        .onAppear {
+            appState.refreshOutputMuteState()
+        }
+    }
+
+    private var microphoneAndPermissionsSettings: some View {
+        Form {
             Section("Microphone") {
                 Picker("Input device", selection: Binding(
                     get: { appState.selectedInputDeviceUID },
@@ -1105,7 +1219,7 @@ struct SettingsView: View {
                     Text("Global hotkey")
                     Spacer()
                     if appState.hotkeyArmed {
-                        Label("⌥Space ready", systemImage: "checkmark.circle.fill")
+                        Label("\(appState.dictationHotkey.displayString) ready", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                     } else {
                         Button("Repair Hotkey") {
@@ -1113,13 +1227,21 @@ struct SettingsView: View {
                         }
                     }
                 }
-                Text("Accessibility is required for ⌥Space and for pasting into other apps. After an update or reinstall, re-enable MacWispr in System Settings → Privacy & Security → Accessibility (TCC binds to the binary). The hotkey re-arms automatically once granted — no relaunch needed.")
+                Text("Accessibility is required for the global hotkey and for pasting into other apps. After an update or reinstall, re-enable MacWispr in System Settings → Privacy & Security → Accessibility. The hotkey re-arms automatically once granted.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Button("Show setup checklist again…") {
+                    appState.reopenOnboarding()
+                }
+                .font(.caption)
             }
         }
         .formStyle(.grouped)
         .padding()
+        .onAppear {
+            appState.refreshInputDevices()
+        }
     }
 
     private var aboutView: some View {
@@ -1162,7 +1284,7 @@ struct SettingsView: View {
                     aboutRow(icon: "macbook", title: "On-device", detail: "Qwen (En + Asian) · Parakeet v3 (En + EU)")
                     aboutRow(icon: "key.fill", title: "BYOK cloud", detail: "OpenAI · ElevenLabs Scribe v2")
                     aboutRow(icon: "text.badge.checkmark", title: "Polish", detail: "Local LLM or OpenAI · Keychain-only keys")
-                    aboutRow(icon: "keyboard", title: "Hotkey", detail: "⌥Space hold or toggle · Both insert by default")
+                    aboutRow(icon: "keyboard", title: "Hotkey", detail: "Customizable in Configuration · Hold or Toggle")
                 }
                 .frame(maxWidth: 360)
                 .padding(.top, 4)
@@ -1232,6 +1354,109 @@ private struct AppearanceTileItem: Identifiable {
     let isSelected: Bool
     let select: () -> Void
     let preview: () -> AnyView
+}
+
+// MARK: - Click-to-record shortcut (SuperWhisper-style)
+
+/// Click → “Recording…” → next key chord becomes the shortcut.
+private struct ShortcutRecorderControl: View {
+    let chord: KeyChord
+    var requireSafeGlobal: Bool = true
+    let onRecorded: (KeyChord) -> Void
+
+    @EnvironmentObject private var appState: AppState
+    @State private var isRecording = false
+    @State private var flashError = false
+    @State private var monitor: Any?
+
+    var body: some View {
+        Button {
+            if isRecording {
+                stopRecording(commit: nil)
+            } else {
+                startRecording()
+            }
+        } label: {
+            Group {
+                if isRecording {
+                    Text("Recording…")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                } else if flashError {
+                    Text("Need ⌘/⌥/⌃")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                } else {
+                    HStack(spacing: 4) {
+                        ForEach(chord.badgeLabels, id: \.self) { label in
+                            Text(label)
+                                .font(.caption.weight(.semibold).monospaced())
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 4)
+                                .background(Color.primary.opacity(0.10), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                        }
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(isRecording ? "Press keys now · Esc cancels" : "Click to record a new shortcut")
+        .onDisappear {
+            stopRecording(commit: nil)
+        }
+    }
+
+    private func startRecording() {
+        guard !isRecording else { return }
+        isRecording = true
+        flashError = false
+        appState.hotkeyManager.isCapturingShortcut = true
+
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Esc alone → cancel capture
+            if event.keyCode == UInt16(kVK_Escape),
+               event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty
+            {
+                DispatchQueue.main.async { stopRecording(commit: nil) }
+                return nil
+            }
+            guard let captured = KeyChord.from(event: event) else {
+                return nil // swallow pure modifiers
+            }
+            if requireSafeGlobal, !captured.isSafeForGlobalDictation {
+                DispatchQueue.main.async {
+                    flashError = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                        flashError = false
+                    }
+                }
+                return nil
+            }
+            DispatchQueue.main.async {
+                stopRecording(commit: captured)
+            }
+            return nil // swallow
+        }
+    }
+
+    private func stopRecording(commit: KeyChord?) {
+        if let monitor {
+            NSEvent.removeMonitor(monitor)
+            self.monitor = nil
+        }
+        isRecording = false
+        appState.hotkeyManager.isCapturingShortcut = false
+        if let commit {
+            onRecorded(commit)
+        }
+    }
 }
 
 /// Single source for the About tab / marketing version string.

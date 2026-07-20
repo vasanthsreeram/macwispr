@@ -55,7 +55,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         if let button = item.button {
             button.image = Self.symbolImage(phase: .ready, tinted: false)
             button.imagePosition = .imageOnly
-            button.toolTip = "MacWispr — Hold ⌥Space to dictate"
+            button.toolTip = "MacWispr — Dictate with your hotkey"
             button.target = self
             button.action = #selector(statusItemClicked(_:))
             // Left-click only — dual mouse-up can double-toggle the popover.
@@ -186,7 +186,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             button.imagePosition = .imageOnly
             button.title = ""
             button.contentTintColor = nil
-            button.toolTip = "MacWispr — Hold ⌥Space to dictate"
+            button.toolTip = "MacWispr — Dictate with your hotkey"
         }
     }
 

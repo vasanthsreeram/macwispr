@@ -19,9 +19,9 @@ enum DictationMode: String, CaseIterable, Identifiable {
     var help: String {
         switch self {
         case .hold:
-            return "Hold ⌥Space (or the Hold button) while speaking; release to transcribe."
+            return "Hold the dictation hotkey while speaking; release to transcribe."
         case .toggle:
-            return "Press ⌥Space (or Start) once to begin; press again to stop and transcribe."
+            return "Press the dictation hotkey once to begin; press again to stop and transcribe."
         }
     }
 }
@@ -57,6 +57,8 @@ final class AppState: ObservableObject {
     @Published var transcriptionProvider: TranscriptionProvider = .local
     @Published var polishProvider: PolishProvider = .off
     @Published var polishLocalModel: PolishLocalModel = .miniCPM
+    /// Models → AI Models: when false, polish packs stay hidden (SuperWhisper-style).
+    @Published var showExperimentalAIModels = false
     /// Opt-in local debug: save WAV + raw/polished text under Application Support.
     @Published var devCaptureEnabled: Bool = false
     /// Keychain presence flags (never store the raw secrets in @Published).
@@ -89,6 +91,10 @@ final class AppState: ObservableObject {
     @Published var successChime: SystemChime = FeedbackSoundPreferences.successChime
     @Published var failureChime: SystemChime = FeedbackSoundPreferences.failureChime
     @Published var dictationMode: DictationMode = .hold
+    /// Global dictation chord (default ⌥Space). Click-to-record in Configuration.
+    @Published var dictationHotkey: KeyChord = .defaultDictation
+    /// Discard in-progress listening without pasting (default Esc).
+    @Published var cancelHotkey: KeyChord = .defaultCancel
     @Published var typingWPM: Double = UsageStats.defaultTypingWPM
     /// Custom vocabulary / domain terms fed to Qwen3-ASR as system context.
     @Published var customVocabulary: [String] = []
@@ -170,6 +176,9 @@ final class AppState: ObservableObject {
     private static let transcriptionProviderKey = "transcriptionProvider"
     private static let polishProviderKey = "polishProvider"
     private static let polishLocalModelKey = "polishLocalModel"
+    private static let showExperimentalAIModelsKey = "showExperimentalAIModels"
+    private static let dictationHotkeyKey = "dictationHotkey"
+    private static let cancelHotkeyKey = "cancelHotkey"
     private static let listeningHUDKey = "listeningHUDEnabled"
     private static let recordingWindowStyleKey = "recordingWindowStyle"
     private static let liquidGlassStyleKey = "liquidGlassStyle"
@@ -304,6 +313,20 @@ final class AppState: ObservableObject {
         {
             dictationMode = mode
         }
+        if let data = UserDefaults.standard.data(forKey: Self.dictationHotkeyKey),
+           let chord = try? JSONDecoder().decode(KeyChord.self, from: data)
+        {
+            dictationHotkey = chord
+        } else {
+            dictationHotkey = .defaultDictation
+        }
+        if let data = UserDefaults.standard.data(forKey: Self.cancelHotkeyKey),
+           let chord = try? JSONDecoder().decode(KeyChord.self, from: data)
+        {
+            cancelHotkey = chord
+        } else {
+            cancelHotkey = .defaultCancel
+        }
         if let raw = UserDefaults.standard.string(forKey: Self.asrModelSizeKey),
            let size = ASRModelSize(rawValue: raw)
         {
@@ -355,6 +378,13 @@ final class AppState: ObservableObject {
         }
         TextPolisher.setModelPreference(polishLocalModel)
         isPolishModelOnDisk = polishLocalModel.isAvailable
+
+        // Experimental AI (polish) list — default hidden. Auto-show if polish is already on.
+        if UserDefaults.standard.object(forKey: Self.showExperimentalAIModelsKey) != nil {
+            showExperimentalAIModels = UserDefaults.standard.bool(forKey: Self.showExperimentalAIModelsKey)
+        } else {
+            showExperimentalAIModels = polishProvider != .off
+        }
         if let saved = UserDefaults.standard.stringArray(forKey: Self.customVocabularyKey) {
             customVocabulary = saved
         }
@@ -505,9 +535,18 @@ final class AppState: ObservableObject {
         llmPolishEnabled = provider == .local
         UserDefaults.standard.set(provider.rawValue, forKey: Self.polishProviderKey)
         UserDefaults.standard.set(llmPolishEnabled, forKey: "llmPolishEnabled")
+        // Keep AI Models open when polish is active so users can turn it off.
+        if provider != .off, !showExperimentalAIModels {
+            setShowExperimentalAIModels(true)
+        }
         if provider == .local {
             Task { await loadLLM(force: !isLLMLoaded) }
         }
+    }
+
+    func setShowExperimentalAIModels(_ show: Bool) {
+        showExperimentalAIModels = show
+        UserDefaults.standard.set(show, forKey: Self.showExperimentalAIModelsKey)
     }
 
     func setPolishLocalModel(_ model: PolishLocalModel) {
@@ -668,6 +707,56 @@ final class AppState: ObservableObject {
     func setDictationMode(_ mode: DictationMode) {
         dictationMode = mode
         UserDefaults.standard.set(mode.rawValue, forKey: "dictationMode")
+    }
+
+    func setDictationHotkey(_ chord: KeyChord) {
+        dictationHotkey = chord
+        if let data = try? JSONEncoder().encode(chord) {
+            UserDefaults.standard.set(data, forKey: Self.dictationHotkeyKey)
+        }
+        hotkeyManager.setDictationChord(chord)
+        refreshHotkeyHealth()
+    }
+
+    func resetDictationHotkey() {
+        setDictationHotkey(.defaultDictation)
+    }
+
+    func setCancelHotkey(_ chord: KeyChord) {
+        cancelHotkey = chord
+        if let data = try? JSONEncoder().encode(chord) {
+            UserDefaults.standard.set(data, forKey: Self.cancelHotkeyKey)
+        }
+        hotkeyManager.setCancelChord(chord)
+    }
+
+    func resetCancelHotkey() {
+        setCancelHotkey(.defaultCancel)
+    }
+
+    /// Discard listening without STT / paste (cancel hotkey).
+    func cancelActiveRecording() {
+        guard isRecording else { return }
+        recordingSession += 1
+        livePartialTask?.cancel()
+        livePartialTask = nil
+        _ = audioRecorder.stopRecording()
+        isRecording = false
+        stopElapsedTimer()
+        currentTranscription = ""
+        setPhase(.ready, detail: "Cancelled")
+        if soundFeedbackEnabled {
+            FeedbackSounds.playFailure()
+        }
+        phaseResetTask?.cancel()
+        phaseResetTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            guard let self, !self.isRecording else { return }
+            if self.dictationPhase == .ready || self.dictationPhase == .failed {
+                self.setPhase(.ready, detail: "")
+            }
+        }
+        ListeningHUDController.shared.hide()
     }
 
     func setListeningHUDEnabled(_ enabled: Bool) {
@@ -847,6 +936,8 @@ final class AppState: ObservableObject {
                 try? await Task.sleep(nanoseconds: 120_000_000)
             }
             guard isRecording, recordingSession == session else { return }
+            // Always re-apply the user’s mic choice before opening the engine.
+            syncAudioInputDevice()
             audioRecorder.startRecording()
             // Live partials while the mic is open (local Qwen + Parakeet).
             startLivePartialLoop(session: session)
@@ -1579,6 +1670,8 @@ final class AppState: ObservableObject {
     }
 
     private func setupHotkey() {
+        hotkeyManager.setDictationChord(dictationHotkey)
+        hotkeyManager.setCancelChord(cancelHotkey)
         hotkeyManager.onHotkeyDown = { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -1597,6 +1690,11 @@ final class AppState: ObservableObject {
                 if self.dictationMode == .hold {
                     await self.stopRecordingAndTranscribe()
                 }
+            }
+        }
+        hotkeyManager.onCancel = { [weak self] in
+            Task { @MainActor in
+                self?.cancelActiveRecording()
             }
         }
         hotkeyManager.register()

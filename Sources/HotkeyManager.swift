@@ -2,15 +2,25 @@ import Cocoa
 import Carbon
 import CoreGraphics
 
-/// Hold/press ⌥Space to dictate.
+/// Global dictation hotkey (configurable; default ⌥Space).
 ///
-/// Three layers (any one can detect; tap also swallows Space):
-/// 1. **CGEvent tap** — best: swallows ⌥Space so it never types
+/// Three layers (any one can detect; tap also swallows the chord):
+/// 1. **CGEvent tap** — best: swallows the chord so it never types
 /// 2. **Carbon RegisterEventHotKey** — reliable system hotkey path
 /// 3. **NSEvent monitors** — backup (global needs Accessibility)
 final class HotkeyManager: @unchecked Sendable {
     var onHotkeyDown: (() -> Void)?
     var onHotkeyUp: (() -> Void)?
+    /// Optional: Esc (or custom) while listening → discard without paste.
+    var onCancel: (() -> Void)?
+
+    /// Active dictation chord (default ⌥Space).
+    private(set) var dictationChord: KeyChord = .defaultDictation
+    /// Cancel chord (default Esc). `nil` = disabled.
+    private(set) var cancelChord: KeyChord? = .defaultCancel
+
+    /// When true, ignore dictation fires (UI is capturing a new shortcut).
+    var isCapturingShortcut = false
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -33,11 +43,7 @@ final class HotkeyManager: @unchecked Sendable {
     private(set) var downCount = 0
     private(set) var upCount = 0
 
-    private static let spaceKeyCode: CGKeyCode = 49
-
     /// True when at least one path that can receive global keys is live.
-    /// Monitors alone do **not** count — without Accessibility they install
-    /// but never fire for other apps (which looked like “armed but dead”).
     var isArmed: Bool {
         tapInstalled || carbonInstalled
     }
@@ -46,17 +52,28 @@ final class HotkeyManager: @unchecked Sendable {
         AXIsProcessTrusted()
     }
 
+    func setDictationChord(_ chord: KeyChord) {
+        dictationChord = chord
+        if isArmed || eventTap != nil || carbonHotKeyRef != nil {
+            register()
+        }
+    }
+
+    func setCancelChord(_ chord: KeyChord?) {
+        cancelChord = chord
+        // Cancel is handled via tap/monitors only (no second Carbon ID required).
+    }
+
     func register() {
         unregister()
         tapInstalled = installEventTap()
         carbonInstalled = installCarbonHotKey()
-        // Always install monitors too — if the tap swallows, they never see
-        // the event; if the tap misses, they still catch it.
         installMonitors()
         installLocalMonitors()
         monitorsInstalled = keyMonitor != nil
         NSLog(
-            "MacWispr hotkey: tap=%@ carbon=%@ monitors=%@ ax=%@",
+            "MacWispr hotkey: chord=%@ tap=%@ carbon=%@ monitors=%@ ax=%@",
+            dictationChord.displayString as NSString,
             tapInstalled ? "yes" : "NO",
             carbonInstalled ? "yes" : "NO",
             monitorsInstalled ? "yes" : "NO",
@@ -73,9 +90,6 @@ final class HotkeyManager: @unchecked Sendable {
         let ax = AXIsProcessTrusted()
         let missingTap = eventTap == nil
         let missingCarbon = carbonHotKeyRef == nil
-        // Without Accessibility the tap/carbon fail AND global monitors are
-        // installed but never receive events — so a non-nil monitor doesn't
-        // mean working. Re-register when AX is granted or nothing is armed.
         if (missingTap && missingCarbon && keyMonitor == nil) || (ax && (missingTap || missingCarbon)) {
             register()
         }
@@ -105,25 +119,16 @@ final class HotkeyManager: @unchecked Sendable {
 
     // MARK: - Public inject for tests
 
-    /// Simulate ⌥Space for automated tests (posts HID events into the system stream).
+    /// Simulate the current dictation chord for automated tests.
     func injectOptionSpace(down: Bool) {
+        injectChord(dictationChord, down: down)
+    }
+
+    func injectChord(_ chord: KeyChord, down: Bool) {
         let source = CGEventSource(stateID: .hidSystemState)
-        // Post Option flag change first when going down, for realism.
-        if down {
-            if let optDown = CGEvent(keyboardEventSource: source, virtualKey: 58, keyDown: true) { // left option
-                optDown.flags = .maskAlternate
-                optDown.post(tap: .cghidEventTap)
-            }
-        }
-        if let space = CGEvent(keyboardEventSource: source, virtualKey: Self.spaceKeyCode, keyDown: down) {
-            space.flags = .maskAlternate
-            space.post(tap: .cghidEventTap)
-        }
-        if !down {
-            if let optUp = CGEvent(keyboardEventSource: source, virtualKey: 58, keyDown: false) {
-                optUp.flags = []
-                optUp.post(tap: .cghidEventTap)
-            }
+        if let key = CGEvent(keyboardEventSource: source, virtualKey: chord.keyCode, keyDown: down) {
+            key.flags = chord.cgEventFlags
+            key.post(tap: .cghidEventTap)
         }
     }
 
@@ -132,10 +137,12 @@ final class HotkeyManager: @unchecked Sendable {
     func handleSyntheticKey(down: Bool, option: Bool = true) -> Bool {
         guard let event = CGEvent(
             keyboardEventSource: nil,
-            virtualKey: Self.spaceKeyCode,
+            virtualKey: dictationChord.keyCode,
             keyDown: down
         ) else { return false }
-        if option { event.flags = .maskAlternate }
+        var flags = dictationChord.cgEventFlags
+        if option { flags.insert(.maskAlternate) }
+        event.flags = flags
         let type: CGEventType = down ? .keyDown : .keyUp
         _ = handle(type: type, event: event)
         return true
@@ -184,25 +191,50 @@ final class HotkeyManager: @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
 
-        let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
-        let option = (event.flags.rawValue & CGEventFlags.maskAlternate.rawValue) != 0
+        if isCapturingShortcut {
+            return Unmanaged.passUnretained(event)
+        }
 
-        if type == .keyDown && keyCode == Self.spaceKeyCode && option {
+        let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+        let flags = event.flags
+
+        // Cancel (e.g. Esc) while a session might be live — always observe keyDown.
+        if type == .keyDown,
+           let cancel = cancelChord,
+           cancel.matches(keyCode: keyCode, flags: flags)
+        {
+            DispatchQueue.main.async { [weak self] in self?.onCancel?() }
+            // Don't swallow Esc globally when not recording — AppState decides.
+            return Unmanaged.passUnretained(event)
+        }
+
+        if type == .keyDown && dictationChord.matches(keyCode: keyCode, flags: flags) {
             fireDown(source: "tap")
             return nil // swallow
         }
 
-        // Space keyUp ends a hold (with or without Option still down).
-        if type == .keyUp && keyCode == Self.spaceKeyCode && isHotkeyHeld {
+        // Key-up of the primary key ends a hold (modifiers may already be up).
+        if type == .keyUp && keyCode == CGKeyCode(dictationChord.keyCode) && isHotkeyHeld {
             fireUp(source: "tap")
             return nil
         }
 
-        if type == .flagsChanged && isHotkeyHeld && !option {
-            fireUp(source: "tap-option")
+        // If a required modifier is released while held, end the hold.
+        if type == .flagsChanged && isHotkeyHeld {
+            if !flagsStillIncludeRequiredModifiers(flags) {
+                fireUp(source: "tap-mod")
+            }
         }
 
         return Unmanaged.passUnretained(event)
+    }
+
+    private func flagsStillIncludeRequiredModifiers(_ flags: CGEventFlags) -> Bool {
+        if dictationChord.command && !flags.contains(.maskCommand) { return false }
+        if dictationChord.option && !flags.contains(.maskAlternate) { return false }
+        if dictationChord.shift && !flags.contains(.maskShift) { return false }
+        if dictationChord.control && !flags.contains(.maskControl) { return false }
+        return true
     }
 
     // MARK: - Carbon hotkey (reliable detection)
@@ -236,15 +268,19 @@ final class HotkeyManager: @unchecked Sendable {
 
         var ref: EventHotKeyRef?
         let regStatus = RegisterEventHotKey(
-            UInt32(kVK_Space),
-            UInt32(optionKey),
+            UInt32(dictationChord.keyCode),
+            dictationChord.carbonModifiers,
             carbonHotKeyID,
             GetApplicationEventTarget(),
             0,
             &ref
         )
         guard regStatus == noErr, let ref else {
-            NSLog("MacWispr hotkey: RegisterEventHotKey failed (%d) — grant Accessibility", regStatus)
+            NSLog(
+                "MacWispr hotkey: RegisterEventHotKey failed (%d) for %@ — tap/monitors still used",
+                regStatus,
+                dictationChord.displayString
+            )
             uninstallCarbonHotKey()
             return false
         }
@@ -264,6 +300,8 @@ final class HotkeyManager: @unchecked Sendable {
     }
 
     private func handleCarbonEvent(_ event: EventRef) {
+        if isCapturingShortcut { return }
+
         var hotKeyID = EventHotKeyID()
         let err = GetEventParameter(
             event,
@@ -294,10 +332,15 @@ final class HotkeyManager: @unchecked Sendable {
             self?.handleNSEvent(event)
         }
         flagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            guard let self else { return }
-            let option = event.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.option)
-            if self.isHotkeyHeld && !option {
-                self.fireUp(source: "monitor-option")
+            guard let self, !self.isCapturingShortcut else { return }
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            var cg: CGEventFlags = []
+            if flags.contains(.command) { cg.insert(.maskCommand) }
+            if flags.contains(.option) { cg.insert(.maskAlternate) }
+            if flags.contains(.shift) { cg.insert(.maskShift) }
+            if flags.contains(.control) { cg.insert(.maskControl) }
+            if self.isHotkeyHeld && !self.flagsStillIncludeRequiredModifiers(cg) {
+                self.fireUp(source: "monitor-mod")
             }
         }
     }
@@ -312,13 +355,22 @@ final class HotkeyManager: @unchecked Sendable {
         }
     }
 
-    /// Returns true if the event was handled as our hotkey.
+    /// Returns true if the event was handled as our dictation hotkey.
     @discardableResult
     private func handleNSEvent(_ event: NSEvent) -> Bool {
-        let option = event.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.option)
-        guard event.keyCode == Self.spaceKeyCode else { return false }
+        if isCapturingShortcut { return false }
 
-        if event.type == .keyDown && option {
+        if event.type == .keyDown,
+           let cancel = cancelChord,
+           cancel.matches(event)
+        {
+            DispatchQueue.main.async { [weak self] in self?.onCancel?() }
+            return false
+        }
+
+        guard event.keyCode == dictationChord.keyCode else { return false }
+
+        if event.type == .keyDown && dictationChord.matches(event) {
             fireDown(source: "monitor")
             return true
         }
@@ -332,11 +384,12 @@ final class HotkeyManager: @unchecked Sendable {
     // MARK: - Shared fire (dedupes tap + carbon + monitors)
 
     private func fireDown(source: String) {
+        guard !isCapturingShortcut else { return }
         guard !isHotkeyHeld else { return }
         isHotkeyHeld = true
         lastDownAt = Date()
         downCount += 1
-        NSLog("MacWispr hotkey: DOWN via %@ (#%d)", source, downCount)
+        NSLog("MacWispr hotkey: DOWN via %@ (#%d) %@", source, downCount, dictationChord.displayString)
         DispatchQueue.main.async { [weak self] in self?.onHotkeyDown?() }
     }
 

@@ -33,8 +33,81 @@ struct DashboardView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
-            modelQuickSwitch
+            HStack(alignment: .top, spacing: 10) {
+                micQuickSwitch
+                modelQuickSwitch
+            }
         }
+        .onAppear {
+            appState.refreshInputDevices()
+        }
+    }
+
+    /// Quick mic picker (same devices as toolbar / menu bar).
+    private var micQuickSwitch: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            Menu {
+                Button {
+                    appState.setInputDeviceUID("")
+                } label: {
+                    if appState.selectedInputDeviceUID.isEmpty {
+                        Label("System Default", systemImage: "checkmark")
+                    } else {
+                        Text("System Default")
+                    }
+                }
+                if !appState.availableInputDevices.isEmpty {
+                    Divider()
+                    ForEach(appState.availableInputDevices) { device in
+                        Button {
+                            appState.setInputDeviceUID(device.uid)
+                        } label: {
+                            if appState.selectedInputDeviceUID == device.uid {
+                                Label(device.name, systemImage: "checkmark")
+                            } else {
+                                Text(device.name)
+                            }
+                        }
+                    }
+                }
+                Divider()
+                Button("Refresh device list") {
+                    appState.refreshInputDevices()
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "mic.fill")
+                        .font(.caption.weight(.semibold))
+                    Text(dashboardMicLabel)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.quaternary.opacity(0.7), in: Capsule())
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Microphone used for dictation")
+
+            Text(appState.selectedInputDeviceUID.isEmpty ? "System default" : "Selected")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    private var dashboardMicLabel: String {
+        if appState.selectedInputDeviceUID.isEmpty {
+            let name = AudioInputDevices.defaultInputDeviceName()
+            return name.count > 18 ? String(name.prefix(16)) + "…" : name
+        }
+        let name = appState.availableInputDevices
+            .first(where: { $0.uid == appState.selectedInputDeviceUID })?
+            .name ?? "Mic"
+        return name.count > 18 ? String(name.prefix(16)) + "…" : name
     }
 
     /// Top-right chip: current STT model / provider with a one-click switcher.

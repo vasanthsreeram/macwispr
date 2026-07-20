@@ -266,62 +266,15 @@ struct MenuBarView: View {
     }
 
     private var hotkeyStatusLabel: String {
+        let chord = appState.dictationHotkey.displayString
         if appState.hotkeyArmed {
-            return "⌥Space armed (\(appState.dictationMode.rawValue.lowercased()))"
+            return "\(chord) armed (\(appState.dictationMode.rawValue.lowercased()))"
         }
         if appState.accessibilityTrusted {
-            return "⌥Space not registered — click Fix"
+            return "\(chord) not registered — click Fix"
         }
-        return "⌥Space needs Accessibility"
+        return "Hotkey needs Accessibility"
     }
 }
 
-// MARK: - Hold-to-speak button
 
-/// Press and hold this control to dictate (works even if the hotkey is flaky).
-struct HoldToSpeakButton: View {
-    @EnvironmentObject var appState: AppState
-    @State private var pressing = false
-
-    var body: some View {
-        let active = pressing || (appState.isRecording && appState.dictationMode == .hold)
-
-        Text(active ? "Listening… release" : "Hold to Speak")
-            .font(.headline)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .foregroundStyle(.white)
-            .background(active ? Color.red : Color.accentColor)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard !pressing else { return }
-                        pressing = true
-                        appState.startRecording()
-                    }
-                    .onEnded { _ in
-                        pressing = false
-                        Task { await appState.stopRecordingAndTranscribe() }
-                    }
-            )
-            .disabled(!appState.isReadyToDictate && !appState.isRecording)
-            .opacity(appState.isReadyToDictate || appState.isRecording ? 1 : 0.5)
-            .help("Press and hold while you speak, then release to transcribe")
-    }
-}
-
-struct RecordingIndicator: View {
-    @State private var isAnimating = false
-
-    var body: some View {
-        Circle()
-            .fill(.red)
-            .frame(width: 12, height: 12)
-            .scaleEffect(isAnimating ? 1.3 : 1.0)
-            .opacity(isAnimating ? 0.6 : 1.0)
-            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isAnimating)
-            .onAppear { isAnimating = true }
-    }
-}
