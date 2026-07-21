@@ -79,17 +79,8 @@
   }
   </script>
 </head>
-<body>
-  <div class="stage" aria-hidden="true">
-    <div class="aurora"></div>
-  </div>
-
-  <div class="ticker" aria-hidden="true">
-    <div class="ticker-track">
-      <span>&lt;0.5s LOCAL · FREE · APPLE SILICON · OPT-IN TELEMETRY · OPEN SOURCE · $0 ·</span>
-      <span aria-hidden="true">&lt;0.5s LOCAL · FREE · APPLE SILICON · OPT-IN TELEMETRY · OPEN SOURCE · $0 ·</span>
-    </div>
-  </div>
+<body class="home-flow">
+  <div class="stage stage-quiet" aria-hidden="true"></div>
 
   <header class="site-header">
     <div class="header-inner glass">
@@ -102,150 +93,91 @@
         <a href="/training">Training</a>
         <a href="/leaderboard">Leaderboard</a>
         <a href="/privacy">Privacy</a>
-        <a href="#install">Install</a>
       </nav>
-      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download</a>
+      <a class="btn btn-lilac btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">
+        <svg class="apple-ico" width="14" height="14" viewBox="0 0 14 17" aria-hidden="true"><path fill="currentColor" d="M11.7 9.1c0-1.9 1.6-2.8 1.6-2.9-.9-1.3-2.3-1.5-2.8-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7C3.5 4.7 2 5.7 1 7.4c-1.9 3.4-.5 8.3 1.4 11 .9 1.3 2 2.8 3.4 2.7 1.4 0 1.9-.9 3.5-.9s2.1.9 3.5.8c1.5 0 2.4-1.3 3.3-2.6.6-.9 1.1-1.9 1.4-2.9-3.3-1.2-3.8-5.8-1.8-7.4zM9.8 3.2c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.3.7-3.1 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.4-.6 3.1-1.5z"/></svg>
+        Download for macOS
+      </a>
     </div>
   </header>
 
   <main>
-    <section class="hero" id="top" aria-labelledby="hero-title">
+    <section class="hero hero-flow" id="top" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <p class="eyebrow">MacWispr · free · on-device</p>
         <h1 id="hero-title">
-          <span class="line">Don’t type.</span>
-          <span class="line grad-text">Just speak.</span>
+          <span class="line muted-line">Don’t type,</span>
+          <span class="line solid-line">just speak</span>
         </h1>
         <p class="lede">
-          Local speech-to-text on Apple Silicon. Typically <strong>under half a second</strong>.
-          No account. No cloud queue. Your voice stays on your Mac by default.
+          Free on-device speech-to-text for Mac.<br class="hide-sm" />
+          Under half a second. Private by default.
         </p>
         <div class="hero-actions">
-          <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download for Mac · free</a>
-          <a class="btn btn-ghost glass" href="#features">See features</a>
+          <a class="btn btn-lilac btn-lg" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">
+            <svg class="apple-ico" width="16" height="16" viewBox="0 0 14 17" aria-hidden="true"><path fill="currentColor" d="M11.7 9.1c0-1.9 1.6-2.8 1.6-2.9-.9-1.3-2.3-1.5-2.8-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7C3.5 4.7 2 5.7 1 7.4c-1.9 3.4-.5 8.3 1.4 11 .9 1.3 2 2.8 3.4 2.7 1.4 0 1.9-.9 3.5-.9s2.1.9 3.5.8c1.5 0 2.4-1.3 3.3-2.6.6-.9 1.1-1.9 1.4-2.9-3.3-1.2-3.8-5.8-1.8-7.4zM9.8 3.2c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.3.7-3.1 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.4-.6 3.1-1.5z"/></svg>
+            Download for macOS
+          </a>
         </div>
-        <div class="hero-chips">
-          <span class="chip yes">macOS 14+</span>
-          <span class="chip yes">Apple Silicon</span>
-          <span class="chip yes">MIT open source</span>
+        <p class="hero-avail">Free · Apple Silicon · macOS 14+ · MIT open source</p>
+      </div>
+
+      <div class="speech-arc" aria-hidden="true">
+        <div class="speech-arc-track">
+          <span class="arc-raw">uh so can you check in with them and see if the notes from yesterday…</span>
+          <span class="wave-pill">
+            <span class="wave-bars">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </span>
+          </span>
+          <span class="arc-clean">Can you check in with them and see if the notes from yesterday’s meeting were sent?</span>
         </div>
       </div>
     </section>
 
-    <section class="section bento-section cv-auto" id="features" aria-labelledby="features-title">
+    <section class="section proof-section cv-auto" id="features" aria-labelledby="features-title">
       <div class="section-head reveal">
-        <p class="kicker">Why MacWispr</p>
-        <h2 id="features-title">Fast, private, free.</h2>
+        <h2 id="features-title">Local. Fast. Free.</h2>
       </div>
-
-      <div class="bento">
-        <article class="bento-card bento-wide glass-card reveal">
-          <div class="bento-copy">
-            <span class="bento-label">On-device</span>
-            <h3>Runs on your Mac’s GPU</h3>
-            <p>Default ASR is local via MLX. No upload for local mode — so there’s no network round-trip waiting on a remote queue.</p>
-          </div>
-          <div class="bento-visual">
-            <picture>
-              <source srcset="/assets/dash.webp" type="image/webp" />
-              <img src="/assets/dashboard.png" alt="MacWispr dashboard" width="960" height="600" loading="lazy" decoding="async" />
-            </picture>
-          </div>
+      <div class="proof-grid">
+        <article class="proof-card glass-card reveal">
+          <h3>On your Mac</h3>
+          <p>ASR runs on-device via MLX. No account. No cloud queue by default.</p>
         </article>
-
-        <article class="bento-card glass-card reveal" data-delay="0.05">
-          <span class="bento-label">Hotkey</span>
+        <article class="proof-card glass-card reveal" data-delay="0.05">
           <h3>Option + Space</h3>
-          <p>Hold or toggle. Speak. Text lands in the app you’re already using.</p>
-          <div class="key-row">
-            <kbd>Option</kbd><span class="plus">+</span><kbd>Space</kbd>
-          </div>
+          <p>Hold or toggle. Speak. Text lands in the app you’re already in.</p>
         </article>
-
-        <article class="bento-card glass-card reveal" data-delay="0.1">
-          <span class="bento-label">Price</span>
-          <h3 class="price-big">$0</h3>
-          <p>Forever free. MIT licensed. No trial cliff.</p>
+        <article class="proof-card glass-card reveal" data-delay="0.1">
+          <h3>$0 forever</h3>
+          <p>MIT open source. Optional polish &amp; BYOK cloud if you want them.</p>
         </article>
-
-        <article class="bento-card bento-mac glass-card reveal" data-delay="0.05">
-          <span class="bento-label">Platform</span>
-          <h3>Built for Apple Silicon</h3>
-          <p>Requires macOS 14+ on Apple Silicon. Focused Mac app — not a cross-platform compromise.</p>
-          <div class="mac-pills">
-            <span class="chip yes">macOS 14+</span>
-            <span class="chip yes">Apple Silicon</span>
-          </div>
-        </article>
-
-        <article class="bento-card glass-card reveal" data-delay="0.1" id="privacy">
-          <span class="bento-label">Privacy</span>
-          <h3>Private by default</h3>
-          <p>No account. Local ASR keeps audio on-device. Optional telemetry is <strong>opt-in</strong>, anonymous, and never includes what you said — <a href="/privacy">read the full policy</a>.</p>
-        </article>
-
-        <article class="bento-card glass-card reveal" data-delay="0.15">
-          <span class="bento-label">Updates</span>
-          <h3>Updates itself</h3>
-          <p>Sparkle is built in. Check for Updates from the menu — no hunting for a new DMG.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="section compare cv-auto" id="compare" aria-labelledby="compare-title">
-      <div class="section-head reveal">
-        <p class="kicker">At a glance</p>
-        <h2 id="compare-title">What you get</h2>
-      </div>
-      <div class="compare-grid">
-        <div class="compare-card glass-card reveal">
-          <h3>Local (default)</h3>
-          <ul>
-            <li>On-device ASR</li>
-            <li>Typically &lt;0.5s</li>
-            <li>No account</li>
-            <li>Free forever</li>
-            <li>Open source</li>
-          </ul>
-        </div>
-        <div class="compare-card glass-card reveal" data-delay="0.06">
-          <h3>Optional extras</h3>
-          <ul>
-            <li>BYOK cloud STT if you want it</li>
-            <li>Optional text polish</li>
-            <li>Custom vocabulary (on-device)</li>
-            <li>Opt-in reliability telemetry</li>
-            <li>Menu-bar + system-wide insert</li>
-          </ul>
-        </div>
       </div>
     </section>
 
     <section class="section install cv-auto" id="install" aria-labelledby="install-title">
       <div class="section-head reveal">
-        <p class="kicker">Setup</p>
         <h2 id="install-title">Three steps</h2>
       </div>
-      <ol class="steps">
+      <ol class="steps steps-tight">
         <li class="glass-card reveal">
           <span class="step-n">01</span>
           <div>
             <strong>Download</strong>
-            <p><a href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Latest release</a> for Apple Silicon.</p>
+            <p>Latest DMG for Apple Silicon.</p>
           </div>
         </li>
         <li class="glass-card reveal" data-delay="0.06">
           <span class="step-n">02</span>
           <div>
             <strong>Install</strong>
-            <p>Drag into Applications. On first open, use <em>right-click → Open</em> if macOS Gatekeeper asks.</p>
+            <p>Drag to Applications. Right-click → Open if Gatekeeper asks.</p>
           </div>
         </li>
         <li class="glass-card reveal" data-delay="0.12">
           <span class="step-n">03</span>
           <div>
             <strong>Dictate</strong>
-            <p>Allow Mic + Accessibility, then press <kbd>Option</kbd> <kbd>Space</kbd>.</p>
+            <p>Allow Mic + Accessibility, then <kbd>⌥</kbd> <kbd>Space</kbd>.</p>
           </div>
         </li>
       </ol>
@@ -255,10 +187,13 @@
       <div class="cta-box glass-card reveal">
         <div class="cta-glow" aria-hidden="true"></div>
         <h2 id="cta-title">Speak freely on your Mac.</h2>
-        <p class="cta-note">Free, local-first dictation for Apple Silicon. MIT open source.</p>
+        <p class="cta-note">Free local dictation for Apple Silicon.</p>
         <div class="hero-actions center">
-          <a class="btn btn-dark btn-glow" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download for Mac</a>
-          <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr">View on GitHub</a>
+          <a class="btn btn-lilac btn-lg" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">
+            <svg class="apple-ico" width="16" height="16" viewBox="0 0 14 17" aria-hidden="true"><path fill="currentColor" d="M11.7 9.1c0-1.9 1.6-2.8 1.6-2.9-.9-1.3-2.3-1.5-2.8-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7C3.5 4.7 2 5.7 1 7.4c-1.9 3.4-.5 8.3 1.4 11 .9 1.3 2 2.8 3.4 2.7 1.4 0 1.9-.9 3.5-.9s2.1.9 3.5.8c1.5 0 2.4-1.3 3.3-2.6.6-.9 1.1-1.9 1.4-2.9-3.3-1.2-3.8-5.8-1.8-7.4zM9.8 3.2c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.3.7-3.1 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.4-.6 3.1-1.5z"/></svg>
+            Download for macOS
+          </a>
+          <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
         </div>
       </div>
     </section>
@@ -279,7 +214,6 @@
       <a href="/training">Training</a>
       <a href="/leaderboard">Leaderboard</a>
       <a href="/privacy">Privacy</a>
-      <a href="/sitemap.xml">Sitemap</a>
     </div>
     <p class="footer-note">© <span id="y"></span> MacWispr. Not affiliated with Wispr Flow.</p>
   </footer>

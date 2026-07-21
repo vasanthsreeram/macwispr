@@ -222,14 +222,14 @@ function initMotion() {
   // Soft hero entrance (from current state → no FOUC blank)
   const heroLines = document.querySelectorAll(".hero h1 .line");
   const heroRest = document.querySelectorAll(
-    ".hero .eyebrow, .hero .lede, .hero .hero-actions, .hero .hero-chips"
+    ".hero .eyebrow, .hero .lede, .hero .hero-actions, .hero .hero-chips, .hero .hero-avail, .hero .speech-arc"
   );
   if (heroLines.length) {
     gsap.from(heroLines, {
-      y: 36,
+      y: 28,
       opacity: 0.001,
-      duration: 0.85,
-      stagger: 0.1,
+      duration: 0.9,
+      stagger: 0.08,
       ease: "power3.out",
       delay: 0.05,
       clearProps: "transform,opacity",
@@ -237,12 +237,12 @@ function initMotion() {
   }
   if (heroRest.length) {
     gsap.from(heroRest, {
-      y: 16,
+      y: 14,
       opacity: 0.001,
-      duration: 0.65,
-      stagger: 0.05,
+      duration: 0.7,
+      stagger: 0.06,
       ease: "power3.out",
-      delay: 0.18,
+      delay: 0.2,
       clearProps: "transform,opacity",
     });
   }
