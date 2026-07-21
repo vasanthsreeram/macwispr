@@ -37,10 +37,11 @@ struct MainWindowView: View {
             Button {
                 appState.setInputDeviceUID("")
             } label: {
+                let title = "System Default (\(AudioInputDevices.defaultInputDeviceName()))"
                 if appState.selectedInputDeviceUID.isEmpty {
-                    Label("System Default", systemImage: "checkmark")
+                    Label(title, systemImage: "checkmark")
                 } else {
-                    Text("System Default")
+                    Text(title)
                 }
             }
             if !appState.availableInputDevices.isEmpty {
@@ -49,10 +50,13 @@ struct MainWindowView: View {
                     Button {
                         appState.setInputDeviceUID(device.uid)
                     } label: {
+                        let label = AudioInputDevices.isSystemDefault(uid: device.uid)
+                            ? "\(device.name) — macOS default"
+                            : device.name
                         if appState.selectedInputDeviceUID == device.uid {
-                            Label(device.name, systemImage: "checkmark")
+                            Label(label, systemImage: "checkmark")
                         } else {
-                            Text(device.name)
+                            Text(label)
                         }
                     }
                 }
@@ -178,14 +182,16 @@ struct MainWindowView: View {
 }
 
 /// History row with inline edit; saving learns new words into custom vocabulary.
+/// When polish ran, shows Polished + Raw with independent copy actions.
 private struct EditableHistoryRow: View {
     @EnvironmentObject var appState: AppState
     let entry: TranscriptionEntry
     @State private var isEditing = false
     @State private var draft: String = ""
+    @State private var showRaw = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             if isEditing {
                 TextEditor(text: $draft)
                     .font(.body)
@@ -206,9 +212,71 @@ private struct EditableHistoryRow: View {
                     .keyboardShortcut(.return, modifiers: .command)
                 }
             } else {
-                Text(entry.text)
-                    .font(.body)
-                    .textSelection(.enabled)
+                // Final / polished text (what was inserted).
+                VStack(alignment: .leading, spacing: 4) {
+                    if entry.hasRaw {
+                        HStack(spacing: 6) {
+                            Text(entry.hasDistinctRaw ? "Polished" : "Result")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                            if entry.hasDistinctRaw {
+                                Text("changed by polish")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            } else {
+                                Text("polish left unchanged")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            Spacer(minLength: 0)
+                            Button {
+                                appState.copyTextToClipboard(entry.text)
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                            }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
+                            .help("Copy polished / final text")
+                        }
+                    }
+                    Text(entry.text)
+                        .font(.body)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                // Raw STT (pre-polish) — expand when present.
+                if entry.hasRaw, let raw = entry.rawText {
+                    DisclosureGroup(isExpanded: $showRaw) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(raw)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            HStack {
+                                Button {
+                                    appState.copyTextToClipboard(raw)
+                                } label: {
+                                    Label("Copy raw", systemImage: "doc.on.doc")
+                                }
+                                .buttonStyle(.borderless)
+                                .font(.caption)
+                                Spacer()
+                            }
+                        }
+                        .padding(.top, 4)
+                    } label: {
+                        Text(entry.hasDistinctRaw ? "Raw (before polish)" : "Raw STT")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    // Open by default when polish actually changed the text.
+                    .onAppear {
+                        if entry.hasDistinctRaw { showRaw = true }
+                    }
+                }
+
                 HStack(spacing: 8) {
                     Text(entry.timestamp, style: .date)
                     Text(entry.timestamp, style: .time)
@@ -233,9 +301,13 @@ private struct EditableHistoryRow: View {
                 draft = entry.text
                 isEditing = true
             }
-            Button("Copy") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(entry.text, forType: .string)
+            Button("Copy polished") {
+                appState.copyTextToClipboard(entry.text)
+            }
+            if let raw = entry.rawText, entry.hasRaw {
+                Button("Copy raw") {
+                    appState.copyTextToClipboard(raw)
+                }
             }
         }
     }

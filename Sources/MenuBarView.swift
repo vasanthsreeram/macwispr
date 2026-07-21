@@ -15,6 +15,17 @@ struct MenuBarView: View {
         return appState.currentTranscription
     }
 
+    private var hasLastRaw: Bool {
+        !appState.lastRawTranscription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var hasDistinctLastRaw: Bool {
+        guard hasLastRaw else { return false }
+        let raw = appState.lastRawTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let polished = displayTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+        return raw != polished
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             // Compact alerts only — status + Hold to Speak live on the menu-bar
@@ -95,20 +106,74 @@ struct MenuBarView: View {
                     Text("Last result")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(displayTranscript)
-                        .font(.body)
-                        .lineLimit(4)
-                        .textSelection(.enabled)
-                    HStack(spacing: 8) {
-                        Button("Copy") {
-                            appState.copyLastTranscription()
+
+                    if hasDistinctLastRaw {
+                        // Polished (what was inserted)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Polished")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                            Text(displayTranscript)
+                                .font(.body)
+                                .lineLimit(6)
+                                .textSelection(.enabled)
+                            HStack(spacing: 8) {
+                                Button("Copy polished") {
+                                    appState.copyLastTranscription()
+                                }
+                                .controlSize(.small)
+                                Button("Paste again") {
+                                    appState.repasteLastTranscription()
+                                }
+                                .controlSize(.small)
+                                Spacer()
+                            }
                         }
-                        .controlSize(.small)
-                        Button("Paste again") {
-                            appState.repasteLastTranscription()
+
+                        // Raw STT before polish
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Raw (before polish)")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                            Text(appState.lastRawTranscription)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(6)
+                                .textSelection(.enabled)
+                            HStack(spacing: 8) {
+                                Button("Copy raw") {
+                                    appState.copyLastRawTranscription()
+                                }
+                                .controlSize(.small)
+                                Button("Paste raw") {
+                                    appState.repasteLastRawTranscription()
+                                }
+                                .controlSize(.small)
+                                Spacer()
+                            }
                         }
-                        .controlSize(.small)
-                        Spacer()
+                    } else {
+                        Text(displayTranscript)
+                            .font(.body)
+                            .lineLimit(4)
+                            .textSelection(.enabled)
+                        HStack(spacing: 8) {
+                            Button("Copy") {
+                                appState.copyLastTranscription()
+                            }
+                            .controlSize(.small)
+                            Button("Paste again") {
+                                appState.repasteLastTranscription()
+                            }
+                            .controlSize(.small)
+                            if hasLastRaw {
+                                Button("Copy raw") {
+                                    appState.copyLastRawTranscription()
+                                }
+                                .controlSize(.small)
+                            }
+                            Spacer()
+                        }
                     }
                 }
                 .padding(.horizontal)
@@ -195,7 +260,7 @@ struct MenuBarView: View {
 
     private var currentInputDeviceLabel: String {
         if appState.selectedInputDeviceUID.isEmpty {
-            return "System Default"
+            return "System Default (\(AudioInputDevices.defaultInputDeviceName()))"
         }
         return appState.availableInputDevices
             .first(where: { $0.uid == appState.selectedInputDeviceUID })?
@@ -207,10 +272,11 @@ struct MenuBarView: View {
             Button {
                 appState.setInputDeviceUID("")
             } label: {
+                let title = "System Default (\(AudioInputDevices.defaultInputDeviceName()))"
                 if appState.selectedInputDeviceUID.isEmpty {
-                    Label("System Default", systemImage: "checkmark")
+                    Label(title, systemImage: "checkmark")
                 } else {
-                    Text("System Default")
+                    Text(title)
                 }
             }
             if !appState.availableInputDevices.isEmpty {
@@ -219,10 +285,13 @@ struct MenuBarView: View {
                     Button {
                         appState.setInputDeviceUID(device.uid)
                     } label: {
+                        let label = AudioInputDevices.isSystemDefault(uid: device.uid)
+                            ? "\(device.name) — macOS default"
+                            : device.name
                         if appState.selectedInputDeviceUID == device.uid {
-                            Label(device.name, systemImage: "checkmark")
+                            Label(label, systemImage: "checkmark")
                         } else {
-                            Text(device.name)
+                            Text(label)
                         }
                     }
                 }

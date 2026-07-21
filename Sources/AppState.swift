@@ -114,6 +114,8 @@ final class AppState: ObservableObject {
     @Published var recordingElapsed: TimeInterval = 0
     /// Clean last transcript (no ⚠️ suffixes) for Copy / Re-paste.
     @Published var lastCleanTranscription: String = ""
+    /// STT (+ light post) for the last dictation before polish — for Raw vs Polished compare/copy.
+    @Published var lastRawTranscription: String = ""
     /// Transient failure banner (AX, empty mic, STT) — not mixed into history text.
     @Published var lastFailureMessage: String? = nil
     /// Show a simple floating banner under the menu bar while dictating.
@@ -261,6 +263,13 @@ final class AppState: ObservableObject {
     init() {
         AppState.shared = self
         transcriptionHistory = HistoryStore.load()
+        // Restore last result (polished + raw) for menu-bar compare after relaunch.
+        if let latest = transcriptionHistory.first {
+            lastCleanTranscription = latest.text
+            currentTranscription = latest.text
+            lastRawTranscription = latest.rawText ?? ""
+            lastTranscriptionId = latest.id
+        }
         if let savedWPM = UserDefaults.standard.object(forKey: "typingWPM") as? Double, savedWPM > 0 {
             typingWPM = savedWPM
         }
@@ -936,9 +945,21 @@ final class AppState: ObservableObject {
                 try? await Task.sleep(nanoseconds: 120_000_000)
             }
             guard isRecording, recordingSession == session else { return }
-            // Always re-apply the user’s mic choice before opening the engine.
+            // Refresh plug/unplug list and re-apply the user’s mic choice every session.
+            refreshInputDevices()
             syncAudioInputDevice()
             audioRecorder.startRecording()
+            // Surface which mic actually bound (helps debug wrong-input on new Macs).
+            let bound = audioRecorder.lastBoundInputName
+            if !bound.isEmpty, dictationPhase == .listening {
+                let pick = selectedInputDeviceUID.isEmpty
+                    ? "Mic: \(bound) (system default)"
+                    : "Mic: \(bound)"
+                phaseDetail = dictationMode == .hold
+                    ? "\(pick) · release to stop"
+                    : "\(pick) · press again to stop"
+                ListeningHUDController.shared.sync(with: self)
+            }
             // Live partials while the mic is open (local Qwen + Parakeet).
             startLivePartialLoop(session: session)
         }
@@ -1116,13 +1137,16 @@ final class AppState: ObservableObject {
 
             lastCleanTranscription = processed
             currentTranscription = processed
+            // Keep pre-polish text for History / menu-bar compare (empty when polish off).
+            lastRawTranscription = polishProvider != .off ? afterLight : ""
 
             let duration = audioDuration
             let entry = TranscriptionEntry(
                 text: processed,
                 timestamp: Date(),
                 duration: duration,
-                wordCount: UsageStats.wordCount(in: processed)
+                wordCount: UsageStats.wordCount(in: processed),
+                rawText: polishProvider != .off ? afterLight : nil
             )
             let entryId = entry.id
             lastTranscriptionId = entryId
@@ -1188,6 +1212,11 @@ final class AppState: ObservableObject {
                 polishedHasNewlines: processed.contains(where: \.isNewline),
                 polishedLooksLikeList: Telemetry.looksLikeList(processed)
             )
+            // Live partials leave many free Metal buffers; keep only the 1.5 GiB cap
+            // worth of cache and drop the rest (weights stay loaded).
+            if transcriptionProvider == .local {
+                MLXMemoryPolicy.reclaim(reason: "after-dictation")
+            }
         } catch {
             lastTranscriptionId = nil
             if devCaptureEnabled || DevCaptureStore.isEnabled {
@@ -1208,6 +1237,9 @@ final class AppState: ObservableObject {
             }
             Telemetry.shared.reportDictationFailed(reason: .sttError)
             presentFailure("Transcription failed: \(error.localizedDescription)")
+            if transcriptionProvider == .local {
+                MLXMemoryPolicy.reclaim(reason: "after-dictation-error")
+            }
         }
     }
 
@@ -1238,11 +1270,24 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Copy last clean transcript to the pasteboard (no focus steal).
+    /// Copy last clean (polished) transcript to the pasteboard (no focus steal).
     func copyLastTranscription() {
         let text = lastCleanTranscription.isEmpty ? currentTranscription : lastCleanTranscription
         guard !text.isEmpty else { return }
         textInserter.copyToClipboardOnly(text)
+    }
+
+    /// Copy last pre-polish STT transcript (when local/cloud polish ran).
+    func copyLastRawTranscription() {
+        guard !lastRawTranscription.isEmpty else { return }
+        textInserter.copyToClipboardOnly(lastRawTranscription)
+    }
+
+    /// Copy an arbitrary history string (raw or polished) without focus steal.
+    func copyTextToClipboard(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        textInserter.copyToClipboardOnly(trimmed)
     }
 
     /// Re-run insertion for the last clean transcript.
@@ -1253,6 +1298,22 @@ final class AppState: ObservableObject {
         switch outcome {
         case .ok:
             setPhase(.success, detail: "Re-inserted")
+            if soundFeedbackEnabled { FeedbackSounds.playSuccess() }
+            schedulePhaseResetToIdle()
+        case .clipboardOnly(let reason):
+            presentFailure(reason, preferAccessibilityFix: true)
+        case .failed(let reason):
+            presentFailure(reason)
+        }
+    }
+
+    /// Re-insert the last raw (pre-polish) transcript.
+    func repasteLastRawTranscription() {
+        guard !lastRawTranscription.isEmpty else { return }
+        let outcome = textInserter.insert(text: lastRawTranscription, mode: insertionMode)
+        switch outcome {
+        case .ok:
+            setPhase(.success, detail: "Re-inserted raw")
             if soundFeedbackEnabled { FeedbackSounds.playSuccess() }
             schedulePhaseResetToIdle()
         case .clipboardOnly(let reason):
@@ -1432,12 +1493,14 @@ final class AppState: ObservableObject {
             text: trimmed,
             timestamp: old.timestamp,
             duration: old.duration,
-            wordCount: UsageStats.wordCount(in: trimmed)
+            wordCount: UsageStats.wordCount(in: trimmed),
+            rawText: old.rawText
         )
         scheduleHistorySave()
 
         if lastTranscriptionId == id {
             currentTranscription = trimmed
+            lastCleanTranscription = trimmed
         }
     }
 
@@ -1785,17 +1848,42 @@ final class AppState: ObservableObject {
 
 struct TranscriptionEntry: Identifiable, Codable, Equatable {
     let id: UUID
+    /// Final text inserted / shown (polished when Local polish ran).
     let text: String
     let timestamp: Date
     let duration: Double
     let wordCount: Int
+    /// Pre-polish STT (+ light post). Nil when polish was off or older history rows.
+    let rawText: String?
 
-    init(id: UUID = UUID(), text: String, timestamp: Date, duration: Double, wordCount: Int? = nil) {
+    init(
+        id: UUID = UUID(),
+        text: String,
+        timestamp: Date,
+        duration: Double,
+        wordCount: Int? = nil,
+        rawText: String? = nil
+    ) {
         self.id = id
         self.text = text
         self.timestamp = timestamp
         self.duration = duration
         self.wordCount = wordCount ?? UsageStats.wordCount(in: text)
+        self.rawText = rawText
+    }
+
+    /// True when we stored a raw stage that differs from the final text.
+    var hasDistinctRaw: Bool {
+        guard let rawText else { return false }
+        let raw = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let final = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !raw.isEmpty && raw != final
+    }
+
+    /// True when a raw stage was captured (even if polish made no change).
+    var hasRaw: Bool {
+        guard let rawText else { return false }
+        return !rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 

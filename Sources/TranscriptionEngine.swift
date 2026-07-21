@@ -26,6 +26,9 @@ actor TranscriptionEngine {
         size: ASRModelSize,
         progressHandler: @escaping @Sendable (Double, String) -> Void
     ) async throws {
+        // Ensure MLX free-buffer pool is capped before weights hit the GPU.
+        MLXMemoryPolicy.apply()
+
         let modelId = size.modelId
         // Already on the requested model (and VAD ready for Qwen streaming).
         if backend != nil, loadedModelId == modelId {
@@ -164,6 +167,8 @@ actor TranscriptionEngine {
         isWarmedUp = false
         loadedModelId = nil
         loadedEngine = nil
+        // Drop recycled Metal buffers; weights are already gone.
+        MLXMemoryPolicy.reclaim(reason: "asr-unload")
     }
 
     private func warmUpQwen(_ model: Qwen3ASRModel) {

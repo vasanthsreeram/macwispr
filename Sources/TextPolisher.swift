@@ -8,12 +8,12 @@ import HuggingFace
 
 /// On-device MLX polish for ASR transcripts (cleanup + lists + course-correction).
 ///
-/// Default weights: **Qwen3.5-0.8B polish SFT** (not Liquid). User can switch to
-/// optional LFM pack in Settings when present. Prompt format matches train:
-/// bare `### Input:` / `### Output:` (no few-shot, no chat thinking).
+/// Default weights: **Qwen3.5-0.8B polish structure SFT v3** (MLX 4-bit, not Liquid).
+/// User can switch to optional LFM pack in Settings when present. Prompt format
+/// matches train: bare `### Input:` / `### Output:` (no few-shot, no chat thinking).
 ///
-/// Weights resolve from env → Application Support (HF download) → app bundle →
-/// dev cache. Production Sparkle builds do not embed the ~1.4 GB pack.
+/// Weights resolve from env → Application Support (HF download) → dev cache.
+/// Production Sparkle builds do not embed the pack (~400 MB 4-bit download).
 actor TextPolisher {
     /// UI label for the currently selected local pack.
     static var displayName: String {
@@ -49,6 +49,7 @@ actor TextPolisher {
     func unload() {
         container = nil
         loadedModel = nil
+        MLXMemoryPolicy.reclaim(reason: "polish-unload")
     }
 
     func load(
@@ -121,9 +122,12 @@ actor TextPolisher {
                 return result
             }
             let cleaned = sanitize(output, original: trimmed)
+            // Intermediate generation buffers are free to recycle now.
+            MLXMemoryPolicy.reclaim(reason: "after-polish")
             return cleaned.isEmpty ? text : cleaned
         } catch {
             NSLog("MacWispr TextPolisher (MLX) failed: \(error.localizedDescription)")
+            MLXMemoryPolicy.reclaim(reason: "polish-error")
             return text
         }
     }
@@ -140,28 +144,6 @@ actor TextPolisher {
                 s = String(s[..<r.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
-        if (s.hasPrefix("\"") && s.hasSuffix("\"")) || (s.hasPrefix("'") && s.hasSuffix("'")),
-           s.count > 1
-        {
-            s = String(s.dropFirst().dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        for prefix in ["Corrected:", "Transcript:", "Output:", "Cleaned:", "Rewrite:"] {
-            if s.lowercased().hasPrefix(prefix.lowercased()) {
-                s = String(s.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-        }
-        // Reject meta reasoning / chain-of-thought — not legitimate polished starts.
-        let low = s.lowercased()
-        if low.hasPrefix("i need") || low.hasPrefix("let me") || low.hasPrefix("the user")
-            || low.hasPrefix("okay, let's") || low.hasPrefix("first, i ")
-        {
-            return original
-        }
-        if s.count > max(original.count * 4, original.count + 200) {
-            return original
-        }
-        // Near-identical to input → model failed to format; keep original
-        // only if it didn't at least introduce list markers.
         return s
     }
 }

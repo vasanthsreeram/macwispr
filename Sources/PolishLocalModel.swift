@@ -2,22 +2,33 @@ import Foundation
 import HuggingFace
 
 /// On-device polish weight packs (MLX directories). User can switch in Settings.
-/// Default pack (`PolishModel`) is Qwen3.5-0.8B Base full-SFT polish (not Liquid).
+/// Default pack (`PolishModel`) is Qwen3.5-0.8B structure-v3 SFT polish (MLX 4-bit).
 ///
 /// Weights are **never** shipped inside the app. When the user enables Local polish,
 /// MacWispr downloads the pack from Hugging Face into
 /// `Application Support/MacWispr/PolishModel/`. Env / Application Support / dev cache
 /// paths work for offline QA — not the app bundle.
+///
+/// Default HF repo (v3 test / product candidate):
+/// `vasanth009/macwispr-polish-qwen35-08b-v3-4bit`
+/// Older production enum pack remains at `vasanth009/macwispr-qwen35-08b-polish`
+/// (override with `MACWISPR_POLISH_HF_REPO` if needed).
 enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
     case miniCPM = "minicpm"  // rawValue kept for prefs; UI label is Qwen3.5 polish
     case liquid = "liquid"
+
+    /// Marker written into Application Support installs so repo switches re-download.
+    static let hfSourceMarkerFilename = ".macwispr-hf-repo"
+
+    /// Product default HF id for the Qwen polish pack (4-bit).
+    static let defaultQwenPolishHFRepo = "vasanth009/macwispr-polish-qwen35-08b-v3-4bit"
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .miniCPM:
-            return "Qwen3.5-0.8B · polish SFT (MLX 4-bit)"
+            return "Qwen3.5-0.8B · polish v3 SFT (MLX 4-bit)"
         case .liquid:
             return "LFM2.5-350M · course LoRA (MLX)"
         }
@@ -25,7 +36,7 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
 
     var shortName: String {
         switch self {
-        case .miniCPM: return "Qwen3.5 polish"
+        case .miniCPM: return "Qwen3.5 polish v3"
         case .liquid: return "Liquid LFM"
         }
     }
@@ -34,9 +45,9 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .miniCPM:
             if isAvailable {
-                return "Default. Lists, cleanup, course-correction; does not answer questions. ~400 MB on disk (4-bit)."
+                return "Default. Structure/list polish SFT v3; lists, cleanup, course-correction; does not answer questions. ~400 MB on disk (4-bit)."
             }
-            return "Default. Lists, cleanup, course-correction; does not answer questions. Downloads ~400 MB once when you enable Local polish (not in the app install)."
+            return "Default. Structure/list polish SFT v3; lists, cleanup, course-correction; does not answer questions. Downloads ~400 MB once when you enable Local polish (not in the app install)."
         case .liquid:
             return "Optional Liquid LFM pack (if installed). Smaller / older course-correction specialist."
         }
@@ -63,7 +74,7 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .miniCPM:
             return ProcessInfo.processInfo.environment["MACWISPR_POLISH_HF_REPO"]
-                ?? "vasanth009/macwispr-qwen35-08b-polish"
+                ?? Self.defaultQwenPolishHFRepo
         case .liquid:
             return nil
         }
@@ -80,7 +91,7 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
     /// Short title for Models catalog.
     var catalogTitle: String {
         switch self {
-        case .miniCPM: return "Qwen3.5 Polish"
+        case .miniCPM: return "Qwen3.5 Polish v3"
         case .liquid: return "Liquid LFM Polish"
         }
     }
@@ -88,7 +99,7 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
     var catalogSubtitle: String {
         switch self {
         case .miniCPM:
-            return "Post-dictation cleanup · lists · course-correction · on-device 4-bit"
+            return "Post-dictation cleanup · structure/lists v3 · course-correction · on-device 4-bit"
         case .liquid:
             return "Optional smaller course-correction pack (if installed)"
         }
@@ -150,6 +161,32 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
         return false
     }
 
+    /// HF repo id recorded when this Application Support pack was installed, if any.
+    static func installedHFSource(at dir: URL) -> String? {
+        let marker = dir.appendingPathComponent(hfSourceMarkerFilename)
+        guard let raw = try? String(contentsOf: marker, encoding: .utf8) else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    static func writeHFSourceMarker(at dir: URL, repoId: String) {
+        let marker = dir.appendingPathComponent(hfSourceMarkerFilename)
+        try? repoId.write(to: marker, atomically: true, encoding: .utf8)
+    }
+
+    /// True when Application Support install matches the currently configured HF repo.
+    /// Missing marker on a downloadable pack is treated as stale (forces re-pull after repo switch).
+    static func applicationSupportMatchesConfiguredRepo(for model: PolishLocalModel) -> Bool {
+        guard let dir = applicationSupportDirectory(for: model),
+              looksLikeCompletePack(at: dir)
+        else { return false }
+        guard let expected = model.huggingfaceRepoId else {
+            // No auto-download pack — any complete install is fine.
+            return true
+        }
+        return installedHFSource(at: dir) == expected
+    }
+
     static func resolveDirectory(for model: PolishLocalModel) -> URL? {
         let fm = FileManager.default
         if let override = ProcessInfo.processInfo.environment[model.envKey],
@@ -167,9 +204,10 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
             if looksLikeCompletePack(at: u) { return u }
         }
         // Do not load from the app bundle — models are never packaged there.
-        // Application Support installs (download-on-enable target)
-        if let dir = applicationSupportDirectory(for: model),
-           looksLikeCompletePack(at: dir)
+        // Application Support installs (download-on-enable target). Prefer only when
+        // the pack was pulled for the currently configured HF repo (or has no HF id).
+        if applicationSupportMatchesConfiguredRepo(for: model),
+           let dir = applicationSupportDirectory(for: model)
         {
             return dir
         }
@@ -179,9 +217,13 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
             switch model {
             case .miniCPM:
                 return [
-                    // Prefer 4-bit product pack, then bf16 enum / earlier fused packs.
+                    // Prefer latest structure SFT 4-bit, then earlier structure / enum packs.
+                    ".cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-structure-v3-4bit",
+                    ".cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-structure-v2-4bit",
+                    ".cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-structure-4bit",
                     ".cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-enum-4bit",
                     ".cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-enum",
+                    ".cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-structure-v2-dpo-4bit",
                     ".cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-targeted",
                     ".cache/macwispr-minicpm-bench/fused/qwen35-08b-polish-500",
                     ".cache/macwispr-minicpm-bench/fused/minicpm5-polish-lora-fused",
@@ -200,20 +242,51 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
         return nil
     }
 
-    /// Download pack from Hugging Face into Application Support if missing.
-    /// No-op when weights are already resolvable. Reports progress 0…1 via handler.
+    /// Download pack from Hugging Face into Application Support if missing or stale.
+    /// No-op when weights are already resolvable for the configured repo / env / dev path.
+    /// Reports progress 0…1 via handler.
     @discardableResult
     static func ensureDownloaded(
         _ model: PolishLocalModel,
         progressHandler: (@Sendable (Double, String) -> Void)? = nil
     ) async throws -> URL {
-        if let existing = resolveDirectory(for: model) {
-            progressHandler?(1.0, "Ready · \(model.shortName)")
-            return existing
+        // Prefer env override or an Application Support install that matches the
+        // configured HF repo. Do **not** short-circuit on a stale App Support pack
+        // or on a dev-cache fallback when HF is configured — those would block upgrades.
+        if let envPath = ProcessInfo.processInfo.environment[model.envKey],
+           !envPath.isEmpty
+        {
+            let u = URL(fileURLWithPath: envPath)
+            if looksLikeCompletePack(at: u) {
+                progressHandler?(1.0, "Ready · \(model.shortName)")
+                return u
+            }
         }
+        if model == .miniCPM,
+           let envPath = ProcessInfo.processInfo.environment["MACWISPR_POLISH_MODEL"],
+           !envPath.isEmpty
+        {
+            let u = URL(fileURLWithPath: envPath)
+            if looksLikeCompletePack(at: u) {
+                progressHandler?(1.0, "Ready · \(model.shortName)")
+                return u
+            }
+        }
+        if applicationSupportMatchesConfiguredRepo(for: model),
+           let dest = applicationSupportDirectory(for: model)
+        {
+            progressHandler?(1.0, "Ready · \(model.shortName)")
+            return dest
+        }
+
         guard let repoIdString = model.huggingfaceRepoId,
               let repoID = Repo.ID(rawValue: repoIdString)
         else {
+            // No HF auto-download: fall back to any resolvable path (dev cache, etc.).
+            if let existing = resolveDirectory(for: model) {
+                progressHandler?(1.0, "Ready · \(model.shortName)")
+                return existing
+            }
             throw NSError(domain: "PolishLocalModel", code: 1, userInfo: [
                 NSLocalizedDescriptionKey:
                     "Polish model not found for \(model.shortName). Enable Local polish to download, set \(model.envKey), or install under Application Support/\(model.resourceFolderName)."
@@ -257,6 +330,8 @@ enum PolishLocalModel: String, CaseIterable, Identifiable, Codable {
                     "Downloaded polish pack looks incomplete (missing config.json or weights)."
             ])
         }
+
+        writeHFSourceMarker(at: staging, repoId: repoIdString)
 
         // Replace any previous install atomically enough for our needs.
         if fm.fileExists(atPath: dest.path) {

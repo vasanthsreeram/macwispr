@@ -17,6 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu-bar agent (LSUIElement) — stay out of the Dock until a window opens.
         NSApp.setActivationPolicy(.accessory)
 
+        // Cap MLX free-buffer pool before any Qwen/polish load (see MLXMemoryPolicy).
+        MLXMemoryPolicy.apply()
+
         // Sparkle: start background update checks when Info.plist has SUFeedURL
         // (packaged .app). Bare SPM binaries skip this — see SparkleUpdater.
         _ = SparkleUpdater.shared

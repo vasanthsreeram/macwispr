@@ -1183,17 +1183,28 @@ struct SettingsView: View {
                     get: { appState.selectedInputDeviceUID },
                     set: { appState.setInputDeviceUID($0) }
                 )) {
-                    Text("System Default").tag("")
+                    Text("System Default (\(AudioInputDevices.defaultInputDeviceName()))").tag("")
                     ForEach(appState.availableInputDevices) { device in
-                        Text(device.name).tag(device.uid)
+                        if AudioInputDevices.isSystemDefault(uid: device.uid) {
+                            Text("\(device.name) — macOS default").tag(device.uid)
+                        } else {
+                            Text(device.name).tag(device.uid)
+                        }
                     }
                 }
                 if appState.selectedInputDeviceUID.isEmpty {
-                    Text("Following macOS default: \(AudioInputDevices.defaultInputDeviceName())")
+                    Text("Following Control Center / Sound → Input: \(AudioInputDevices.defaultInputDeviceName())")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if let name = appState.availableInputDevices
+                    .first(where: { $0.uid == appState.selectedInputDeviceUID })?
+                    .name
+                {
+                    Text("Pinned to \(name) for every dictation (ignores macOS default changes).")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Text("Applies on the next dictation. Plug in a USB or Bluetooth mic, then refresh if it does not appear.")
+                Text("Applies on the next dictation. If the wrong mic is used, pick the built-in Mac microphone explicitly, or set System Default and match Sound settings.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Button("Refresh device list") {

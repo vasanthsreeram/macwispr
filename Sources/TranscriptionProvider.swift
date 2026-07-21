@@ -64,7 +64,7 @@ enum PolishProvider: String, CaseIterable, Identifiable, Codable {
         case .off:
             return "Default. Inserts speech-to-text as-is (optional first-letter capitalize only). No polish model."
         case .local:
-            return "Optional. On-device Qwen3.5 polish (lists, cleanup, course-correction). Downloads ~400 MB once if not already installed — not in the app update. Off by default."
+            return "Optional. On-device Qwen3.5 polish v3 (lists, structure, course-correction). Downloads ~400 MB once if not already installed — not in the app update. Off by default."
         case .openAI:
             return "Optional. Uses your OpenAI key with a small chat model. Requires network."
         }

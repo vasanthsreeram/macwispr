@@ -50,10 +50,11 @@ struct DashboardView: View {
                 Button {
                     appState.setInputDeviceUID("")
                 } label: {
+                    let title = "System Default (\(AudioInputDevices.defaultInputDeviceName()))"
                     if appState.selectedInputDeviceUID.isEmpty {
-                        Label("System Default", systemImage: "checkmark")
+                        Label(title, systemImage: "checkmark")
                     } else {
-                        Text("System Default")
+                        Text(title)
                     }
                 }
                 if !appState.availableInputDevices.isEmpty {
@@ -62,10 +63,13 @@ struct DashboardView: View {
                         Button {
                             appState.setInputDeviceUID(device.uid)
                         } label: {
+                            let label = AudioInputDevices.isSystemDefault(uid: device.uid)
+                                ? "\(device.name) — macOS default"
+                                : device.name
                             if appState.selectedInputDeviceUID == device.uid {
-                                Label(device.name, systemImage: "checkmark")
+                                Label(label, systemImage: "checkmark")
                             } else {
-                                Text(device.name)
+                                Text(label)
                             }
                         }
                     }

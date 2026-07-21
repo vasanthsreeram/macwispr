@@ -14,9 +14,11 @@ struct AudioInputDevice: Identifiable, Equatable, Hashable {
 
 enum AudioInputDevices {
     /// Lists connected input devices (microphones), sorted by name.
+    /// Excludes Core Audio default aggregates (we surface real devices only).
     static func inputDevices() -> [AudioInputDevice] {
         guard let deviceIDs = allDeviceIDs() else { return [] }
         return deviceIDs.compactMap { deviceInfo(deviceID: $0) }
+            .filter { !$0.uid.hasPrefix("CADefaultDeviceAggregate") }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
@@ -25,22 +27,61 @@ enum AudioInputDevices {
         guard !uid.isEmpty else { return nil }
         guard let deviceIDs = allDeviceIDs() else { return nil }
         for deviceID in deviceIDs {
-            guard let deviceUID = readStringProperty(
-                deviceID: deviceID,
-                selector: kAudioDevicePropertyDeviceUID
-            ), deviceUID == uid else { continue }
+            guard let deviceUID = uidString(deviceID: deviceID), deviceUID == uid else { continue }
             return deviceID
         }
         return nil
     }
 
+    /// Current system default input device (follows Sound settings / Control Center).
+    static func defaultInputDeviceID() -> AudioDeviceID? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var deviceID = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        guard AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            0,
+            nil,
+            &size,
+            &deviceID
+        ) == noErr, deviceID != 0 else { return nil }
+        return deviceID
+    }
+
     /// Human-readable name for the system default input (for UI subtitles).
     static func defaultInputDeviceName() -> String {
         guard let defaultID = defaultInputDeviceID(),
-              let info = deviceInfo(deviceID: defaultID) else {
+              let name = name(forDeviceID: defaultID) else {
             return "System Default"
         }
-        return info.name
+        return name
+    }
+
+    /// Display name for a Core Audio device id.
+    static func name(forDeviceID deviceID: AudioDeviceID) -> String? {
+        if let n = readStringProperty(deviceID: deviceID, selector: kAudioDevicePropertyDeviceNameCFString),
+           !n.isEmpty
+        {
+            return n
+        }
+        return readStringProperty(deviceID: deviceID, selector: kAudioObjectPropertyName)
+    }
+
+    /// UID string for a device id.
+    static func uidString(deviceID: AudioDeviceID) -> String? {
+        readStringProperty(deviceID: deviceID, selector: kAudioDevicePropertyDeviceUID)
+    }
+
+    /// Whether this UID is currently the OS default input.
+    static func isSystemDefault(uid: String) -> Bool {
+        guard let defaultID = defaultInputDeviceID(),
+              let defaultUID = uidString(deviceID: defaultID) else { return false }
+        return defaultUID == uid
     }
 
     // MARK: - Core Audio
@@ -73,33 +114,16 @@ enum AudioInputDevices {
         return ids
     }
 
-    private static func defaultInputDeviceID() -> AudioDeviceID? {
-        var address = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultInputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        var deviceID = AudioDeviceID(0)
-        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
-        guard AudioObjectGetPropertyData(
-            AudioObjectID(kAudioObjectSystemObject),
-            &address,
-            0,
-            nil,
-            &size,
-            &deviceID
-        ) == noErr, deviceID != 0 else { return nil }
-        return deviceID
-    }
-
     private static func deviceInfo(deviceID: AudioDeviceID) -> AudioInputDevice? {
         guard deviceHasInputChannels(deviceID: deviceID),
               deviceIsAlive(deviceID: deviceID),
-              let uid = readStringProperty(deviceID: deviceID, selector: kAudioDevicePropertyDeviceUID),
+              let uid = uidString(deviceID: deviceID),
               !uid.isEmpty,
-              let name = readStringProperty(deviceID: deviceID, selector: kAudioDevicePropertyDeviceNameCFString)
-                ?? readStringProperty(deviceID: deviceID, selector: kAudioObjectPropertyName)
+              let name = name(forDeviceID: deviceID)
         else { return nil }
+        // Skip pure virtual aggregates used as the AUHAL "default" wrapper —
+        // they are not useful picker rows and confuse "which mic is selected".
+        if uid.hasPrefix("CADefaultDeviceAggregate") { return nil }
         return AudioInputDevice(uid: uid, name: name)
     }
 
@@ -148,10 +172,19 @@ enum AudioInputDevices {
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
-        var ref: CFString?
-        var size = UInt32(MemoryLayout<CFString?>.size)
-        guard AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &ref) == noErr,
-              let ref else { return nil }
-        return ref as String
+        var cfStr: Unmanaged<CFString>?
+        var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+        let status = withUnsafeMutablePointer(to: &cfStr) { ptr in
+            AudioObjectGetPropertyData(
+                deviceID,
+                &address,
+                0,
+                nil,
+                &size,
+                ptr
+            )
+        }
+        guard status == noErr, let cfStr else { return nil }
+        return cfStr.takeUnretainedValue() as String
     }
 }

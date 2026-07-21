@@ -15,7 +15,7 @@ cd "$ROOT"
 "$ROOT/scripts/preflight-xcode.sh"
 
 APP_NAME="MacWispr"
-VERSION="${MACWISPR_VERSION:-1.2.4}"
+VERSION="${MACWISPR_VERSION:-1.2.7}"
 BUILD_DIR="${BUILD_DIR:-$ROOT/.build}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 CONFIG="${CONFIG:-release}"
