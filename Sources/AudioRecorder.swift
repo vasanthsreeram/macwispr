@@ -11,6 +11,12 @@ final class AudioRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var isTapped = false
 
+    /// Latest input RMS level (raw, ~0…1) for UI metering. Written on the audio
+    /// thread, read from the main thread via `currentAudioLevel()`.
+    private var meterLevel: Float = 0
+    /// Debounce guard so a burst of config-change notifications restarts capture once.
+    private var restartPending = false
+
     /// Reused on the audio thread so each 1024-frame tap does not allocate.
     private var monoScratch: [Float] = []
     /// Expected max frames per tap (engine may deliver slightly more than requested).
@@ -40,11 +46,41 @@ final class AudioRecorder: @unchecked Sendable {
         }
     }
 
+    /// Last device successfully bound for capture (for UI / debug). Empty if unknown.
+    private(set) var lastBoundInputName: String = ""
+    private(set) var lastBoundInputUID: String = ""
+
+    init() {
+        // Mid-recording device changes: the AUHAL is bound to a concrete device id,
+        // so it does NOT follow the OS default on its own — rebind when it moves.
+        installDefaultInputListener()
+        NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleInputConfigChange(reason: "engine configuration change")
+        }
+    }
+
+    /// Latest mic input level for UI metering (raw RMS, ~0…1). Thread-safe.
+    func currentAudioLevel() -> Float {
+        lock.lock()
+        defer { lock.unlock() }
+        return meterLevel
+    }
+
     func startRecording() {
         // Pre-size for ~60s of 16 kHz mono so appends rarely reallocate.
         samples = []
         samples.reserveCapacity(Int(targetSampleRate) * 60)
+        startCapture()
+    }
 
+    /// Binds the device, detects the hardware format, installs the tap, starts the
+    /// engine. Safe to call again mid-session (rebind after a device switch) —
+    /// accumulated `samples` are kept; only the capture path is rebuilt.
+    private func startCapture() {
         // Clean up a prior session that never stopped cleanly.
         if isTapped {
             engine.inputNode.removeTap(onBus: 0)
@@ -57,15 +93,30 @@ final class AudioRecorder: @unchecked Sendable {
         converter = nil
         convertBuffer = nil
         usesPassthrough = false
+        lastBoundInputName = ""
+        lastBoundInputUID = ""
 
+        // Materialize the input AUHAL, then bind the chosen (or OS-default) mic
+        // *before* reading the hardware format / installing the tap.
+        engine.prepare()
         applyInputDeviceUID(inputDeviceUID)
 
         let inputNode = engine.inputNode
-        let inputFormat = inputNode.outputFormat(forBus: 0)
+        // Prefer hardware input format after device bind (more accurate post-switch).
+        let hwFormat = inputNode.inputFormat(forBus: 0)
+        let outFormat = inputNode.outputFormat(forBus: 0)
+        let inputFormat = (hwFormat.sampleRate > 0 && hwFormat.channelCount > 0) ? hwFormat : outFormat
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
             NSLog("AudioRecorder: invalid input format (mic permission / device?)")
             return
         }
+        NSLog(
+            "AudioRecorder: capturing name=%@ uid=%@ format=%.0f Hz × %u ch",
+            lastBoundInputName.isEmpty ? "?" : lastBoundInputName,
+            lastBoundInputUID.isEmpty ? "?" : lastBoundInputUID,
+            inputFormat.sampleRate,
+            inputFormat.channelCount
+        )
 
         guard let targetFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
@@ -132,8 +183,52 @@ final class AudioRecorder: @unchecked Sendable {
         converter?.reset()
         lock.lock()
         let result = samples
+        meterLevel = 0
         lock.unlock()
         return result
+    }
+
+    // MARK: - Mid-recording device changes
+
+    /// Follows Sound settings / Control Center while capturing on the system default.
+    private func installDefaultInputListener() {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let status = AudioObjectAddPropertyListenerBlock(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            DispatchQueue.main
+        ) { [weak self] _, _ in
+            guard let self else { return }
+            // Only relevant when following the system default; an explicit pick stays.
+            let explicit = self.inputDeviceUID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard explicit.isEmpty else { return }
+            self.handleInputConfigChange(reason: "default input device changed")
+        }
+        if status != noErr {
+            NSLog("AudioRecorder: could not observe default input changes (OSStatus %d)", status)
+        }
+    }
+
+    /// Rebuild the capture path (rebind device, re-detect format, reinstall tap)
+    /// without dropping audio already captured. Debounced — device switches fire
+    /// several notifications while Core Audio settles.
+    private func handleInputConfigChange(reason: String) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            guard self.isTapped, !self.restartPending else { return }
+            self.restartPending = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                guard let self else { return }
+                self.restartPending = false
+                guard self.isTapped else { return }
+                NSLog("AudioRecorder: %@ — rebinding capture mid-recording", reason)
+                self.startCapture()
+            }
+        }
     }
 
     /// Copy of audio captured so far without stopping the mic (for live partials).
@@ -153,18 +248,42 @@ final class AudioRecorder: @unchecked Sendable {
     }
 
     /// Binds `AVAudioEngine` to a specific input device before capture starts.
+    /// Empty / nil UID → **explicitly** bind the current OS default input (so a prior
+    /// explicit choice cannot stick on the AUHAL after the user picks System Default).
     private func applyInputDeviceUID(_ uid: String?) {
         let trimmed = uid?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !trimmed.isEmpty else { return }
-        guard let deviceID = AudioInputDevices.deviceID(forUID: trimmed) else {
-            NSLog("AudioRecorder: input device uid=%@ not found — using system default", trimmed)
-            return
-        }
+
+        // Force the input node / AUHAL to exist.
+        _ = engine.inputNode
+        engine.prepare()
+
         guard let audioUnit = engine.inputNode.audioUnit else {
-            NSLog("AudioRecorder: input node has no audio unit")
+            NSLog("AudioRecorder: input node has no audio unit — cannot select mic")
             return
         }
-        var device = deviceID
+
+        let requestedID: AudioDeviceID?
+        let requestedLabel: String
+        if trimmed.isEmpty {
+            requestedID = AudioInputDevices.defaultInputDeviceID()
+            requestedLabel = "system-default"
+        } else if let id = AudioInputDevices.deviceID(forUID: trimmed) {
+            requestedID = id
+            requestedLabel = trimmed
+        } else {
+            NSLog(
+                "AudioRecorder: input device uid=%@ not found — falling back to system default",
+                trimmed
+            )
+            requestedID = AudioInputDevices.defaultInputDeviceID()
+            requestedLabel = "system-default(fallback)"
+        }
+
+        guard var device = requestedID, device != 0 else {
+            NSLog("AudioRecorder: no resolvable input device id (%@)", requestedLabel)
+            return
+        }
+
         let status = AudioUnitSetProperty(
             audioUnit,
             kAudioOutputUnitProperty_CurrentDevice,
@@ -174,7 +293,62 @@ final class AudioRecorder: @unchecked Sendable {
             UInt32(MemoryLayout<AudioDeviceID>.size)
         )
         if status != noErr {
-            NSLog("AudioRecorder: failed to set input device (OSStatus %d)", status)
+            NSLog(
+                "AudioRecorder: failed to set input device %@ (OSStatus %d)",
+                requestedLabel,
+                status
+            )
+            return
+        }
+
+        // Verify the AUHAL actually took the device (new Macs often wrap default
+        // in CADefaultDeviceAggregate — accept either the requested id or that aggregate).
+        var actual = AudioDeviceID(0)
+        var actualSize = UInt32(MemoryLayout<AudioDeviceID>.size)
+        let getStatus = AudioUnitGetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &actual,
+            &actualSize
+        )
+        if getStatus == noErr, actual != 0 {
+            let name = AudioInputDevices.name(forDeviceID: actual)
+                ?? AudioInputDevices.name(forDeviceID: device)
+                ?? requestedLabel
+            let actualUID = AudioInputDevices.uidString(deviceID: actual)
+                ?? (trimmed.isEmpty ? "" : trimmed)
+            lastBoundInputName = name
+            lastBoundInputUID = actualUID
+            if actual != device {
+                // Common when binding OS default: AUHAL reports CADefaultDeviceAggregate-*.
+                if actualUID.hasPrefix("CADefaultDeviceAggregate") || trimmed.isEmpty {
+                    lastBoundInputName = AudioInputDevices.defaultInputDeviceName()
+                    if let defID = AudioInputDevices.defaultInputDeviceID(),
+                       let defUID = AudioInputDevices.uidString(deviceID: defID)
+                    {
+                        lastBoundInputUID = defUID
+                    }
+                } else {
+                    NSLog(
+                        "AudioRecorder: device readback mismatch requested=%u actual=%u name=%@",
+                        device,
+                        actual,
+                        name
+                    )
+                }
+            }
+            NSLog(
+                "AudioRecorder: bound input → %@ (uid=%@, requested=%@)",
+                lastBoundInputName,
+                lastBoundInputUID.isEmpty ? "?" : lastBoundInputUID,
+                requestedLabel
+            )
+        } else {
+            lastBoundInputName = AudioInputDevices.name(forDeviceID: device) ?? requestedLabel
+            lastBoundInputUID = trimmed
+            NSLog("AudioRecorder: set input ok but could not read back (OSStatus %d)", getStatus)
         }
     }
 
@@ -183,6 +357,14 @@ final class AudioRecorder: @unchecked Sendable {
     private func processTapBuffer(_ buffer: AVAudioPCMBuffer, sourceSR: Double) {
         let frameCount = Int(buffer.frameLength)
         guard frameCount > 0 else { return }
+
+        if let channelData = buffer.floatChannelData {
+            var rms: Float = 0
+            vDSP_rmsqv(channelData[0], 1, &rms, vDSP_Length(frameCount))
+            lock.lock()
+            meterLevel = rms
+            lock.unlock()
+        }
 
         if usesPassthrough {
             appendPassthrough(buffer, frameCount: frameCount)

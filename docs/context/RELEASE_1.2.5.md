@@ -11,7 +11,9 @@
 | **Lean Sparkle zip** | Polish weights **not** bundled (~1.2 GB → ~100–150 MB) |
 | **Polish download-on-enable** | Settings → Local LLM downloads **MLX 4-bit** pack (~400 MB) from HF once |
 | **Single `mlx.metallib`** | Removed duplicate `default.metallib` copies (~200 MB saved) |
-| **HF pack** | `vasanth009/macwispr-qwen35-08b-polish` (4-bit enum SFT) |
+| **HF pack** | `vasanth009/macwispr-polish-qwen35-08b-v3-4bit` (4-bit structure SFT v3; older enum pack remains at `vasanth009/macwispr-qwen35-08b-polish`) |
+| **Live waveform HUD** | "Listening" chrome replaced by a moving RMS-driven waveform; disappears once live words start dictating |
+| **Mid-recording mic switch** | Capture rebinds when the system default input changes or the device config changes (Continuity/Bluetooth mic fix) |
 
 Polish remains **off by default**. ASR models still download separately to cache.
 
