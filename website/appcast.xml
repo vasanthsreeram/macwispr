@@ -17,6 +17,28 @@
     <language>en</language>
 
     <item>
+      <title>MacWispr 1.2.8</title>
+      <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.8</link>
+      <sparkle:version>1.2.8</sparkle:version>
+      <sparkle:shortVersionString>1.2.8</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Tue, 21 Jul 2026 07:11:27 +0000</pubDate>
+      <description><![CDATA[
+        <h2>MacWispr 1.2.8</h2>
+<ul>
+  <li><strong>Live waveform:</strong> while listening, the HUD shows a moving waveform driven by your actual mic input — it goes quiet when nothing is being picked up. Once words start appearing, the live transcript takes over.</li>
+  <li><strong>Mic switching fix:</strong> switching your input device mid-dictation (MacBook mic → iPhone Continuity mic → Bluetooth) now rebinds capture on the fly — no more silent or garbled audio after a switch.</li>
+</ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vasanthsreeram/macwispr/releases/download/v1.2.8/MacWispr-1.2.8-macos-arm64.zip"
+        length="45914702"
+        type="application/octet-stream"
+        sparkle:edSignature="gU0UaR3FMS+IZ0mZG0sH+/uXoT3gbSoil07JmLH1r2p58IBV/4c5Mc+U5Vcltv9dY/tFg1ROUPRU0JoYmc58BQ=="
+      />
+    </item>
+
+    <item>
       <title>MacWispr 1.2.7</title>
       <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.7</link>
       <sparkle:version>1.2.7</sparkle:version>
