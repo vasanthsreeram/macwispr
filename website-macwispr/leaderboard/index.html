@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Leaderboard — MacWispr (Coming Soon)</title>
+  <meta name="description" content="MacWispr public leaderboard — coming soon. Opt-in only. Demo rankings for preview." />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#f7f2e8" />
+  <link rel="canonical" href="https://macwispr.lintware.com/leaderboard" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="MacWispr" />
+  <meta property="og:url" content="https://macwispr.lintware.com/leaderboard" />
+  <meta property="og:title" content="Leaderboard — MacWispr (Coming Soon)" />
+  <meta property="og:description" content="Opt-in public rankings. Demo data only for now." />
+  <meta property="og:image" content="https://macwispr.lintware.com/assets/share-og.png" />
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/logo-128.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="/styles.v7.css" />
+  <style>
+    .lb-main {
+      position: relative;
+      z-index: 1;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: calc(var(--header-h) + 48px) 24px 80px;
+    }
+    .lb-main h1 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      line-height: 1.1;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+    .lb-lede {
+      color: var(--ink-soft);
+      font-size: 1.1rem;
+      margin: 0 0 20px;
+      max-width: 40rem;
+    }
+    .lb-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .lb-meta .chip { font-size: 0.85rem; }
+    .chip.soon {
+      background: rgba(232, 93, 76, 0.12);
+      color: #c44a3b;
+      border: 1px solid rgba(232, 93, 76, 0.22);
+    }
+    .chip.demo {
+      background: rgba(59, 110, 245, 0.1);
+      color: #2a56c4;
+      border: 1px solid rgba(59, 110, 245, 0.18);
+    }
+
+    .lb-banner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px 20px;
+      padding: 16px 18px;
+      margin-bottom: 28px;
+      border-radius: 16px;
+      background: rgba(255, 253, 248, 0.72);
+      border: 1px solid var(--line-strong);
+      box-shadow: var(--shadow-sm);
+    }
+    .lb-banner strong { display: block; font-size: 1rem; margin-bottom: 2px; }
+    .lb-banner p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      max-width: 36rem;
+    }
+
+    .lb-board {
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 253, 248, 0.75);
+      box-shadow: var(--shadow);
+    }
+    .lb-board-head,
+    .lb-row {
+      display: grid;
+      grid-template-columns: 48px minmax(140px, 1.5fr) repeat(3, minmax(0, 1fr));
+      gap: 10px 12px;
+      align-items: center;
+      padding: 12px 18px;
+    }
+    .lb-board-head {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 242, 232, 0.65);
+    }
+    .lb-row {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .lb-row:last-child { border-bottom: 0; }
+    .lb-row:hover { background: rgba(255, 255, 255, 0.45); }
+    .lb-rank {
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--ink);
+    }
+    .lb-rank.gold { color: #c98912; }
+    .lb-rank.silver { color: #7a7a82; }
+    .lb-rank.bronze { color: #b06a3c; }
+    .lb-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .lb-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .lb-name {
+      font-weight: 700;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lb-handle {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .lb-stat {
+      font-variant-numeric: tabular-nums;
+      color: var(--ink-soft);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .lb-stat em {
+      font-style: normal;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.8rem;
+      margin-left: 4px;
+    }
+    .lb-note {
+      margin-top: 28px;
+      padding: 18px 20px;
+      border-radius: 16px;
+      border: 1px dashed var(--line-strong);
+      background: rgba(255, 253, 248, 0.5);
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .lb-note a { font-weight: 600; }
+    .lb-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 720px) {
+      .lb-board-head { display: none; }
+      .lb-row {
+        grid-template-columns: 36px 1fr;
+        grid-template-areas:
+          "rank user"
+          ". s1"
+          ". s2"
+          ". s3";
+      }
+      .lb-rank { grid-area: rank; align-self: start; padding-top: 8px; }
+      .lb-user { grid-area: user; }
+      .lb-stat:nth-of-type(1) { grid-area: s1; }
+      .lb-stat:nth-of-type(2) { grid-area: s2; }
+      .lb-stat:nth-of-type(3) { grid-area: s3; }
+      .lb-stat {
+        font-size: 0.88rem;
+        background: rgba(20, 18, 15, 0.04);
+        padding: 6px 10px;
+        border-radius: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" aria-hidden="true">
+    <div class="aurora"></div>
+  </div>
+
+  <header class="site-header">
+    <div class="header-inner glass">
+      <a class="brand" href="/" aria-label="MacWispr home">
+        <img src="/assets/logo-mark.png" width="32" height="32" alt="" decoding="async" />
+        <span class="brand-text">Mac<span class="soft">Wispr</span></span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/#features">Features</a>
+        <a href="/leaderboard" aria-current="page">Leaderboard</a>
+        <a href="/privacy">Privacy</a>
+      </nav>
+      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download</a>
+    </div>
+  </header>
+
+  <main class="lb-main">
+    <h1>Leaderboard</h1>
+    <p class="lb-lede">
+      See how power dictators stack up — when you’re ready to show up.
+      Rankings will be <strong>opt-in only</strong>. Nothing public until you choose a handle.
+    </p>
+    <div class="lb-meta">
+      <span class="chip soon">Coming soon</span>
+      <span class="chip demo">Demo data</span>
+      <span class="chip yes">Opt-in only</span>
+      <span class="chip yes">No transcripts</span>
+    </div>
+
+    <div class="lb-banner" role="status">
+      <div>
+        <strong>Preview board — not live rankings</strong>
+        <p>
+          Sample profiles so the page feels real. Real people appear only after an explicit public
+          opt-in in the app. Anonymous product telemetry never puts you here.
+        </p>
+      </div>
+      <span class="chip soon">UI mock</span>
+    </div>
+
+    <div class="lb-board" aria-label="Demo leaderboard">
+      <div class="lb-board-head" aria-hidden="true">
+        <span>#</span>
+        <span>Speaker</span>
+        <span>Dictations</span>
+        <span>Time saved</span>
+        <span>Streak</span>
+      </div>
+
+      <div class="lb-row">
+        <span class="lb-rank gold">1</span>
+        <div class="lb-user">
+          <span class="lb-avatar" style="background: linear-gradient(135deg,#e85d4c,#f0a06a)">AK</span>
+          <div>
+            <span class="lb-name">Aria K.</span>
+            <span class="lb-handle">@ariawrites</span>
+          </div>
+        </div>
+        <span class="lb-stat">12.4k<em>dictations</em></span>
+        <span class="lb-stat">186h<em>saved</em></span>
+        <span class="lb-stat">47d<em>streak</em></span>
+      </div>
+
+      <div class="lb-row">
+        <span class="lb-rank silver">2</span>
+        <div class="lb-user">
+          <span class="lb-avatar" style="background: linear-gradient(135deg,#3b6ef5,#7aa2ff)">JM</span>
+          <div>
+            <span class="lb-name">Jules M.</span>
+            <span class="lb-handle">@julesmac</span>
+          </div>
+        </div>
+        <span class="lb-stat">9.8k<em>dictations</em></span>
+        <span class="lb-stat">142h<em>saved</em></span>
+        <span class="lb-stat">31d<em>streak</em></span>
+      </div>
+
+      <div class="lb-row">
+        <span class="lb-rank bronze">3</span>
+        <div class="lb-user">
+          <span class="lb-avatar" style="background: linear-gradient(135deg,#1a9a5c,#5fd49a)">SR</span>
+          <div>
+            <span class="lb-name">Sam Rivera</span>
+            <span class="lb-handle">@samr</span>
+          </div>
+        </div>
+        <span class="lb-stat">8.1k<em>dictations</em></span>
+        <span class="lb-stat">119h<em>saved</em></span>
+        <span class="lb-stat">22d<em>streak</em></span>
+      </div>
+
+      <div class="lb-row">
+        <span class="lb-rank">4</span>
+        <div class="lb-user">
+          <span class="lb-avatar" style="background: linear-gradient(135deg,#8b5cf6,#c4b5fd)">NL</span>
+          <div>
+            <span class="lb-name">Nova Lee</span>
+            <span class="lb-handle">@novalee</span>
+          </div>
+        </div>
+        <span class="lb-stat">6.6k<em>dictations</em></span>
+        <span class="lb-stat">97h<em>saved</em></span>
+        <span class="lb-stat">18d<em>streak</em></span>
+      </div>
+
+      <div class="lb-row">
+        <span class="lb-rank">5</span>
+        <div class="lb-user">
+          <span class="lb-avatar" style="background: linear-gradient(135deg,#0f766e,#5eead4)">TP</span>
+          <div>
+            <span class="lb-name">Theo Park</span>
+            <span class="lb-handle">@theopark</span>
+          </div>
+        </div>
+        <span class="lb-stat">5.2k<em>dictations</em></span>
+        <span class="lb-stat">81h<em>saved</em></span>
+        <span class="lb-stat">14d<em>streak</em></span>
+      </div>
+
+      <div class="lb-row">
+        <span class="lb-rank">6</span>
+        <div class="lb-user">
+          <span class="lb-avatar" style="background: linear-gradient(135deg,#b45309,#fbbf24)">MC</span>
+          <div>
+            <span class="lb-name">Mira Chen</span>
+            <span class="lb-handle">@mirachen</span>
+          </div>
+        </div>
+        <span class="lb-stat">4.4k<em>dictations</em></span>
+        <span class="lb-stat">68h<em>saved</em></span>
+        <span class="lb-stat">11d<em>streak</em></span>
+      </div>
+
+      <div class="lb-row">
+        <span class="lb-rank">7</span>
+        <div class="lb-user">
+          <span class="lb-avatar" style="background: linear-gradient(135deg,#be185d,#f9a8d4)">OB</span>
+          <div>
+            <span class="lb-name">Owen Blake</span>
+            <span class="lb-handle">@owenblake</span>
+          </div>
+        </div>
+        <span class="lb-stat">3.9k<em>dictations</em></span>
+        <span class="lb-stat">55h<em>saved</em></span>
+        <span class="lb-stat">9d<em>streak</em></span>
+      </div>
+
+      <div class="lb-row">
+        <span class="lb-rank">8</span>
+        <div class="lb-user">
+          <span class="lb-avatar" style="background: linear-gradient(135deg,#334155,#94a3b8)">KD</span>
+          <div>
+            <span class="lb-name">Kai Donovan</span>
+            <span class="lb-handle">@kaidonovan</span>
+          </div>
+        </div>
+        <span class="lb-stat">3.1k<em>dictations</em></span>
+        <span class="lb-stat">44h<em>saved</em></span>
+        <span class="lb-stat">7d<em>streak</em></span>
+      </div>
+    </div>
+
+    <div class="lb-note">
+      <strong>Separate opt-in — more data than reliability telemetry.</strong>
+      Anonymous product telemetry (off by default) only sends content-free reliability events
+      (hotkey health, dictation completed/failed with latency/duration <em>buckets</em>). It does
+      <strong>not</strong> send your name, total words dictated, how often you use the app, or WPM-style ranks.
+      Those live on-device in the Weekly Time Saved dashboard today.
+      <br /><br />
+      A public board needs extra fields on purpose: a <strong>display name/handle</strong>,
+      <strong>word-count aggregates</strong>, <strong>usage frequency</strong> (e.g. dictations, streak),
+      and <strong>derived time-saved / speed-style stats</strong> for ranking. That requires its
+      <strong>own explicit opt-in in Settings (off by default)</strong> — turning on reliability telemetry
+      alone will never put you here. Still never: transcript text or audio.
+      See <a href="/privacy">Privacy</a> · tracking <a href="https://github.com/vasanthsreeram/macwispr/issues/11">#11</a>.
+    </div>
+
+    <div class="lb-actions">
+      <a class="btn btn-dark" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download MacWispr</a>
+      <a class="btn btn-ghost glass" href="/">Back home</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="/assets/logo-mark.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
+      <div>
+        <strong>MacWispr</strong>
+        <span>by Lintware · free local dictation</span>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/leaderboard">Leaderboard</a>
+      <a href="/privacy">Privacy</a>
+      <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+    </div>
+    <p class="footer-note">Demo names only. © <span id="y"></span> MacWispr</p>
+  </footer>
+
+  <script>
+    document.getElementById("y").textContent = String(new Date().getFullYear());
+  </script>
+</body>
+</html>

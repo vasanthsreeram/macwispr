@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Open-source model training — MacWispr</title>
+  <meta name="description" content="How MacWispr post-trains its on-device polish model — SFT, DPO, and verifier-driven GRPO on a Mac Studio. Fully open source: pipeline, eval suite, and honest benchmarks vs Claude Sonnet." />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#f7f2e8" />
+  <link rel="canonical" href="https://macwispr.lintware.com/training" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="MacWispr" />
+  <meta property="og:url" content="https://macwispr.lintware.com/training" />
+  <meta property="og:title" content="Open-source model training — MacWispr" />
+  <meta property="og:description" content="SFT → DPO → verifier-driven GRPO on a Mac Studio. All code, evals, and failures published." />
+  <meta property="og:image" content="https://macwispr.lintware.com/assets/share-og.png" />
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/logo-128.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="/styles.v7.css" />
+  <style>
+    .tr-main {
+      position: relative;
+      z-index: 1;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: calc(var(--header-h) + 48px) 24px 80px;
+    }
+    .tr-main h1 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      line-height: 1.1;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+    .tr-main h2 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 1.6rem;
+      margin: 40px 0 12px;
+    }
+    .tr-lede {
+      color: var(--ink-soft);
+      font-size: 1.1rem;
+      margin: 0 0 20px;
+      max-width: 42rem;
+    }
+    .tr-main p { color: var(--ink-soft); line-height: 1.65; max-width: 44rem; }
+    .tr-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .tr-meta .chip { font-size: 0.85rem; }
+    .chip.oss {
+      background: rgba(26, 154, 92, 0.12);
+      color: #157a49;
+      border: 1px solid rgba(26, 154, 92, 0.22);
+    }
+    .chip.live {
+      background: rgba(59, 110, 245, 0.1);
+      color: #2a56c4;
+      border: 1px solid rgba(59, 110, 245, 0.18);
+    }
+    .tr-card {
+      padding: 18px 20px;
+      margin: 20px 0;
+      border-radius: 16px;
+      background: rgba(255, 253, 248, 0.72);
+      border: 1px solid var(--line-strong);
+      box-shadow: var(--shadow-sm);
+    }
+    .tr-card strong { display: block; margin-bottom: 4px; }
+    .tr-table-wrap {
+      overflow-x: auto;
+      border-radius: 16px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 253, 248, 0.75);
+      box-shadow: var(--shadow-sm);
+      margin: 18px 0;
+    }
+    .tr-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      min-width: 560px;
+    }
+    .tr-table th, .tr-table td {
+      padding: 11px 14px;
+      text-align: right;
+      border-bottom: 1px solid var(--line);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .tr-table th:first-child, .tr-table td:first-child { text-align: left; }
+    .tr-table th {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(247, 242, 232, 0.65);
+    }
+    .tr-table tr:last-child td { border-bottom: 0; }
+    .tr-table .win { font-weight: 700; color: #157a49; }
+    .tr-steps { list-style: none; margin: 16px 0; padding: 0; counter-reset: step; }
+    .tr-steps li {
+      counter-increment: step;
+      position: relative;
+      padding: 10px 0 10px 44px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+      max-width: 44rem;
+    }
+    .tr-steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+      background: rgba(20, 18, 15, 0.06);
+      border: 1px solid var(--line-strong);
+    }
+    .tr-note {
+      margin-top: 28px;
+      padding: 18px 20px;
+      border-radius: 16px;
+      border: 1px dashed var(--line-strong);
+      background: rgba(255, 253, 248, 0.5);
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .tr-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    code {
+      font-size: 0.86em;
+      background: rgba(20, 18, 15, 0.05);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 1px 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" aria-hidden="true">
+    <div class="aurora"></div>
+  </div>
+
+  <header class="site-header">
+    <div class="header-inner glass">
+      <a class="brand" href="/" aria-label="MacWispr home">
+        <img src="/assets/logo-mark.png" width="32" height="32" alt="" decoding="async" />
+        <span class="brand-text">Mac<span class="soft">Wispr</span></span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/#features">Features</a>
+        <a href="/training" aria-current="page">Training</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/privacy">Privacy</a>
+      </nav>
+      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download</a>
+    </div>
+  </header>
+
+  <main class="tr-main">
+    <h1>We train our polish model in the open</h1>
+    <p class="tr-lede">
+      MacWispr's dictation polish — the model that turns raw speech-to-text into clean,
+      structured writing — is a <strong>0.8B model post-trained by us, on a Mac Studio</strong>.
+      The full pipeline, eval suite, reward code, and results (including the failures) are open source.
+    </p>
+    <div class="tr-meta">
+      <span class="chip oss">Fully open source</span>
+      <span class="chip live">Training in progress</span>
+      <span class="chip yes">Runs on-device</span>
+      <span class="chip yes">~200 ms</span>
+    </div>
+
+    <div class="tr-card">
+      <strong>What the polish model does</strong>
+      <p style="margin:0">
+        You say “camping list — tent, headlamp, snacks, as bullets” and it writes an actual
+        bulleted list. It cleans fillers, applies self-corrections (“no wait, almond milk”),
+        structures lists and emails — and never answers your questions, only transcribes them.
+        All locally, in about 200&nbsp;ms.
+      </p>
+    </div>
+
+    <h2>The recipe</h2>
+    <ol class="tr-steps">
+      <li><strong>SFT</strong> — supervised fine-tuning of Qwen3.5-0.8B on dictation-polish pairs (2,400 iterations, MLX on Apple Silicon).</li>
+      <li><strong>DPO</strong> — preference training against flattened outputs. Honest result: <em>it made the model worse</em> (see below), so our pipeline now gates it out automatically.</li>
+      <li><strong>GRPO</strong> — reinforcement learning where the reward is our open <code>polish_verifier</code> — the same rule-based scorer used in evals, so the model trains on exactly what we measure.</li>
+      <li><strong>4-bit quantization</strong> — shrinks the best checkpoint to ~450&nbsp;MB so it ships inside the app and runs offline.</li>
+    </ol>
+
+    <h2>Honest numbers</h2>
+    <p>
+      Our out-of-distribution suite: 40 unseen dictations covering lists, mixed formats,
+      emails, and “don't touch this” prose, scored by the shared verifier. Same prompts,
+      same scorer, against Claude Sonnet via API:
+    </p>
+    <div class="tr-table-wrap">
+      <table class="tr-table">
+        <thead>
+          <tr><th>System</th><th>Pass</th><th>Bullets</th><th>Checklist</th><th>Numbered</th><th>Multi-list</th><th>Latency</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MacWispr local 0.8B (4-bit, on-device)</td>
+            <td>23/40 (57.5%)</td>
+            <td>3/4</td>
+            <td class="win">2/4</td>
+            <td>2/4</td>
+            <td>2/8</td>
+            <td class="win">191 ms</td>
+          </tr>
+          <tr>
+            <td>Claude Sonnet (cloud API)</td>
+            <td class="win">25/40 (62.5%)</td>
+            <td>3/4</td>
+            <td>0/4</td>
+            <td class="win">4/4</td>
+            <td class="win">6/8</td>
+            <td>4,407 ms</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Two cases behind a frontier cloud model, at <strong>23× lower latency</strong>, with zero
+      audio or text leaving your Mac. We're currently running a GRPO pass targeting the
+      remaining gaps (multi-list and numbered lists) — results land in the repo when it finishes.
+    </p>
+
+    <h2>What we got wrong (and kept public)</h2>
+    <p>
+      Our DPO stage regressed the model from 55% to 48% because the preference pairs only
+      taught “don't flatten lists” — and collapsed checklist and mixed-format skills as
+      collateral. Our first GRPO attempt crashed on a dataset-format bug and the pipeline
+      silently shipped the worse checkpoint. Both are documented in the run log, with the
+      fixes: a verifier-driven reward and a gate that only promotes a checkpoint if it
+      actually beats the previous best.
+    </p>
+
+    <div class="tr-note">
+      <strong>Everything is in the repo.</strong>
+      Training pipeline: <a href="https://github.com/vasanthsreeram/macwispr/tree/main/bench/polish_posttrain"><code>bench/polish_posttrain/</code></a> —
+      the SFT/DPO/GRPO scripts, the <code>polish_verifier</code> reward, the 40-case eval suite,
+      the Claude comparison harness, and raw results. Run logs and findings:
+      <a href="https://github.com/vasanthsreeram/macwispr/tree/main/docs/context/post-training"><code>docs/context/post-training/</code></a>.
+      Trained on a Mac Studio M3 Ultra with <a href="https://github.com/ml-explore/mlx-lm">MLX</a>.
+    </div>
+
+    <div class="tr-actions">
+      <a class="btn btn-dark" href="https://github.com/vasanthsreeram/macwispr/tree/main/bench/polish_posttrain">See the training code</a>
+      <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download MacWispr</a>
+      <a class="btn btn-ghost glass" href="/">Back home</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="/assets/logo-mark.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
+      <div>
+        <strong>MacWispr</strong>
+        <span>by Lintware · free local dictation</span>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/training">Training</a>
+      <a href="/leaderboard">Leaderboard</a>
+      <a href="/privacy">Privacy</a>
+      <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+    </div>
+    <p class="footer-note">Benchmarks reproducible from the repo. © <span id="y"></span> MacWispr</p>
+  </footer>
+
+  <script>
+    document.getElementById("y").textContent = String(new Date().getFullYear());
+  </script>
+</body>
+</html>

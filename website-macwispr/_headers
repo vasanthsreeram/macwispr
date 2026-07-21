@@ -1,0 +1,41 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: interest-cohort=(), camera=(), microphone=(), geolocation=()
+  Cross-Origin-Opener-Policy: same-origin
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+  Link: </styles.v7.css>; rel=preload; as=style
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/styles.v7.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/app.v7.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/styles.v6.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/app.v6.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/styles.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/app.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/robots.txt
+  Cache-Control: public, max-age=86400
+
+/sitemap.xml
+  Cache-Control: public, max-age=86400
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *

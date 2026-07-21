@@ -1,0 +1,40 @@
+{"id": "ml1", "tags": ["multi_list"], "raw": "okay for the trip I need to pack sunscreen swimsuit and a hat and then before we leave I have to email the landlord pay the electricity bill and cancel the milk delivery"}
+{"id": "ml2", "tags": ["multi_list"], "raw": "groceries this week um eggs milk bread and coffee and then for the hardware store I need screws a level and wood glue"}
+{"id": "ml3", "tags": ["multi_list"], "raw": "so the frontend tasks are fix the login button update the navbar styling and add dark mode and on the backend we need to patch the auth endpoint and migrate the users table"}
+{"id": "ml4", "tags": ["multi_list"], "raw": "for monday's meeting agenda items are budget review hiring update and the roadmap and then action items from last time were send the deck to sarah and book the offsite venue"}
+{"id": "ml5", "tags": ["multi_list"], "raw": "pros of the new apartment bigger kitchen closer to work has a balcony cons are higher rent and the noisy street"}
+{"id": "ml6", "tags": ["multi_list"], "raw": "invite list for the party from work john lisa and marco and from college dave anna and the twins"}
+{"id": "ml7", "tags": ["multi_list"], "raw": "morning routine is stretch coffee and journal and the evening routine should be no screens after ten read twenty minutes lights out by eleven"}
+{"id": "ml8", "tags": ["multi_list"], "raw": "bugs to fix before release the crash on startup the mic permission loop and the settings window flicker and then nice to haves are the new icon and faster model loading"}
+{"id": "mx1", "tags": ["mixed_styles"], "raw": "the deployment steps in order are first build the app then sign it then notarize then upload and separately just as reminders check the changelog and ping the team"}
+{"id": "mx2", "tags": ["mixed_styles"], "raw": "recipe steps one preheat the oven two mix the dry ingredients three fold in the eggs and you'll also need on hand butter vanilla and a whisk"}
+{"id": "mx3", "tags": ["mixed_styles"], "raw": "onboarding is a sequence first create the account then verify email then set up the workspace and some optional extras are the slack integration and dark theme"}
+{"id": "mx4", "tags": ["mixed_styles"], "raw": "to set up the printer step one plug it in step two install the driver step three print a test page and things that might go wrong are the wifi dropping and paper jams"}
+{"id": "mx5", "tags": ["mixed_styles"], "raw": "workout plan monday do squats bench and rows in that exact order one two three and general notes are stay hydrated and warm up first"}
+{"id": "mx6", "tags": ["mixed_styles"], "raw": "the migration runs in three ordered phases first backup the database second run the schema change third verify the data and the risks to keep in mind are downtime and rollback complexity"}
+{"id": "mx7", "tags": ["mixed_styles"], "raw": "interview process is round one phone screen round two technical round three onsite and the things they evaluate are coding communication and culture fit"}
+{"id": "mx8", "tags": ["mixed_styles"], "raw": "first do the visa application then book flights then reserve the hotel strictly in that order and don't forget random stuff like travel insurance and an adapter"}
+{"id": "nm1", "tags": ["format_numbered"], "raw": "the steps to reset the router are unplug it wait thirty seconds plug it back in and wait for the light to go green number them"}
+{"id": "nm2", "tags": ["format_numbered"], "raw": "my top three movies in order are the godfather then spirited away then parasite make it a numbered list"}
+{"id": "nm3", "tags": ["format_numbered"], "raw": "priorities for this quarter as a ranked list ship the polish model grow the newsletter and fix the onboarding drop off"}
+{"id": "nm4", "tags": ["format_numbered"], "raw": "instructions for the babysitter first dinner at six then bath at seven then one episode of bluey then bed by eight"}
+{"id": "bl1", "tags": ["format_bullets"], "raw": "things I love about autumn the cold air the leaves pumpkin bread and long walks bullet those"}
+{"id": "bl2", "tags": ["format_bullets"], "raw": "stuff to bring to the potluck a salad serving spoons ice and some drinks as bullets please"}
+{"id": "bl3", "tags": ["format_bullets"], "raw": "notes from the call they want the demo by friday pricing is flexible and legal needs two weeks bullet points"}
+{"id": "bl4", "tags": ["format_bullets"], "raw": "ideas for the blog post local first ai privacy as a feature and why small models win make bullets"}
+{"id": "ck1", "tags": ["format_checklist"], "raw": "make me a checklist for closing the cabin drain the pipes lock the shed turn off the water heater and leave the key with the neighbor"}
+{"id": "ck2", "tags": ["format_checklist"], "raw": "pre flight checklist for the video record intro capture screen demo export in 4k and upload a checklist with checkboxes"}
+{"id": "ck3", "tags": ["format_checklist"], "raw": "before submitting the app checklist run the tests bump the version notarize and update the appcast"}
+{"id": "ck4", "tags": ["format_checklist"], "raw": "moving day checkboxes for defrost the fridge pack the kitchen label boxes and confirm the van"}
+{"id": "pp1", "tags": ["preserve_prose"], "raw": "the meeting went better than expected honestly the client liked the direction and even asked about expanding scope next quarter I think we should follow up on tuesday"}
+{"id": "pp2", "tags": ["preserve_prose"], "raw": "I've been thinking about the launch and I feel like we're rushing it the copy isn't ready and the screenshots are outdated maybe we push a week"}
+{"id": "pp3", "tags": ["preserve_prose"], "raw": "walked along the river today and the light was incredible I should bring the camera next time maybe on saturday morning before it gets busy"}
+{"id": "pp4", "tags": ["preserve_prose"], "raw": "the thing about small local models is that latency wins trust people forgive a rough edge but they don't forgive waiting two seconds after every sentence"}
+{"id": "pq1", "tags": ["preserve_question"], "raw": "hey quick question do you know if the sparkle feed needs to be resigned when we rotate the certificate or is the appcast signature separate"}
+{"id": "pq2", "tags": ["preserve_question"], "raw": "um can you check whether the venue allows outside catering or do we have to use their kitchen"}
+{"id": "pq3", "tags": ["preserve_question"], "raw": "what's the eta on the model download feature and does it block the release"}
+{"id": "pq4", "tags": ["preserve_question"], "raw": "should we do the launch on tuesday or wait for product hunt's weekend traffic what do you think"}
+{"id": "em1", "tags": ["email"], "raw": "email to the landlord hi mark the kitchen faucet has been dripping for a week could you send someone this week thanks vas"}
+{"id": "em2", "tags": ["email"], "raw": "write it as an email hey team standup is moving to nine thirty starting monday same link let me know if that clashes with anything cheers"}
+{"id": "lt1", "tags": ["light"], "raw": "um so basically the the update went out and uh nobody complained which is is kind of a win I guess"}
+{"id": "lt2", "tags": ["light"], "raw": "okay so like the demo went fine no wait actually it went great they they signed on the spot"}

@@ -221,4 +221,12 @@ Product sources (repo): `Sources/TextPolisher.swift`, `Sources/PolishLocalModel.
 
 Marketing-facing timeline and tables: website **R&D** section (`/rnd` or similar). Source facts from this file; do not invent metrics.
 
+## Post-training plans (structure SFT → RL → quant)
+
+Compact findings, ordered next actions, and RL integration plan (plus arXiv HTML mirror):
+
+→ **[post-training/](./post-training/)** — start with [plans/FINDINGS.md](./post-training/plans/FINDINGS.md) and [plans/NEXT-ACTIONS.md](./post-training/plans/NEXT-ACTIONS.md).
+
+Paper: *SFT Memorizes, RL Generalizes* ([arXiv:2501.17161v2](https://arxiv.org/abs/2501.17161v2)); local HTML under `post-training/refs/`.
+
 See also: [AGENTS.md](../../AGENTS.md), [LANGUAGE_STACK.md](LANGUAGE_STACK.md), [RELEASE_1.2.3.md](RELEASE_1.2.3.md), [RELEASE_1.2.4_BETA.md](RELEASE_1.2.4_BETA.md).

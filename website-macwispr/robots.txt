@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://macwispr.lintware.com/sitemap.xml

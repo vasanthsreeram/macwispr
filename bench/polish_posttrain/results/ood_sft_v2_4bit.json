@@ -1,0 +1,496 @@
+{
+  "summary": {
+    "model": "/Users/hcserver/macwispr-polish-bench/fused/qwen35-08b-polish-structure-v2-4bit",
+    "pass": "23/40",
+    "pass_rate": 0.575,
+    "mean_latency_ms": 191,
+    "by_tag": {
+      "email": "2/2",
+      "format_bullets": "3/4",
+      "format_checklist": "2/4",
+      "format_numbered": "2/4",
+      "light": "1/2",
+      "mixed_styles": "3/8",
+      "multi_list": "2/8",
+      "preserve_prose": "4/4",
+      "preserve_question": "4/4"
+    }
+  },
+  "results": [
+    {
+      "id": "ml1",
+      "tags": [
+        "multi_list"
+      ],
+      "passed": false,
+      "score": -0.608,
+      "latency_ms": 234,
+      "feedback": [
+        "expected >=2 headed list blocks, got 1 (flattened)"
+      ],
+      "output": "- Pack sunscreen\n- Swimsuit\n- Hat\n- Email the landlord\n- Pay the electricity bill\n- Cancel the milk delivery"
+    },
+    {
+      "id": "ml2",
+      "tags": [
+        "multi_list"
+      ],
+      "passed": false,
+      "score": 0.552,
+      "latency_ms": 186,
+      "feedback": [
+        "has >=2 list blocks but missing headings/titles"
+      ],
+      "output": "Groceries\n\n- eggs\n- milk\n- bread\n- coffee\n\nHardware store\n\n- screws\n- level\n- wood glue"
+    },
+    {
+      "id": "ml3",
+      "tags": [
+        "multi_list"
+      ],
+      "passed": false,
+      "score": -0.572,
+      "latency_ms": 217,
+      "feedback": [
+        "expected >=2 headed list blocks, got 1 (flattened)"
+      ],
+      "output": "- [ ] Fix the login button\n- [ ] Update the navbar styling\n- [ ] Add dark mode\n- [ ] Patch the auth endpoint\n- [ ] Migrate the users table"
+    },
+    {
+      "id": "ml4",
+      "tags": [
+        "multi_list"
+      ],
+      "passed": false,
+      "score": -0.572,
+      "latency_ms": 232,
+      "feedback": [
+        "expected >=2 headed list blocks, got 1 (flattened)"
+      ],
+      "output": "- [ ] Budget review\n- [ ] Hiring update\n- [ ] Roadmap\n- [ ] Action items from last time\n- [ ] Send the deck to Sarah\n- [ ] Book the offsite venue"
+    },
+    {
+      "id": "ml5",
+      "tags": [
+        "multi_list"
+      ],
+      "passed": true,
+      "score": 0.959,
+      "latency_ms": 199,
+      "feedback": [],
+      "output": "Pros of the new apartment:\n- Bigger kitchen closer to work\n- Balcony\n\nCons:\n- Higher rent\n- Noisy street"
+    },
+    {
+      "id": "ml6",
+      "tags": [
+        "multi_list"
+      ],
+      "passed": true,
+      "score": 0.975,
+      "latency_ms": 211,
+      "feedback": [],
+      "output": "Invite list for the party from work:\n- John\n- Lisa\n- Marco\n\nInvite list for the party from college:\n- Dave\n- Anna\n- The twins"
+    },
+    {
+      "id": "ml7",
+      "tags": [
+        "multi_list"
+      ],
+      "passed": false,
+      "score": -0.525,
+      "latency_ms": 187,
+      "feedback": [
+        "expected >=2 headed list blocks, got 0 (flattened)"
+      ],
+      "output": "Morning routine is stretch coffee and journal. The evening routine should be no screens after ten, read twenty minutes, lights out by eleven."
+    },
+    {
+      "id": "ml8",
+      "tags": [
+        "multi_list"
+      ],
+      "passed": false,
+      "score": -0.626,
+      "latency_ms": 169,
+      "feedback": [
+        "expected >=2 headed list blocks, got 1 (flattened)"
+      ],
+      "output": "- mic permission loop\n- settings window flicker\n- new icon\n- faster model loading"
+    },
+    {
+      "id": "mx1",
+      "tags": [
+        "mixed_styles"
+      ],
+      "passed": true,
+      "score": 0.919,
+      "latency_ms": 230,
+      "feedback": [],
+      "output": "Deployment steps:\n1. Build the app\n2. Sign it\n3. Notarize\n4. Upload\n\nReminders:\n- [ ] Check the changelog\n- [ ] Ping the team"
+    },
+    {
+      "id": "mx2",
+      "tags": [
+        "mixed_styles"
+      ],
+      "passed": true,
+      "score": 0.904,
+      "latency_ms": 221,
+      "feedback": [],
+      "output": "Recipe steps:\n1. Preheat the oven\n2. Mix the dry ingredients\n3. Fold in the eggs\n\nAnd on hand:\n- Butter\n- Vanilla\n- A whisk"
+    },
+    {
+      "id": "mx3",
+      "tags": [
+        "mixed_styles"
+      ],
+      "passed": false,
+      "score": -0.565,
+      "latency_ms": 210,
+      "feedback": [
+        "expected numbered AND bullet/checkbox styles together"
+      ],
+      "output": "Onboarding is a sequence:\n1. Create the account\n2. Verify email\n3. Set up the workspace\n4. Optional extras: Slack integration and dark theme"
+    },
+    {
+      "id": "mx4",
+      "tags": [
+        "mixed_styles"
+      ],
+      "passed": false,
+      "score": -0.596,
+      "latency_ms": 215,
+      "feedback": [
+        "expected numbered AND bullet/checkbox styles together"
+      ],
+      "output": "- [ ] Plug it in\n- [ ] Install the driver\n- [ ] Print a test page\n- [ ] Things that might go wrong are the wifi dropping and paper jams"
+    },
+    {
+      "id": "mx5",
+      "tags": [
+        "mixed_styles"
+      ],
+      "passed": false,
+      "score": -0.525,
+      "latency_ms": 212,
+      "feedback": [
+        "expected numbered AND bullet/checkbox styles together"
+      ],
+      "output": "Monday workout plan:\n\n- Do squats, bench, and rows in that exact order\n- One two three\n\nGeneral notes:\n\n- Stay hydrated\n- Warm up first"
+    },
+    {
+      "id": "mx6",
+      "tags": [
+        "mixed_styles"
+      ],
+      "passed": true,
+      "score": 0.943,
+      "latency_ms": 237,
+      "feedback": [],
+      "output": "The migration runs in three ordered phases:\n\n1. Backup the database\n2. Run the schema change\n3. Verify the data\n\nRisks to keep in mind are:\n\n- Downtime\n- Rollback complexity"
+    },
+    {
+      "id": "mx7",
+      "tags": [
+        "mixed_styles"
+      ],
+      "passed": false,
+      "score": -0.578,
+      "latency_ms": 170,
+      "feedback": [
+        "expected numbered AND bullet/checkbox styles together"
+      ],
+      "output": "Interview process is round two technical round three onsite. They evaluate are coding communication and culture fit."
+    },
+    {
+      "id": "mx8",
+      "tags": [
+        "mixed_styles"
+      ],
+      "passed": false,
+      "score": -0.618,
+      "latency_ms": 199,
+      "feedback": [
+        "expected numbered AND bullet/checkbox styles together"
+      ],
+      "output": "1. Do the visa application\n2. Book flights\n3. Reserve the hotel strictly in that order\n4. Travel insurance\n5. An adapter"
+    },
+    {
+      "id": "nm1",
+      "tags": [
+        "format_numbered"
+      ],
+      "passed": false,
+      "score": -0.525,
+      "latency_ms": 204,
+      "feedback": [
+        "expected numbered list"
+      ],
+      "output": "The steps to reset the router are:\n\n- Unplug it\n- Wait thirty seconds\n- Plug it back in\n- Wait for the light to go green"
+    },
+    {
+      "id": "nm2",
+      "tags": [
+        "format_numbered"
+      ],
+      "passed": true,
+      "score": 0.947,
+      "latency_ms": 182,
+      "feedback": [],
+      "output": "My top three movies in order are:\n1. The Godfather\n2. Spirited Away\n3. Parasite"
+    },
+    {
+      "id": "nm3",
+      "tags": [
+        "format_numbered"
+      ],
+      "passed": false,
+      "score": -0.525,
+      "latency_ms": 183,
+      "feedback": [
+        "expected numbered list"
+      ],
+      "output": "Priorities for this quarter:\n\n- Ship the polish model\n- Grow the newsletter\n- Fix the onboarding drop off"
+    },
+    {
+      "id": "nm4",
+      "tags": [
+        "format_numbered"
+      ],
+      "passed": true,
+      "score": 0.923,
+      "latency_ms": 206,
+      "feedback": [],
+      "output": "Instructions for the babysitter:\n1. Dinner at six\n2. Bath at seven\n3. One episode of Blue-ey\n4. Bed by eight"
+    },
+    {
+      "id": "bl1",
+      "tags": [
+        "format_bullets"
+      ],
+      "passed": true,
+      "score": 0.975,
+      "latency_ms": 174,
+      "feedback": [],
+      "output": "Things I Love About Autumn\n\n- The cold air\n- The leaves\n- Pumpkin bread\n- Long walks"
+    },
+    {
+      "id": "bl2",
+      "tags": [
+        "format_bullets"
+      ],
+      "passed": true,
+      "score": 0.95,
+      "latency_ms": 174,
+      "feedback": [],
+      "output": "Stuff to bring to the potluck:\n- Salad\n- Serving spoons\n- Ice\n- Drinks"
+    },
+    {
+      "id": "bl3",
+      "tags": [
+        "format_bullets"
+      ],
+      "passed": true,
+      "score": 0.879,
+      "latency_ms": 157,
+      "feedback": [],
+      "output": "- Demo by Friday\n- Pricing is flexible\n- Legal needs two weeks"
+    },
+    {
+      "id": "bl4",
+      "tags": [
+        "format_bullets"
+      ],
+      "passed": false,
+      "score": -1.0,
+      "latency_ms": 159,
+      "feedback": [
+        "expected bullet list",
+        "low content coverage (55%) \u2014 dropped items?"
+      ],
+      "output": "- [ ] AI privacy as a feature\n- [ ] Why small models win"
+    },
+    {
+      "id": "ck1",
+      "tags": [
+        "format_checklist"
+      ],
+      "passed": true,
+      "score": 0.923,
+      "latency_ms": 204,
+      "feedback": [],
+      "output": "- [ ] Close the cabin drain\n- [ ] Pipe the lock\n- [ ] Turn off the water heater\n- [ ] Leave the key with the neighbor"
+    },
+    {
+      "id": "ck2",
+      "tags": [
+        "format_checklist"
+      ],
+      "passed": false,
+      "score": 0.15,
+      "latency_ms": 181,
+      "feedback": [
+        "low content coverage (50%) \u2014 dropped items?"
+      ],
+      "output": "- [ ] Capture screen demo\n- [ ] Export in 4k\n- [ ] Upload a checklist with checkboxes"
+    },
+    {
+      "id": "ck3",
+      "tags": [
+        "format_checklist"
+      ],
+      "passed": false,
+      "score": -0.525,
+      "latency_ms": 174,
+      "feedback": [
+        "expected - [ ] checklist items"
+      ],
+      "output": "Before submitting the app checklist run the tests, bump the version, notarize, and update the appcast."
+    },
+    {
+      "id": "ck4",
+      "tags": [
+        "format_checklist"
+      ],
+      "passed": true,
+      "score": 0.93,
+      "latency_ms": 186,
+      "feedback": [],
+      "output": "- [ ] Defrost the fridge\n- [ ] Pack the kitchen\n- [ ] Label boxes\n- [ ] Confirm the van"
+    },
+    {
+      "id": "pp1",
+      "tags": [
+        "preserve_prose"
+      ],
+      "passed": true,
+      "score": 0.896,
+      "latency_ms": 174,
+      "feedback": [],
+      "output": "The client liked the direction and even asked about expanding scope next quarter. We should follow up on Tuesday."
+    },
+    {
+      "id": "pp2",
+      "tags": [
+        "preserve_prose"
+      ],
+      "passed": true,
+      "score": 0.922,
+      "latency_ms": 186,
+      "feedback": [],
+      "output": "I've been thinking about the launch. The copy isn't ready, and the screenshots are outdated. Maybe we push a week."
+    },
+    {
+      "id": "pp3",
+      "tags": [
+        "preserve_prose"
+      ],
+      "passed": true,
+      "score": 0.975,
+      "latency_ms": 194,
+      "feedback": [],
+      "output": "Walked along the river today and the light was incredible. I should bring the camera next time, maybe on Saturday morning before it gets busy."
+    },
+    {
+      "id": "pp4",
+      "tags": [
+        "preserve_prose"
+      ],
+      "passed": true,
+      "score": 0.975,
+      "latency_ms": 194,
+      "feedback": [],
+      "output": "The thing about small local models is that latency wins trust people forgive a rough edge, but they don't forgive waiting two seconds after every sentence."
+    },
+    {
+      "id": "pq1",
+      "tags": [
+        "preserve_question"
+      ],
+      "passed": true,
+      "score": 0.927,
+      "latency_ms": 181,
+      "feedback": [],
+      "output": "Do you know if the sparkle feed needs to be resigned when we rotate the certificate or is the appcast signature separate?"
+    },
+    {
+      "id": "pq2",
+      "tags": [
+        "preserve_question"
+      ],
+      "passed": true,
+      "score": 0.975,
+      "latency_ms": 164,
+      "feedback": [],
+      "output": "Can you check whether the venue allows outside catering or do we have to use their kitchen?"
+    },
+    {
+      "id": "pq3",
+      "tags": [
+        "preserve_question"
+      ],
+      "passed": true,
+      "score": 0.975,
+      "latency_ms": 162,
+      "feedback": [],
+      "output": "What's the eta on the model download feature, and does it block the release?"
+    },
+    {
+      "id": "pq4",
+      "tags": [
+        "preserve_question"
+      ],
+      "passed": true,
+      "score": 0.975,
+      "latency_ms": 173,
+      "feedback": [],
+      "output": "Should we do the launch on Tuesday or wait for product hunt's weekend traffic? What do you think?"
+    },
+    {
+      "id": "em1",
+      "tags": [
+        "email"
+      ],
+      "passed": true,
+      "score": 0.552,
+      "latency_ms": 216,
+      "feedback": [],
+      "output": "Subject: Kitchen Faucet Dripping\n\nHi Mark,\n\nThe kitchen faucet has been dripping for a week. Could you send someone this week?\n\nThanks,\n[Your Name]"
+    },
+    {
+      "id": "em2",
+      "tags": [
+        "email"
+      ],
+      "passed": true,
+      "score": 0.558,
+      "latency_ms": 198,
+      "feedback": [],
+      "output": "Hey team, standup is moving to 9:30 starting Monday. Same link let me know if that clashes with anything.\n\nCheers"
+    },
+    {
+      "id": "lt1",
+      "tags": [
+        "light"
+      ],
+      "passed": true,
+      "score": 0.93,
+      "latency_ms": 157,
+      "feedback": [],
+      "output": "The update went out and nobody complained, which is kind of a win."
+    },
+    {
+      "id": "lt2",
+      "tags": [
+        "light"
+      ],
+      "passed": false,
+      "score": 0.15,
+      "latency_ms": 147,
+      "feedback": [
+        "low content coverage (55%) \u2014 dropped items?"
+      ],
+      "output": "The demo went great, they signed on the spot."
+    }
+  ]
+}
