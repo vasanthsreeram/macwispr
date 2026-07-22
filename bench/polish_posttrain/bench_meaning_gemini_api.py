@@ -22,11 +22,17 @@ KEY = os.environ["GEMINI_API_KEY"]
 URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
+NO_THINK = False  # set via --no-think: disable reasoning (thinkingBudget 0)
+
+
 def run_gemini(raw: str, model: str, timeout: int = 120) -> tuple[str, float]:
+    gen_cfg = {"temperature": 0.0}
+    if NO_THINK:
+        gen_cfg["thinkingConfig"] = {"thinkingBudget": 0}
     body = json.dumps({
         "systemInstruction": {"parts": [{"text": SYSTEM}]},
         "contents": [{"parts": [{"text": f"### Input:\n{raw}\n\n### Output:\n"}]}],
-        "generationConfig": {"temperature": 0.0},
+        "generationConfig": gen_cfg,
     }).encode()
     req = urllib.request.Request(
         URL.format(model=model), data=body,
@@ -49,8 +55,11 @@ def main() -> None:
     ap.add_argument("--suite", default=str(Path(__file__).parent / "meaning_eval_set.jsonl"))
     ap.add_argument("--model", default="gemini-flash-lite-latest")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--no-think", action="store_true", help="disable reasoning (thinkingBudget 0)")
     ap.add_argument("--out", default="")
     args = ap.parse_args()
+    global NO_THINK
+    NO_THINK = args.no_think
 
     cases = [json.loads(l) for l in Path(args.suite).read_text().splitlines() if l.strip()]
 

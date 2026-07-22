@@ -88,3 +88,16 @@ real cost is meaningfully higher than the visible-token figure above.
   in three defect classes worth a future training round: bare-number fidelity
   (`$750`→`$7,500`), anti-repetition, and long-input clause retention.
 - If a cloud fallback is ever wanted, Flash-Lite is the clear price/quality pick.
+
+### Reasoning / thinking tokens
+- **Gemini 3.5 Flash-Lite does NOT think by default** — measured `usageMetadata`
+  shows no `thoughtsTokenCount`, so its 100% / ~1 s / ~$0.13 numbers already
+  reflect non-reasoning operation. (`thinkingBudget: 0` is rejected by this model,
+  but that's moot since thinking is already off; 128/512 are accepted if you ever
+  want to *add* it.) It is the fastest cloud option in this set.
+- **Grok Build 0.1 IS a reasoning model** — emits hidden thinking tokens (billed
+  as output), which is why it is slower/spikier (≤19 s) and costs more than its
+  visible-token price implies.
+- Cloud latencies are not perfectly matched: Flash-Lite was measured via direct
+  REST API (~1 s = clean model time), while agy/claude CLI models carry agent
+  overhead (5–12 s), so those CLI numbers overstate pure model latency.
