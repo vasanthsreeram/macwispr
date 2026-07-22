@@ -1,0 +1,382 @@
+{
+  "summary": {
+    "model": "claude:haiku",
+    "pass": "26/30",
+    "pass_rate": 0.867,
+    "fact_retention": 0.964,
+    "facts": "133/138",
+    "by_cat": {
+      "allergy": "1/1",
+      "caveat": "1/1",
+      "compare": "1/1",
+      "conditional": "0/1",
+      "contact": "1/1",
+      "datetime": "1/1",
+      "deadline": "1/1",
+      "dosage": "1/1",
+      "double_detail": "1/1",
+      "exception": "1/1",
+      "filler_trap": "0/1",
+      "identity": "1/1",
+      "legal_detail": "1/1",
+      "measurement": "1/1",
+      "mixed_units": "1/1",
+      "multi_person": "0/1",
+      "names": "1/1",
+      "negation": "1/1",
+      "negation2": "1/1",
+      "numbers": "1/1",
+      "order": "0/1",
+      "partial": "1/1",
+      "price": "1/1",
+      "quantities": "0/1",
+      "scope": "1/1",
+      "sequence_dep": "1/1",
+      "soft_detail": "0/1",
+      "threshold": "1/1",
+      "versions": "1/1",
+      "who_said": "1/1"
+    }
+  },
+  "results": [
+    {
+      "id": "mn1",
+      "cat": "numbers",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 31962,
+      "output": "So the budget for the offsite is twelve thousand dollars and we've already spent forty-eight hundred dollars, so we have seven thousand two hundred dollars left. Tell finance that\u2014"
+    },
+    {
+      "id": "mn2",
+      "cat": "dosage",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 16118,
+      "output": "Reminder: Give the dog half a tablet twice a day with food for ten days. Do not give on an empty stomach."
+    },
+    {
+      "id": "mn3",
+      "cat": "datetime",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 13194,
+      "output": "Okay, meeting with the contractor moved from Tuesday at 2 p.m. to Thursday at 9:30 a.m. at the site office, not the cafe."
+    },
+    {
+      "id": "mn4",
+      "cat": "names",
+      "passed": true,
+      "score": 1.0,
+      "kept": "6/6",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 12821,
+      "output": "Tell the team:\n1. Priya owns the API migration.\n2. Marcus is on the billing bug.\n3. If Marcus is out, it goes to Elena, not to the intern."
+    },
+    {
+      "id": "mn5",
+      "cat": "negation",
+      "passed": true,
+      "score": 1.0,
+      "kept": "3/3",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 11255,
+      "output": "Note to self: Do not deploy on Friday. No matter what, even if QA signs off, we wait until Monday morning."
+    },
+    {
+      "id": "mn6",
+      "cat": "conditional",
+      "passed": false,
+      "score": 0.8,
+      "kept": "4/5",
+      "missing": [
+        "sarah"
+      ],
+      "flips": [],
+      "latency_ms": 12289,
+      "output": "We accept the quote, but only if they include the second inspection for free. Otherwise, we go with the other vendor."
+    },
+    {
+      "id": "mn7",
+      "cat": "quantities",
+      "passed": false,
+      "score": 0.571,
+      "kept": "5/7",
+      "missing": [
+        "not breast|no breast",
+        "not (?:the )?family size"
+      ],
+      "flips": [],
+      "latency_ms": 10815,
+      "output": "Shopping List\n\n- 2 kilos chicken thighs\n- 3 red onions\n- 1 dozen eggs\n- Small bottle of fish sauce"
+    },
+    {
+      "id": "mn8",
+      "cat": "contact",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 17559,
+      "output": "The plumber's number is 0412 338 775. His name is Dave, and he said to call before 6 PM on weekdays only."
+    },
+    {
+      "id": "mn9",
+      "cat": "deadline",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 10115,
+      "output": "The abstract is due September 15th at 11:59 p.m. Pacific, which is 6:59 a.m. our time on the 16th. Submit the night before to be safe."
+    },
+    {
+      "id": "mn10",
+      "cat": "exception",
+      "passed": true,
+      "score": 1.0,
+      "kept": "3/3",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 10092,
+      "output": "Everyone on the team gets access to the new dashboard except contractors and anyone who hasn't done the security training yet."
+    },
+    {
+      "id": "mn11",
+      "cat": "order",
+      "passed": false,
+      "score": 0.75,
+      "kept": "3/4",
+      "missing": [
+        "order (?:really )?matters|in (?:that|this) (?:exact )?order|only then"
+      ],
+      "flips": [],
+      "latency_ms": 13048,
+      "output": "When restarting the server:\n\n1. Drain the queue\n2. Stop the workers\n3. Restart PostgreSQL\n4. Bring the app back up\n\nThe order is critical."
+    },
+    {
+      "id": "mn12",
+      "cat": "price",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 8506,
+      "output": "The landlord agreed to $2,250 a month down from $2,400 if we sign a two-year lease and pay the first month up front."
+    },
+    {
+      "id": "mn13",
+      "cat": "measurement",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 13980,
+      "output": "For the bookshelf, the alcove is 187 centimeters wide and 210 centimeters high, but the skirting board sticks out 2 centimeters, so order the 180-wide unit."
+    },
+    {
+      "id": "mn14",
+      "cat": "allergy",
+      "passed": true,
+      "score": 1.0,
+      "kept": "6/6",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 0,
+      "output": "[exception Command '['claude', '-p', '--model', 'haiku', '--system-prompt', 'You polish speech-to-text transcripts for a dictation app.\\nRules:\\n- Fix punctuation, capitalization, filler words, and course-corrections.\\n- Structure lists when the user clearly intended lists (numbered, bullets, checklists, multi-section headings).\\n- Do NOT answer questions or add facts not in the transcript.\\n- Output ONLY the polished transcript text \u2014 no preamble, no markdown fences, no commentary.', \"### Input:\\nfor the dinner party remember jess is allergic to shellfish not just intolerant actually allergic and tom doesn't eat pork so the paella is out\\n\\n### Output:\\n\"]' timed out after 120 seconds]"
+    },
+    {
+      "id": "mn15",
+      "cat": "caveat",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 9327,
+      "output": "The test results look good overall, but the memory usage doubles under load, which is probably fine for now, but we should flag it in the release notes."
+    },
+    {
+      "id": "mn16",
+      "cat": "versions",
+      "passed": true,
+      "score": 1.0,
+      "kept": "5/5",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 9595,
+      "output": "The bug only happens on macOS 14.2 and later with the Intel builds. The Apple Silicon ones are fine. So pin the CI runner to 14.1."
+    },
+    {
+      "id": "mn17",
+      "cat": "negation2",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 10902,
+      "output": "Tell the movers the piano is not going to the new place\u2014it stays. It's the neighbor's; we're just storing it. Everything else in the garage goes."
+    },
+    {
+      "id": "mn18",
+      "cat": "mixed_units",
+      "passed": true,
+      "score": 1.0,
+      "kept": "6/6",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 14361,
+      "output": "Recipe\n\nIngredients:\n250 grams of flour\n2 teaspoons of baking powder\n180 ml of milk\n\nInstructions:\nOven at 175 degrees Celsius for 35 minutes, fan off."
+    },
+    {
+      "id": "mn19",
+      "cat": "who_said",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 8288,
+      "output": "Important: The lawyer said we should not sign anything until she reviews Clause 7. The agent keeps pushing, but we wait for her review."
+    },
+    {
+      "id": "mn20",
+      "cat": "partial",
+      "passed": true,
+      "score": 1.0,
+      "kept": "5/5",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 7199,
+      "output": "The refund came through, but only $60 of the $90. They kept $30 as a restocking fee. I'm disputing that\u2014it's more than their published 15 percent."
+    },
+    {
+      "id": "mn21",
+      "cat": "double_detail",
+      "passed": true,
+      "score": 1.0,
+      "kept": "7/7",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 9580,
+      "output": "Flights are booked:\n- Outbound: 3rd at 7:05 a.m. from Gate City\n- Return: 10th at 10:40 p.m. (layover in Singapore)\n\nPack snacks in the carry-on."
+    },
+    {
+      "id": "mn22",
+      "cat": "threshold",
+      "passed": true,
+      "score": 1.0,
+      "kept": "5/5",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 12085,
+      "output": "Set the alert:\n- Page us if error rate goes over 2 percent for more than five minutes\n- Slack us if error rate is between 1 and 2 percent"
+    },
+    {
+      "id": "mn23",
+      "cat": "identity",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 7519,
+      "output": "There are two Daves in the thread. The request came from Dave Chen in procurement, not Dave Osei in legal. Make sure the quote goes to Chen."
+    },
+    {
+      "id": "mn24",
+      "cat": "scope",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 16406,
+      "output": "The discount code works on annual plans only, not monthly, and it expires at the end of March. The code is SAVE20."
+    },
+    {
+      "id": "mn25",
+      "cat": "sequence_dep",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 9640,
+      "output": "Before you run the migration:\n1. Back up the prod database.\n2. Check that the backup actually restores.\n3. Don't trust the green checkmark\u2014verify it restores."
+    },
+    {
+      "id": "mn26",
+      "cat": "soft_detail",
+      "passed": true,
+      "score": 1.0,
+      "kept": "5/5",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 8719,
+      "output": "The doctor said the rash is probably nothing, but if it spreads past the elbow or he gets a fever over 38.5, go straight to emergency."
+    },
+    {
+      "id": "mn27",
+      "cat": "filler_trap",
+      "passed": true,
+      "score": 0.75,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 11976,
+      "output": "- WiFi password: Hhouse4421!\n- Checkout: 10 a.m.; bags can stay until noon"
+    },
+    {
+      "id": "mn28",
+      "cat": "compare",
+      "passed": true,
+      "score": 1.0,
+      "kept": "6/6",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 11751,
+      "output": "Quote A is cheaper at $8,000 but doesn't include waterproofing. Quote B is $9,500 with waterproofing and a 5-year warranty. I'm leaning toward B. Write that up."
+    },
+    {
+      "id": "mn29",
+      "cat": "legal_detail",
+      "passed": true,
+      "score": 1.0,
+      "kept": "4/4",
+      "missing": [],
+      "flips": [],
+      "latency_ms": 7841,
+      "output": "The insurance covers water damage from burst pipes but not from flooding. The excess is $750, so for anything under about a grand, we just self-insure."
+    },
+    {
+      "id": "mn30",
+      "cat": "multi_person",
+      "passed": false,
+      "score": 0.8,
+      "kept": "4/5",
+      "missing": [
+        "sister"
+      ],
+      "flips": [],
+      "latency_ms": 13255,
+      "output": "Surprise Party Invite:\n- Invite everyone from book club (except Linda)\n- Keep it under 25 people\n- No gifts"
+    }
+  ]
+}
