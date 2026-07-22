@@ -25,6 +25,16 @@ NUM_WORDS = set(UNITS) | set(TENS) | set(SCALES) | {"zero", "oh"}
 NEG_RE = re.compile(
     r"\b(not|don't|do not|doesn't|never|no longer|except|excluding|but not)\b", re.I
 )
+# Idioms where the negation is filler, not a meaning-critical fact — a good
+# polish legitimately drops them, so they must not count as a lost negation.
+NEG_IDIOM_RE = re.compile(
+    r"\b(don'?t forget|do not forget|don'?t worry|don'?t hesitate|not sure|no problem|no worries)\b",
+    re.I,
+)
+
+
+def _meaningful_negation(text: str) -> bool:
+    return bool(NEG_RE.search(NEG_IDIOM_RE.sub("", text)))
 
 
 def _parse_group(words: list[str]) -> list[int]:
@@ -79,6 +89,11 @@ def _parse_group(words: list[str]) -> list[int]:
     return sorted(vals)
 
 
+def raw_decimals(text: str) -> list[str]:
+    """Decimal / version numbers like 4.2, 8.4 — kept as exact strings."""
+    return re.findall(r"\d+\.\d+", text)
+
+
 def raw_number_groups(raw: str) -> tuple[list[list[int]], set[int]]:
     """(per-group candidate readings, all allowed output values)."""
     tokens = re.findall(r"[a-z']+|\d+(?:[.:]\d+)?", raw.lower())
@@ -113,10 +128,13 @@ def raw_number_groups(raw: str) -> tuple[list[list[int]], set[int]]:
 
 
 def _out_numbers(out: str) -> list[int]:
+    # Consume decimals as whole tokens and skip them, so "4.2" is not split
+    # into invented integers 4 and 2 (decimals are checked separately).
     vals = []
-    for m in re.findall(r"\d[\d,]*", out):
-        s = m.replace(",", "")
-        vals.append(int(s))
+    for m in re.findall(r"\d[\d,]*(?:\.\d+)?", out):
+        if "." in m:
+            continue
+        vals.append(int(m.replace(",", "")))
     return vals
 
 
@@ -156,7 +174,12 @@ def fact_retention(raw: str, out: str) -> float:
         if invented:
             penalties += 1
 
-    if NEG_RE.search(raw):
+    for dec in raw_decimals(raw):
+        checks += 1
+        if dec not in out:
+            penalties += 1
+
+    if _meaningful_negation(raw):
         checks += 1
         if not NEG_RE.search(out):
             penalties += 1
