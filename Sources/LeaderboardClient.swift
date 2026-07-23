@@ -398,8 +398,6 @@ final class LeaderboardClient: @unchecked Sendable {
     }
 }
 
-// Need SecRandomCopyBytes without importing full Keychain password APIs.
-import Security
 
 
 // MARK: - Stats helpers
