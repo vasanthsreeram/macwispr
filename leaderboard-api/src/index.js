@@ -273,10 +273,13 @@ async function putMe(request, env) {
          VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
          ON CONFLICT(token_hash) DO UPDATE SET
            display_name = excluded.display_name,
-           dictations = excluded.dictations,
-           words = excluded.words,
-           time_saved_minutes = excluded.time_saved_minutes,
-           streak_days = excluded.streak_days,
+           -- Never let a partial/empty client sync wipe a higher board score
+           -- (e.g. fresh launch before history loads, or maintainer seed floor).
+           -- Bare column names = existing row; excluded.* = incoming payload.
+           dictations = MAX(excluded.dictations, dictations),
+           words = MAX(excluded.words, words),
+           time_saved_minutes = MAX(excluded.time_saved_minutes, time_saved_minutes),
+           streak_days = MAX(excluded.streak_days, streak_days),
            is_custom_name = excluded.is_custom_name,
            updated_at = excluded.updated_at
          WHERE participants.is_seed = 0`
@@ -311,7 +314,16 @@ async function putMe(request, env) {
   }
   if (lastErr) throw lastErr;
 
-  const row = {
+  // Re-read after upsert — MAX() may keep higher stored scores than the payload.
+  const stored = await env.DB.prepare(
+    `SELECT display_name, dictations, words, time_saved_minutes, streak_days, is_seed,
+            COALESCE(is_custom_name, 0) AS is_custom_name
+     FROM participants WHERE token_hash = ? AND is_seed = 0`
+  )
+    .bind(tokenHash)
+    .first();
+
+  const row = stored || {
     display_name: name,
     dictations,
     words,
