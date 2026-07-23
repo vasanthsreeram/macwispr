@@ -158,81 +158,27 @@ struct SettingsView: View {
                     appState.showTelemetryDisclosure = true
                 }
 
-                Toggle("Appear on public leaderboard", isOn: Binding(
-                    get: { appState.leaderboardOptIn },
-                    set: { appState.setLeaderboardOptIn($0) }
-                ))
-                Text(
-                    "Posts counts only. Ranked by words dictated (plus dictations, time saved, streak). Default identity is a random animal name; optional public name to compete. Separate from usage telemetry — off by default. Never sends transcripts."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
                 if appState.leaderboardOptIn {
-                    HStack(spacing: 12) {
-                        LeaderboardAvatarView(
-                            animal: appState.leaderboardAnimal,
-                            avatarKey: appState.leaderboardAvatarKey.isEmpty
-                                ? appState.leaderboardDisplayName
-                                : appState.leaderboardAvatarKey,
-                            size: 40
-                        )
-                        VStack(alignment: .leading, spacing: 2) {
-                            if let rank = appState.leaderboardRank {
-                                Text("Rank #\(rank)")
-                                    .font(.headline)
-                            } else {
-                                Text("Rank syncing…")
-                                    .font(.headline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Text(appState.leaderboardDisplayName.isEmpty
-                                 ? "Name pending…"
-                                 : appState.leaderboardDisplayName)
-                                .font(.caption)
+                    LabeledContent("Leaderboard") {
+                        if let rank = appState.leaderboardRank {
+                            Text("#\(rank) · \(appState.leaderboardDisplayName.isEmpty ? "syncing…" : appState.leaderboardDisplayName)")
                                 .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
-                            Text(appState.leaderboardIsCustomName ? "Public name" : "Anonymous animal")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                        } else {
+                            Text("Joined · syncing rank…")
+                                .foregroundStyle(.secondary)
                         }
                     }
-
-                    TextField(
-                        "Public name (optional)",
-                        text: Binding(
-                            get: { appState.leaderboardPublicNameDraft },
-                            set: { appState.leaderboardPublicNameDraft = LeaderboardClient.sanitizeLocalPublicName($0) }
-                        )
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit {
-                        appState.setLeaderboardPublicName(appState.leaderboardPublicNameDraft)
-                    }
-                    Text("Leave blank for a random anonymous animal. Set a name to show up and compete.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                    if let err = appState.leaderboardNameError {
-                        Text(err)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                    HStack {
-                        Button("Save name") {
-                            appState.setLeaderboardPublicName(appState.leaderboardPublicNameDraft)
-                        }
-                        .disabled(
-                            appState.leaderboardPublicNameDraft == LeaderboardClient.shared.publicName
-                            && appState.leaderboardNameError == nil
-                            && appState.leaderboardIsCustomName == !appState.leaderboardPublicNameDraft.isEmpty
-                        )
-                        Button("Open leaderboard") {
-                            appState.openPublicLeaderboard()
-                        }
-                        Button("Sync now") {
-                            appState.syncLeaderboardIfNeeded(force: true)
-                            appState.refreshLeaderboardStanding()
-                        }
-                    }
+                } else {
+                    Text("Leaderboard is off.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Text("Join, set a public name, and see your rank from the Leaderboard page in the sidebar.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Open Leaderboard…") {
+                    NotificationCenter.default.post(name: .macWisprShowLeaderboard, object: nil)
                 }
             }
 

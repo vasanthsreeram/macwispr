@@ -24,34 +24,23 @@ struct DashboardView: View {
         }
     }
 
+    /// Compact Home strip → full Leaderboard pane for join / name / rank.
     private var leaderboardRow: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Leaderboard", systemImage: "trophy.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Spacer()
-                Button("Board") {
-                    appState.openPublicLeaderboard()
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-
-            if appState.leaderboardOptIn {
-                HStack(spacing: 14) {
+        Button {
+            NotificationCenter.default.post(name: .macWisprShowLeaderboard, object: nil)
+        } label: {
+            HStack(spacing: 14) {
+                if appState.leaderboardOptIn {
                     LeaderboardAvatarView(
-                        animal: appState.leaderboardAnimal,
+                        animal: appState.leaderboardAnimal.isEmpty ? "Otter" : appState.leaderboardAnimal,
                         avatarKey: appState.leaderboardAvatarKey.isEmpty
                             ? appState.leaderboardDisplayName
                             : appState.leaderboardAvatarKey,
-                        size: 56
+                        size: 48
                     )
-
-                    // Big rank — primary Home signal
                     VStack(alignment: .leading, spacing: 2) {
                         Text(rankHeadline)
-                            .font(.system(size: 28, weight: .heavy, design: .rounded))
+                            .font(.system(size: 26, weight: .heavy, design: .rounded))
                             .foregroundStyle(rankColor)
                         Text(nameLine)
                             .font(.subheadline.weight(.semibold))
@@ -61,32 +50,29 @@ struct DashboardView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
-                    Spacer(minLength: 0)
-                }
-
-                if appState.leaderboardRank == nil || appState.leaderboardDisplayName.isEmpty {
-                    Text("Syncing your rank…")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-            } else {
-                HStack(spacing: 12) {
-                    Image(systemName: "person.crop.circle.badge.questionmark")
+                } else {
+                    Image(systemName: "trophy.fill")
                         .font(.title2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.orange)
+                        .frame(width: 48, height: 48)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Not on the board")
+                        Text("Leaderboard")
                             .font(.subheadline.weight(.semibold))
-                        Text("Opt in under Configuration → Privacy. Anonymous animals only.")
+                        Text("Join, pick a name, see your rank")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.quaternary.opacity(0.45)))
+            .contentShape(Rectangle())
         }
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.quaternary.opacity(0.45)))
+        .buttonStyle(.plain)
         .onAppear {
             appState.refreshLeaderboardStanding()
             if appState.leaderboardOptIn {
