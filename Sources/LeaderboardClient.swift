@@ -20,7 +20,7 @@ struct LeaderboardStats: Equatable, Sendable {
     static let zero = LeaderboardStats(dictations: 0, words: 0, timeSavedMinutes: 0, streakDays: 0)
 }
 
-/// Snapshot of the caller's public board identity (anonymous only).
+/// Snapshot of the caller's public board identity.
 struct LeaderboardStanding: Equatable, Sendable {
     var rank: Int?
     var displayName: String
@@ -29,6 +29,8 @@ struct LeaderboardStanding: Equatable, Sendable {
     var avatarKey: String
     var stats: LeaderboardStats
     var isSeed: Bool
+    /// True when the user set a competitive public name (not Anonymous Animal).
+    var isCustomName: Bool
 
     static let empty = LeaderboardStanding(
         rank: nil,
@@ -37,7 +39,8 @@ struct LeaderboardStanding: Equatable, Sendable {
         animal: "",
         avatarKey: "",
         stats: .zero,
-        isSeed: false
+        isSeed: false,
+        isCustomName: false
     )
 }
 
@@ -57,9 +60,16 @@ final class LeaderboardClient: @unchecked Sendable {
     private static let shortNameKey = "leaderboardShortName"
     private static let animalKey = "leaderboardAnimal"
     private static let avatarKeyKey = "leaderboardAvatarKey"
+    private static let isCustomNameKey = "leaderboardIsCustomName"
+    /// User-chosen competitive name (empty = stay anonymous animal). Local draft until sync.
+    private static let publicNameKey = "leaderboardPublicName"
     private static let lastSyncKey = "leaderboardLastSyncAt"
+    private static let lastNameErrorKey = "leaderboardLastNameError"
     private static let keychainService = "com.macwispr.leaderboard"
     private static let keychainAccount = "participant_token"
+
+    /// Max length for a public competitive name (matches API).
+    static let publicNameMaxLength = 24
 
     private let queue = DispatchQueue(label: "com.macwispr.leaderboard", qos: .utility)
     private var syncWorkItem: DispatchWorkItem?
@@ -96,12 +106,27 @@ final class LeaderboardClient: @unchecked Sendable {
             animal: defaults.string(forKey: Self.animalKey) ?? "",
             avatarKey: defaults.string(forKey: Self.avatarKeyKey) ?? "",
             stats: .zero,
-            isSeed: false
+            isSeed: false,
+            isCustomName: defaults.bool(forKey: Self.isCustomNameKey)
         )
     }
 
     var displayName: String { standing.displayName }
     var rank: Int? { standing.rank }
+
+    /// Draft public name the user typed (empty = anonymous animal).
+    var publicName: String {
+        get { UserDefaults.standard.string(forKey: Self.publicNameKey) ?? "" }
+        set {
+            let trimmed = Self.sanitizeLocalPublicName(newValue)
+            UserDefaults.standard.set(trimmed, forKey: Self.publicNameKey)
+        }
+    }
+
+    /// Last name-related API error (`name_taken`, `invalid_name_chars`, …), if any.
+    var lastNameError: String? {
+        UserDefaults.standard.string(forKey: Self.lastNameErrorKey)
+    }
 
     /// Enable or disable public board participation.
     /// Opt-out deletes the server row (if reachable) and destroys the local token.
@@ -124,6 +149,25 @@ final class LeaderboardClient: @unchecked Sendable {
                 self?.onStandingChanged?(.empty)
             }
         }
+    }
+
+    /// Update competitive public name (empty clears to anonymous) and force-sync.
+    func setPublicName(_ name: String, statsProvider: @escaping () -> LeaderboardStats) {
+        publicName = name
+        UserDefaults.standard.removeObject(forKey: Self.lastNameErrorKey)
+        guard isOptedIn else { return }
+        scheduleSync(statsProvider: statsProvider, force: true)
+    }
+
+    /// Local pre-check before network (UI).
+    static func sanitizeLocalPublicName(_ raw: String) -> String {
+        let collapsed = raw
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        if collapsed.count > publicNameMaxLength {
+            return String(collapsed.prefix(publicNameMaxLength))
+        }
+        return collapsed
     }
 
     /// Debounced upsert after dictation / settings changes.
@@ -171,22 +215,42 @@ final class LeaderboardClient: @unchecked Sendable {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("MacWispr-Leaderboard/1", forHTTPHeaderField: "User-Agent")
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "dictations": stats.dictations,
             "words": stats.words,
             "time_saved_minutes": stats.timeSavedMinutes,
             "streak_days": stats.streakDays,
         ]
+        // Empty string → server keeps / assigns anonymous animal.
+        body["public_name"] = publicName
+
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         session.dataTask(with: request) { [weak self] data, response, error in
             guard error == nil,
                   let http = response as? HTTPURLResponse,
-                  (200...299).contains(http.statusCode),
-                  let data,
+                  let data
+            else { return }
+
+            if http.statusCode == 409 || http.statusCode == 400,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let err = json["error"] as? String
+            {
+                UserDefaults.standard.set(err, forKey: Self.lastNameErrorKey)
+                DispatchQueue.main.async {
+                    // Keep prior standing; surface name error via standing callback with cached rank.
+                    if let standing = self?.standing {
+                        self?.onStandingChanged?(standing)
+                    }
+                }
+                return
+            }
+
+            guard (200...299).contains(http.statusCode),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             else { return }
 
+            UserDefaults.standard.removeObject(forKey: Self.lastNameErrorKey)
             let standing = self?.applyStandingJSON(json, fallbackStats: stats) ?? .empty
             UserDefaults.standard.set(Date(), forKey: Self.lastSyncKey)
             DispatchQueue.main.async {
@@ -233,6 +297,16 @@ final class LeaderboardClient: @unchecked Sendable {
         if let avatar = json["avatar_key"] as? String, !avatar.isEmpty {
             defaults.set(avatar, forKey: Self.avatarKeyKey)
         }
+        let isCustom = (json["is_custom_name"] as? Bool)
+            ?? ((json["is_custom_name"] as? Int).map { $0 != 0 })
+            ?? false
+        defaults.set(isCustom, forKey: Self.isCustomNameKey)
+        // Keep local draft in sync when server accepted a custom name.
+        if isCustom, let short = json["short_name"] as? String, !short.isEmpty {
+            defaults.set(short, forKey: Self.publicNameKey)
+        } else if !isCustom {
+            // Server is anonymous — leave draft as-is so user can still type a name.
+        }
         if let rank = json["rank"] as? Int {
             defaults.set(rank, forKey: Self.rankKey)
         } else if let rank = json["rank"] as? Double {
@@ -261,7 +335,8 @@ final class LeaderboardClient: @unchecked Sendable {
             animal: defaults.string(forKey: Self.animalKey) ?? "",
             avatarKey: defaults.string(forKey: Self.avatarKeyKey) ?? "",
             stats: stats,
-            isSeed: (json["is_seed"] as? Bool) ?? false
+            isSeed: (json["is_seed"] as? Bool) ?? false,
+            isCustomName: isCustom
         )
     }
 
@@ -272,6 +347,9 @@ final class LeaderboardClient: @unchecked Sendable {
         defaults.removeObject(forKey: Self.shortNameKey)
         defaults.removeObject(forKey: Self.animalKey)
         defaults.removeObject(forKey: Self.avatarKeyKey)
+        defaults.removeObject(forKey: Self.isCustomNameKey)
+        defaults.removeObject(forKey: Self.publicNameKey)
+        defaults.removeObject(forKey: Self.lastNameErrorKey)
         defaults.removeObject(forKey: Self.lastSyncKey)
     }
 

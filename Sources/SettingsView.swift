@@ -163,7 +163,7 @@ struct SettingsView: View {
                     set: { appState.setLeaderboardOptIn($0) }
                 ))
                 Text(
-                    "Posts only anonymous totals (dictations, words, time saved, streak) under a random animal name. No real name, email, or install ID. Separate from usage telemetry — off by default."
+                    "Posts counts only (dictations, words, time saved, streak). Default identity is a random animal name. Optionally set a public name to compete. Separate from usage telemetry — off by default. Never sends transcripts."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -186,14 +186,45 @@ struct SettingsView: View {
                                     .foregroundStyle(.secondary)
                             }
                             Text(appState.leaderboardDisplayName.isEmpty
-                                 ? "Anonymous name pending"
+                                 ? "Name pending…"
                                  : appState.leaderboardDisplayName)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .textSelection(.enabled)
+                            Text(appState.leaderboardIsCustomName ? "Public name" : "Anonymous animal")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
                         }
                     }
+
+                    TextField(
+                        "Public name (optional)",
+                        text: Binding(
+                            get: { appState.leaderboardPublicNameDraft },
+                            set: { appState.leaderboardPublicNameDraft = LeaderboardClient.sanitizeLocalPublicName($0) }
+                        )
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        appState.setLeaderboardPublicName(appState.leaderboardPublicNameDraft)
+                    }
+                    Text("Leave blank for a random anonymous animal. Set a name to show up and compete.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    if let err = appState.leaderboardNameError {
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                     HStack {
+                        Button("Save name") {
+                            appState.setLeaderboardPublicName(appState.leaderboardPublicNameDraft)
+                        }
+                        .disabled(
+                            appState.leaderboardPublicNameDraft == LeaderboardClient.shared.publicName
+                            && appState.leaderboardNameError == nil
+                            && appState.leaderboardIsCustomName == !appState.leaderboardPublicNameDraft.isEmpty
+                        )
                         Button("Open leaderboard") {
                             appState.openPublicLeaderboard()
                         }
