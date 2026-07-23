@@ -307,7 +307,7 @@
 
   <main class="lb-main">
     <h1>Leaderboard</h1>
-    <p class="lb-sub">Ranked by <strong>time saved</strong>. Opt-in · anonymous animals only.</p>
+    <p class="lb-sub">Ranked by <strong>time saved</strong>. Opt-in · stay anonymous or set a public name.</p>
 
     <div class="podium" id="podium" aria-label="Top 3" hidden></div>
     <div class="lb-list" id="list" aria-label="Rankings">
@@ -322,9 +322,9 @@
           <li><strong>Primary:</strong> time saved (vs your typing WPM baseline)</li>
           <li><strong>Tie-break:</strong> words → dictations</li>
           <li><strong>Also shown:</strong> streak (active days)</li>
-          <li><strong>Identity:</strong> <code>Anonymous &lt;Animal&gt; · tag</code> only — no real names, no install ID</li>
+          <li><strong>Identity:</strong> default is <code>Anonymous &lt;Animal&gt;</code>; optional public name for competition (2–24 chars)</li>
           <li><strong>Opt-in:</strong> MacWispr → Configuration → Privacy (off by default; separate from telemetry)</li>
-          <li><strong>Never:</strong> transcripts, audio, email, GitHub</li>
+          <li><strong>Never:</strong> transcripts, audio, install UUID, email</li>
         </ul>
       </details>
     </div>
@@ -349,7 +349,7 @@
       <a href="/privacy">Privacy</a>
       <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
     </div>
-    <p class="footer-note">Anonymous animals only. © <span id="y"></span> MacWispr</p>
+    <p class="footer-note">Opt-in board · anonymous or named. © <span id="y"></span> MacWispr</p>
   </footer>
 
   <script>
@@ -389,6 +389,12 @@
 
     function shortOf(e) {
       return e.short_name || String(e.display_name || "").replace(/^Anonymous\s+/i, "");
+    }
+
+    function identityLabel(e) {
+      if (e.is_seed) return "seed";
+      if (e.is_custom_name) return "named";
+      return "anon";
     }
 
     function avatarHTML(e, sizeClass) {
@@ -498,7 +504,7 @@
               '<div class="lb-r ' + rankClass(r) + '">' + r + "</div>" +
               avatarHTML(e, "") +
               '<div class="lb-who"><strong>' + escapeAttr(shortOf(e)) + "</strong>" +
-                (e.is_seed ? "<em>seed</em>" : "<em>opt-in</em>") +
+                "<em>" + identityLabel(e) + "</em>" +
               "</div>" +
               '<div class="lb-nums">' +
                 '<div class="lb-primary">' + score + (unit ? "<span>" + unit + "</span>" : "") + "</div>" +

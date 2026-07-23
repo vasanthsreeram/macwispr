@@ -122,6 +122,12 @@ final class AppState: ObservableObject {
     @Published var leaderboardAvatarKey: String = ""
     /// Last known aggregates from board sync (for Home chips).
     @Published var leaderboardRemoteStats: LeaderboardStats = .zero
+    /// True when the board shows a user-chosen competitive name.
+    @Published var leaderboardIsCustomName = false
+    /// Draft public name (empty = anonymous animal). Synced when opted in.
+    @Published var leaderboardPublicNameDraft: String = ""
+    /// Human message if the chosen name was rejected (taken / invalid).
+    @Published var leaderboardNameError: String? = nil
     /// Pipeline phase for menu bar / HUD (Ready → Listening → Transcribing → Done/Fail).
     @Published var dictationPhase: DictationPhase = .setup
     /// Short human label for the current phase (tooltips, HUD).
@@ -406,6 +412,7 @@ final class AppState: ObservableObject {
         }
         telemetryOptIn = Telemetry.shared.isOptedIn
         leaderboardOptIn = LeaderboardClient.shared.isOptedIn
+        leaderboardPublicNameDraft = LeaderboardClient.shared.publicName
         applyLeaderboardStanding(LeaderboardClient.shared.standing)
         LeaderboardClient.shared.onStandingChanged = { [weak self] standing in
             self?.applyLeaderboardStanding(standing)
@@ -505,8 +512,40 @@ final class AppState: ObservableObject {
         leaderboardShortName = standing.shortName
         leaderboardAnimal = standing.animal
         leaderboardAvatarKey = standing.avatarKey
+        leaderboardIsCustomName = standing.isCustomName
+        leaderboardPublicNameDraft = LeaderboardClient.shared.publicName
+        leaderboardNameError = Self.friendlyLeaderboardNameError(LeaderboardClient.shared.lastNameError)
         if standing.stats != .zero {
             leaderboardRemoteStats = standing.stats
+        }
+    }
+
+    /// Set or clear competitive public name (empty → anonymous animal).
+    func setLeaderboardPublicName(_ name: String) {
+        LeaderboardClient.shared.setPublicName(name) { [weak self] in
+            self?.currentLeaderboardStats() ?? .zero
+        }
+        leaderboardPublicNameDraft = LeaderboardClient.shared.publicName
+        leaderboardNameError = nil
+        // Standing updates after network; optimistic UI for draft.
+        if LeaderboardClient.shared.publicName.isEmpty {
+            leaderboardIsCustomName = false
+        }
+    }
+
+    private static func friendlyLeaderboardNameError(_ code: String?) -> String? {
+        guard let code, !code.isEmpty else { return nil }
+        switch code {
+        case "name_taken":
+            return "That name is already on the board — try another."
+        case "invalid_name_length":
+            return "Name must be 2–24 characters."
+        case "invalid_name_chars", "invalid_name":
+            return "Use letters, numbers, spaces, or . _ - only."
+        case "reserved_name":
+            return "That name is reserved."
+        default:
+            return "Couldn’t set that name (\(code))."
         }
     }
 

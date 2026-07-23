@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS participants (
   time_saved_minutes REAL NOT NULL DEFAULT 0,
   streak_days INTEGER NOT NULL DEFAULT 0,
   is_seed INTEGER NOT NULL DEFAULT 0,
+  -- 1 = user chose a public competitive name; 0 = anonymous animal
+  is_custom_name INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );

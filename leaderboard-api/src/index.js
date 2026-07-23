@@ -81,8 +81,10 @@ async function getLeaderboard(request, env, url) {
   if (!Number.isFinite(limit) || limit < 1) limit = 50;
   limit = Math.min(MAX_LIMIT, Math.floor(limit));
 
+  // is_custom_name may be missing on very old rows — COALESCE to 0.
   const rows = await env.DB.prepare(
-    `SELECT display_name, dictations, words, time_saved_minutes, streak_days, is_seed, updated_at
+    `SELECT display_name, dictations, words, time_saved_minutes, streak_days, is_seed,
+            COALESCE(is_custom_name, 0) AS is_custom_name, updated_at
      FROM participants
      ORDER BY time_saved_minutes DESC, words DESC, dictations DESC
      LIMIT ?`
@@ -107,14 +109,16 @@ async function getLeaderboard(request, env, url) {
   );
 }
 
-/** Public row shape — counts only + anonymous display + avatar key. */
+/** Public row shape — counts only + display + avatar key. */
 function publicEntry(row, rank) {
+  const custom = row.is_custom_name === 1 || row.is_custom_name === true;
   return {
     rank,
     display_name: row.display_name,
-    short_name: shortName(row.display_name),
-    animal: animalFromDisplayName(row.display_name),
+    short_name: custom ? String(row.display_name || "") : shortName(row.display_name),
+    animal: animalFromDisplayName(row.display_name, row.avatar_animal),
     avatar_key: avatarKeyFromDisplayName(row.display_name),
+    is_custom_name: custom,
     dictations: row.dictations,
     words: row.words,
     time_saved_minutes: row.time_saved_minutes,
@@ -128,9 +132,33 @@ function shortName(displayName) {
   return String(displayName || "").replace(/^Anonymous\s+/i, "").trim();
 }
 
-function animalFromDisplayName(displayName) {
+function animalFromDisplayName(displayName, fallbackAnimal) {
   const m = /^Anonymous\s+(\S+)/i.exec(String(displayName || ""));
-  return m ? m[1] : "Otter";
+  if (m) return m[1];
+  if (fallbackAnimal) return fallbackAnimal;
+  // Named players still get a stable cute animal for the avatar art.
+  const h = avatarKeyFromDisplayName(displayName);
+  const idx = parseInt(h.slice(0, 8), 16) % ANIMALS.length;
+  return ANIMALS[idx];
+}
+
+/**
+ * Optional competitive public name.
+ * null/empty → stay fully anonymous (server-derived animal).
+ * Valid string → show on the board (user chose to be identifiable by that label).
+ */
+function sanitizePublicName(raw) {
+  if (raw == null) return { name: null };
+  if (typeof raw !== "string") return { error: "invalid_name" };
+  let s = raw.normalize("NFKC").trim().replace(/\s+/g, " ");
+  if (s.length === 0) return { name: null };
+  if (s.length < 2 || s.length > 24) return { error: "invalid_name_length" };
+  // Letters / numbers / common separators — no URLs, @handles, or control junk.
+  if (!/^[\p{L}\p{N} _.\-·'’]+$/u.test(s)) return { error: "invalid_name_chars" };
+  if (/^anonymous\b/i.test(s)) return { error: "reserved_name" };
+  if (/^seed\b/i.test(s)) return { error: "reserved_name" };
+  if (/(https?:|www\.|@)/i.test(s)) return { error: "invalid_name_chars" };
+  return { name: s };
 }
 
 function avatarKeyFromDisplayName(displayName) {
@@ -151,7 +179,8 @@ async function getMe(request, env) {
   }
   const tokenHash = await sha256Hex(token);
   const row = await env.DB.prepare(
-    `SELECT display_name, dictations, words, time_saved_minutes, streak_days, is_seed
+    `SELECT display_name, dictations, words, time_saved_minutes, streak_days, is_seed,
+            COALESCE(is_custom_name, 0) AS is_custom_name
      FROM participants WHERE token_hash = ? AND is_seed = 0`
   )
     .bind(tokenHash)
@@ -220,36 +249,67 @@ async function putMe(request, env) {
     return json({ error: "invalid_stats" }, 400, request);
   }
 
+  // Optional competitive name. Omit / empty → stay anonymous animal.
+  const nameField =
+    body.public_name !== undefined ? body.public_name : body.display_name;
+  const cleaned = sanitizePublicName(nameField);
+  if (cleaned.error) {
+    return json({ error: cleaned.error }, 400, request);
+  }
+  const isCustom = cleaned.name != null;
   const tokenHash = await sha256Hex(token);
-  const displayName = await displayNameFromToken(token);
+  const anonName = await displayNameFromToken(token);
   const now = new Date().toISOString();
 
-  // Ensure unique display_name on first insert; if collision, retry with tag salt.
-  let name = displayName;
+  // Unique display_name: custom names 409 on clash; anon names re-tag.
+  let name = isCustom ? cleaned.name : anonName;
+  let lastErr = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       await env.DB.prepare(
         `INSERT INTO participants
-           (token_hash, display_name, dictations, words, time_saved_minutes, streak_days, is_seed, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+           (token_hash, display_name, dictations, words, time_saved_minutes, streak_days,
+            is_seed, is_custom_name, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
          ON CONFLICT(token_hash) DO UPDATE SET
+           display_name = excluded.display_name,
            dictations = excluded.dictations,
            words = excluded.words,
            time_saved_minutes = excluded.time_saved_minutes,
            streak_days = excluded.streak_days,
+           is_custom_name = excluded.is_custom_name,
            updated_at = excluded.updated_at
          WHERE participants.is_seed = 0`
       )
-        .bind(tokenHash, name, dictations, words, timeSaved, streak, now, now)
+        .bind(
+          tokenHash,
+          name,
+          dictations,
+          words,
+          timeSaved,
+          streak,
+          isCustom ? 1 : 0,
+          now,
+          now
+        )
         .run();
+      lastErr = null;
       break;
     } catch (e) {
-      // Unique display_name collision — re-tag
+      lastErr = e;
+      if (isCustom) {
+        // Someone else already has this public name.
+        return json({ error: "name_taken" }, 409, request);
+      }
       const salt = (attempt + 1).toString(16);
-      name = displayName.replace(/·\s*[a-f0-9]+$/i, `· ${salt}${tokenHash.slice(8, 11)}`);
+      name = anonName.replace(
+        /·\s*[a-f0-9]+$/i,
+        `· ${salt}${tokenHash.slice(8, 11)}`
+      );
       if (attempt === 4) throw e;
     }
   }
+  if (lastErr) throw lastErr;
 
   const row = {
     display_name: name,
@@ -258,6 +318,7 @@ async function putMe(request, env) {
     time_saved_minutes: timeSaved,
     streak_days: streak,
     is_seed: 0,
+    is_custom_name: isCustom ? 1 : 0,
   };
   const rank = await rankForHash(env, tokenHash);
 

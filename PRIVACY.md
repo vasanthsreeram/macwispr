@@ -128,17 +128,21 @@ When you opt in, the app posts **aggregate counts only**:
 | Word count | Total words dictated (counts only — not the words) |
 | Time saved | Derived minutes vs your typing WPM baseline |
 | Streak | Consecutive active days |
-| Display name | Server-derived **`Anonymous <Animal> · <tag>`** only |
+| Display name | Default: server-derived **`Anonymous <Animal> · <tag>`**. Optional: a **public name you choose** (2–24 characters) so you can compete by name |
 
-### Anonymity (including from maintainers)
+### Identity modes
+
+| Mode | What the board shows | Who can link it to you |
+|------|----------------------|------------------------|
+| **Anonymous (default)** | Random animal label | Nobody — maintainers only see a hash of a device-only secret |
+| **Public name (optional)** | The name you type | Anyone who sees the board (you chose that label) |
 
 - The app generates a **random secret token** stored only in your Mac’s Keychain.
 - The server stores **`SHA-256(token)`**, never the token itself and never the telemetry install UUID.
-- Display names are **not** chosen free-form and are **not** your real name, email, or GitHub handle.
-- With database access alone, maintainers **cannot** reverse a row to a person or device.
-- Still never: transcript text, audio, clipboard, vocabulary, API keys, hardware IDs.
+- Choosing a public name is **extra opt-in on top of board opt-in** — leave the field blank to stay anonymous.
+- Still never: transcript text, audio, clipboard, vocabulary, API keys, hardware IDs, email, GitHub.
 
-Turning on reliability telemetry does **not** put you on the board. Leaving the board (toggle off) deletes your non-seed row and destroys the local token so a future opt-in starts a fresh anonymous identity.
+Turning on reliability telemetry does **not** put you on the board. Leaving the board (toggle off) deletes your non-seed row and destroys the local token so a future opt-in starts a fresh identity.
 
 The board may include a few **seeded demo speakers** so the page is not empty; they are labeled as seed speakers and are not real people.
 
