@@ -128,7 +128,8 @@ struct DashboardView: View {
         let saved = remote.timeSavedMinutes > 0 ? remote.timeSavedMinutes : local.timeSavedMinutes
         let words = remote.words > 0 ? remote.words : local.words
         let dicts = remote.dictations > 0 ? remote.dictations : local.dictations
-        return "\(Self.shortDuration(minutes: saved)) · \(Self.shortCount(words))w · \(Self.shortCount(dicts))× · \(streak)d"
+        // Rank is by words; lead with that.
+        return "\(Self.shortCount(words)) words · \(Self.shortCount(dicts))× · \(streak)d · \(Self.shortDuration(minutes: saved))"
     }
 
     private static func shortDuration(minutes: Double) -> String {

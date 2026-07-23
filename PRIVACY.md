@@ -124,9 +124,9 @@ When you opt in, the app posts **aggregate counts only**:
 
 | Field | Notes |
 |-------|--------|
+| Word count | **Primary rank** — total words dictated (counts only — not the text) |
 | Dictation count | How many completed dictations (on-device history) |
-| Word count | Total words dictated (counts only — not the words) |
-| Time saved | Derived minutes vs your typing WPM baseline |
+| Time saved | Derived minutes vs your typing WPM baseline (shown, not primary rank) |
 | Streak | Consecutive active days |
 | Display name | Default: server-derived **`Anonymous <Animal> · <tag>`**. Optional: a **public name you choose** (2–24 characters) so you can compete by name |
 

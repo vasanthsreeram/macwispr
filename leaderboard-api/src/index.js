@@ -86,7 +86,7 @@ async function getLeaderboard(request, env, url) {
     `SELECT display_name, dictations, words, time_saved_minutes, streak_days, is_seed,
             COALESCE(is_custom_name, 0) AS is_custom_name, updated_at
      FROM participants
-     ORDER BY time_saved_minutes DESC, words DESC, dictations DESC
+     ORDER BY words DESC, dictations DESC, time_saved_minutes DESC
      LIMIT ?`
   )
     .bind(limit)
@@ -98,9 +98,9 @@ async function getLeaderboard(request, env, url) {
     {
       entries,
       count: entries.length,
-      // Spec: primary sort time_saved, then words, then dictations.
-      sort: ["time_saved_minutes", "words", "dictations"],
-      metrics: ["time_saved_minutes", "words", "dictations", "streak_days"],
+      // Spec: primary sort words dictated, then dictations, then time saved.
+      sort: ["words", "dictations", "time_saved_minutes"],
+      metrics: ["words", "dictations", "streak_days", "time_saved_minutes"],
       generated_at: new Date().toISOString(),
     },
     200,
@@ -207,9 +207,9 @@ async function rankForHash(env, tokenHash) {
   const rankRow = await env.DB.prepare(
     `SELECT 1 + (
        SELECT COUNT(*) FROM participants p2
-       WHERE (p2.time_saved_minutes > p.time_saved_minutes)
-          OR (p2.time_saved_minutes = p.time_saved_minutes AND p2.words > p.words)
-          OR (p2.time_saved_minutes = p.time_saved_minutes AND p2.words = p.words AND p2.dictations > p.dictations)
+       WHERE (p2.words > p.words)
+          OR (p2.words = p.words AND p2.dictations > p.dictations)
+          OR (p2.words = p.words AND p2.dictations = p.dictations AND p2.time_saved_minutes > p.time_saved_minutes)
      ) AS rank
      FROM participants p
      WHERE p.token_hash = ?`

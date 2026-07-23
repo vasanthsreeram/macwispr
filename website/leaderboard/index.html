@@ -307,7 +307,7 @@
 
   <main class="lb-main">
     <h1>Leaderboard</h1>
-    <p class="lb-sub">Ranked by <strong>time saved</strong>. Opt-in · stay anonymous or set a public name.</p>
+    <p class="lb-sub">Ranked by <strong>words dictated</strong>. Opt-in · stay anonymous or set a public name.</p>
 
     <div class="podium" id="podium" aria-label="Top 3" hidden></div>
     <div class="lb-list" id="list" aria-label="Rankings">
@@ -319,9 +319,9 @@
       <details>
         <summary>How ranking works</summary>
         <ul>
-          <li><strong>Primary:</strong> time saved (vs your typing WPM baseline)</li>
-          <li><strong>Tie-break:</strong> words → dictations</li>
-          <li><strong>Also shown:</strong> streak (active days)</li>
+          <li><strong>Primary:</strong> words dictated (counts only — not the text)</li>
+          <li><strong>Tie-break:</strong> dictations → time saved</li>
+          <li><strong>Also shown:</strong> streak (active days), time saved</li>
           <li><strong>Identity:</strong> default is <code>Anonymous &lt;Animal&gt;</code>; optional public name for competition (2–24 chars)</li>
           <li><strong>Opt-in:</strong> MacWispr → Configuration → Privacy (off by default; separate from telemetry)</li>
           <li><strong>Never:</strong> transcripts, audio, install UUID, email</li>
@@ -423,11 +423,10 @@
     function fmtHours(min) {
       if (min >= 60) {
         const h = min / 60;
-        return (h >= 10 ? Math.round(h) : Math.round(h * 10) / 10) + "";
+        return (h >= 10 ? Math.round(h) : Math.round(h * 10) / 10) + "h";
       }
-      return Math.max(1, Math.round(min)) + "m";
+      return Math.max(0, Math.round(min)) + "m";
     }
-    function hourUnit(min) { return min >= 60 ? "h" : ""; }
 
     function fmtK(n) {
       if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
@@ -442,11 +441,16 @@
       return "";
     }
 
+    /** Primary board score = words dictated. */
+    function primaryScore(e) {
+      return fmtK(e.words || 0);
+    }
+
     function metaChips(e) {
       return (
         '<span class="chiplet">🔥' + e.streak_days + "d</span>" +
         '<span class="chiplet">' + fmtK(e.dictations) + "×</span>" +
-        '<span class="chiplet">' + fmtK(e.words) + "w</span>"
+        '<span class="chiplet">⏱' + fmtHours(e.time_saved_minutes) + "</span>"
       );
     }
 
@@ -468,14 +472,13 @@
         .map(({ e, cls, label }) => {
           if (!e) return '<div class="pod ' + cls + '" style="opacity:.35"></div>';
           const size = cls === "first" ? "xl" : "lg";
-          const unit = hourUnit(e.time_saved_minutes);
-          const score = fmtHours(e.time_saved_minutes);
+          const score = primaryScore(e);
           return (
             '<div class="pod ' + cls + '">' +
               '<div class="pod-rank">' + label + "</div>" +
               avatarHTML(e, size) +
               '<div class="pod-name">' + escapeAttr(shortOf(e)) + "</div>" +
-              '<div class="pod-score">' + score + (unit ? "<span>" + unit + "</span>" : "") + "</div>" +
+              '<div class="pod-score">' + score + "<span>words</span></div>" +
               '<div class="pod-meta">' + metaChips(e) + "</div>" +
             "</div>"
           );
@@ -497,8 +500,7 @@
       list.innerHTML = rest
         .map((e) => {
           const r = e.rank;
-          const unit = hourUnit(e.time_saved_minutes);
-          const score = fmtHours(e.time_saved_minutes);
+          const score = primaryScore(e);
           return (
             '<div class="lb-row">' +
               '<div class="lb-r ' + rankClass(r) + '">' + r + "</div>" +
@@ -507,7 +509,7 @@
                 "<em>" + identityLabel(e) + "</em>" +
               "</div>" +
               '<div class="lb-nums">' +
-                '<div class="lb-primary">' + score + (unit ? "<span>" + unit + "</span>" : "") + "</div>" +
+                '<div class="lb-primary">' + score + "<span>words</span></div>" +
                 '<div class="chips">' + metaChips(e) + "</div>" +
               "</div>" +
             "</div>"
