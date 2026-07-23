@@ -11,6 +11,11 @@ final class AudioRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var isTapped = false
 
+    /// Latest input RMS (~0…1) for the listening waveform HUD only.
+    /// Written on the audio thread; read via `currentAudioLevel()`.
+    /// No mid-recording rebind / engine restart — metering only.
+    private var meterLevel: Float = 0
+
     /// Reused on the audio thread so each 1024-frame tap does not allocate.
     private var monoScratch: [Float] = []
     /// Expected max frames per tap (engine may deliver slightly more than requested).
@@ -40,10 +45,20 @@ final class AudioRecorder: @unchecked Sendable {
         }
     }
 
+    /// Thread-safe mic level for the HUD waveform (silence ≈ 0).
+    func currentAudioLevel() -> Float {
+        lock.lock()
+        defer { lock.unlock() }
+        return meterLevel
+    }
+
     func startRecording() {
         // Pre-size for ~60s of 16 kHz mono so appends rarely reallocate.
         samples = []
         samples.reserveCapacity(Int(targetSampleRate) * 60)
+        lock.lock()
+        meterLevel = 0
+        lock.unlock()
 
         // Clean up a prior session that never stopped cleanly.
         if isTapped {
@@ -132,6 +147,7 @@ final class AudioRecorder: @unchecked Sendable {
         converter?.reset()
         lock.lock()
         let result = samples
+        meterLevel = 0
         lock.unlock()
         return result
     }
@@ -183,6 +199,15 @@ final class AudioRecorder: @unchecked Sendable {
     private func processTapBuffer(_ buffer: AVAudioPCMBuffer, sourceSR: Double) {
         let frameCount = Int(buffer.frameLength)
         guard frameCount > 0 else { return }
+
+        // Level meter for HUD (first channel RMS). Does not affect capture path.
+        if let channelData = buffer.floatChannelData {
+            var rms: Float = 0
+            vDSP_rmsqv(channelData[0], 1, &rms, vDSP_Length(frameCount))
+            lock.lock()
+            meterLevel = rms
+            lock.unlock()
+        }
 
         if usesPassthrough {
             appendPassthrough(buffer, frameCount: frameCount)

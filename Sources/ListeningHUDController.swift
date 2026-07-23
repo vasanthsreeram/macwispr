@@ -105,6 +105,11 @@ final class ListeningHUDController {
             applyPanelSize(hasLive: true, animated: false)
         }
 
+        // Waveform polls this ~24 Hz; not @Published (avoids full banner re-renders).
+        box.audioLevelProvider = { [weak state] in
+            state?.audioRecorder.currentAudioLevel() ?? 0
+        }
+
         box.model = ListeningBannerModel(
             phase: state.dictationPhase,
             timerLabel: showChrome ? timer : nil,
@@ -234,6 +239,8 @@ final class ListeningBannerBox: ObservableObject {
     /// Measured height of the live transcript body (incl. inner vertical padding).
     /// Drives panel growth; clamped to 1…4 lines in the controller.
     @Published var liveContentHeight: CGFloat = 0
+    /// Polled by the listening waveform only — deliberately not @Published.
+    var audioLevelProvider: (() -> Float)?
 }
 
 /// Reports laid-out transcript size so the panel can grow with content.
@@ -390,9 +397,19 @@ struct ListeningBannerView: View {
 
     private var chromeCard: some View {
         HStack(spacing: 8) {
-            Text(chromeTitle)
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(.primary)
+            if model.phase == .listening {
+                // Live waveform — moves when the mic hears sound ("am I being heard?").
+                // Metering only; no capture rebind (that path broke dictation in 1.2.8).
+                ListeningWaveformView(levelProvider: { [weak box] in
+                    box?.audioLevelProvider?() ?? 0
+                })
+                .frame(width: 92, height: 18)
+                .accessibilityLabel("Listening")
+            } else {
+                Text(chromeTitle)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+            }
 
             if let timer = model.timerLabel {
                 Text(timer)
@@ -560,6 +577,49 @@ struct ListeningBannerView: View {
             i += 1
         }
         return i
+    }
+}
+
+// MARK: - Listening waveform
+
+/// Scrolling bar waveform driven by live mic RMS. Low floor in silence, rises
+/// with speech — doubles as an “am I being heard?” meter. Read-only metering.
+private struct ListeningWaveformView: View {
+    let levelProvider: () -> Float
+
+    private static let barCount = 26
+    private static let barWidth: CGFloat = 2.5
+    private static let barSpacing: CGFloat = 1.5
+
+    @State private var history: [CGFloat] = Array(repeating: 0, count: barCount)
+    private let timer = Timer.publish(every: 1.0 / 24.0, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        GeometryReader { geo in
+            let maxHeight = geo.size.height
+            HStack(alignment: .center, spacing: Self.barSpacing) {
+                ForEach(0..<Self.barCount, id: \.self) { i in
+                    Capsule()
+                        .fill(Color.primary.opacity(0.85))
+                        .frame(
+                            width: Self.barWidth,
+                            height: max(2, history[i] * maxHeight)
+                        )
+                }
+            }
+            .frame(width: geo.size.width, height: maxHeight, alignment: .center)
+        }
+        .onReceive(timer) { _ in
+            // Typical speech RMS ~0.01–0.3; curve lifts quiet speech without pegging loud.
+            let raw = max(0, levelProvider())
+            let normalized = CGFloat(min(1.0, pow(Double(raw) * 9.0, 0.65)))
+            var next = history
+            next.removeFirst()
+            next.append(normalized)
+            withAnimation(.linear(duration: 1.0 / 24.0)) {
+                history = next
+            }
+        }
     }
 }
 
