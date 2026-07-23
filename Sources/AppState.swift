@@ -112,6 +112,16 @@ final class AppState: ObservableObject {
     @Published var leaderboardOptIn = false
     /// Server-derived label (e.g. "Anonymous Otter · a1f2") after first sync.
     @Published var leaderboardDisplayName: String = ""
+    /// Public rank (#1 = top). Nil when opted out or not yet synced.
+    @Published var leaderboardRank: Int? = nil
+    /// Short label for Home UI (e.g. "Otter · a1f2").
+    @Published var leaderboardShortName: String = ""
+    /// Animal token for cute avatar (e.g. "Otter").
+    @Published var leaderboardAnimal: String = ""
+    /// Stable avatar art key (non-identifying).
+    @Published var leaderboardAvatarKey: String = ""
+    /// Last known aggregates from board sync (for Home chips).
+    @Published var leaderboardRemoteStats: LeaderboardStats = .zero
     /// Pipeline phase for menu bar / HUD (Ready → Listening → Transcribing → Done/Fail).
     @Published var dictationPhase: DictationPhase = .setup
     /// Short human label for the current phase (tooltips, HUD).
@@ -396,7 +406,10 @@ final class AppState: ObservableObject {
         }
         telemetryOptIn = Telemetry.shared.isOptedIn
         leaderboardOptIn = LeaderboardClient.shared.isOptedIn
-        leaderboardDisplayName = LeaderboardClient.shared.displayName
+        applyLeaderboardStanding(LeaderboardClient.shared.standing)
+        LeaderboardClient.shared.onStandingChanged = { [weak self] standing in
+            self?.applyLeaderboardStanding(standing)
+        }
         // Dev capture: UserDefaults, or force-on via MACWISPR_DEV_CAPTURE=1.
         devCaptureEnabled = DevCaptureStore.isEnabled
         // First-run disclosure: show once until the user acknowledges the manifest.
@@ -456,12 +469,10 @@ final class AppState: ObservableObject {
             self?.currentLeaderboardStats() ?? .zero
         }
         leaderboardOptIn = LeaderboardClient.shared.isOptedIn
-        leaderboardDisplayName = LeaderboardClient.shared.displayName
         if enabled {
-            // Refresh label after first network round-trip.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                self?.leaderboardDisplayName = LeaderboardClient.shared.displayName
-            }
+            applyLeaderboardStanding(LeaderboardClient.shared.standing)
+        } else {
+            applyLeaderboardStanding(.empty)
         }
     }
 
@@ -477,8 +488,26 @@ final class AppState: ObservableObject {
             },
             force: force
         )
-        // Keep UI label in sync when a prior name is cached.
-        leaderboardDisplayName = LeaderboardClient.shared.displayName
+        applyLeaderboardStanding(LeaderboardClient.shared.standing)
+    }
+
+    /// Pull latest rank for Home without blocking the UI.
+    func refreshLeaderboardStanding() {
+        guard leaderboardOptIn else { return }
+        LeaderboardClient.shared.refreshStanding { [weak self] standing in
+            self?.applyLeaderboardStanding(standing)
+        }
+    }
+
+    func applyLeaderboardStanding(_ standing: LeaderboardStanding) {
+        leaderboardDisplayName = standing.displayName
+        leaderboardRank = standing.rank
+        leaderboardShortName = standing.shortName
+        leaderboardAnimal = standing.animal
+        leaderboardAvatarKey = standing.avatarKey
+        if standing.stats != .zero {
+            leaderboardRemoteStats = standing.stats
+        }
     }
 
     func openPublicLeaderboard() {

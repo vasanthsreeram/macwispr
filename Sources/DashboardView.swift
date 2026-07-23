@@ -25,32 +25,125 @@ struct DashboardView: View {
     }
 
     private var leaderboardRow: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "trophy.fill")
-                .foregroundStyle(.orange)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Public leaderboard")
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Leaderboard", systemImage: "trophy.fill")
                     .font(.subheadline.weight(.semibold))
-                Text(
-                    appState.leaderboardOptIn
-                        ? (appState.leaderboardDisplayName.isEmpty
-                            ? "Opted in · syncing anonymous name…"
-                            : appState.leaderboardDisplayName)
-                        : "Opt in from Configuration → Privacy (anonymous only)"
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Button("Board") {
+                    appState.openPublicLeaderboard()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-            Spacer(minLength: 8)
-            Button("Open") {
-                appState.openPublicLeaderboard()
+
+            if appState.leaderboardOptIn {
+                HStack(spacing: 14) {
+                    LeaderboardAvatarView(
+                        animal: appState.leaderboardAnimal,
+                        avatarKey: appState.leaderboardAvatarKey.isEmpty
+                            ? appState.leaderboardDisplayName
+                            : appState.leaderboardAvatarKey,
+                        size: 56
+                    )
+
+                    // Big rank — primary Home signal
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(rankHeadline)
+                            .font(.system(size: 28, weight: .heavy, design: .rounded))
+                            .foregroundStyle(rankColor)
+                        Text(nameLine)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                        Text(statsLine)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+
+                if appState.leaderboardRank == nil || appState.leaderboardDisplayName.isEmpty {
+                    Text("Syncing your rank…")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            } else {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.crop.circle.badge.questionmark")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Not on the board")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Opt in under Configuration → Privacy. Anonymous animals only.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.quaternary.opacity(0.5)))
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.quaternary.opacity(0.45)))
+        .onAppear {
+            appState.refreshLeaderboardStanding()
+            if appState.leaderboardOptIn {
+                appState.syncLeaderboardIfNeeded(force: false)
+            }
+        }
+    }
+
+    private var rankHeadline: String {
+        if let rank = appState.leaderboardRank {
+            return "#\(rank)"
+        }
+        return "#—"
+    }
+
+    private var rankColor: Color {
+        switch appState.leaderboardRank {
+        case 1: return Color(red: 0.79, green: 0.54, blue: 0.07)
+        case 2: return Color(red: 0.48, green: 0.48, blue: 0.51)
+        case 3: return Color(red: 0.69, green: 0.42, blue: 0.24)
+        default: return .primary
+        }
+    }
+
+    private var nameLine: String {
+        if !appState.leaderboardShortName.isEmpty {
+            return appState.leaderboardShortName
+        }
+        if !appState.leaderboardDisplayName.isEmpty {
+            return appState.leaderboardDisplayName.replacingOccurrences(of: "Anonymous ", with: "")
+        }
+        return "Anonymous speaker"
+    }
+
+    private var statsLine: String {
+        let local = appState.currentLeaderboardStats()
+        let remote = appState.leaderboardRemoteStats
+        let streak = remote.streakDays > 0 ? remote.streakDays : local.streakDays
+        let saved = remote.timeSavedMinutes > 0 ? remote.timeSavedMinutes : local.timeSavedMinutes
+        let words = remote.words > 0 ? remote.words : local.words
+        let dicts = remote.dictations > 0 ? remote.dictations : local.dictations
+        return "\(Self.shortDuration(minutes: saved)) · \(Self.shortCount(words))w · \(Self.shortCount(dicts))× · \(streak)d"
+    }
+
+    private static func shortDuration(minutes: Double) -> String {
+        if minutes >= 60 {
+            let h = minutes / 60
+            if h >= 10 { return "\(Int(h.rounded()))h" }
+            return String(format: "%.1fh", h).replacingOccurrences(of: ".0h", with: "h")
+        }
+        return "\(max(0, Int(minutes.rounded())))m"
+    }
+
+    private static func shortCount(_ n: Int) -> String {
+        if n >= 1_000_000 { return String(format: "%.1fM", Double(n) / 1_000_000).replacingOccurrences(of: ".0M", with: "M") }
+        if n >= 1000 { return String(format: "%.1fk", Double(n) / 1000).replacingOccurrences(of: ".0k", with: "k") }
+        return "\(n)"
     }
 
     private var header: some View {
@@ -372,6 +465,62 @@ struct DashboardView: View {
                 .font(.title3.weight(.semibold))
                 .monospacedDigit()
         }
+    }
+}
+
+// MARK: - Cute animal avatar (deterministic, non-identifying)
+
+struct LeaderboardAvatarView: View {
+    let animal: String
+    let avatarKey: String
+    var size: CGFloat = 48
+
+    private static let emoji: [String: String] = [
+        "Otter": "🦦", "Fox": "🦊", "Wren": "🐦", "Lynx": "🐱", "Heron": "🦩", "Pika": "🐹",
+        "Moth": "🦋", "Seal": "🦭", "Badger": "🦡", "Crane": "🦢", "Dove": "🕊️", "Elk": "🦌",
+        "Finch": "🐤", "Gecko": "🦎", "Hare": "🐰", "Ibis": "🪿", "Jay": "🦜", "Koala": "🐨",
+        "Lark": "🐦", "Mink": "🦫", "Newt": "🐸", "Orca": "🐋", "Puffin": "🐧", "Quail": "🐥",
+        "Raven": "🐦‍⬛", "Swan": "🦢", "Teal": "🦆", "Urchin": "🦔", "Vole": "🐭", "Wolf": "🐺",
+        "Yak": "🐂", "Zebu": "🐮",
+    ]
+    private static let hats = ["🎩", "👑", "🎀", "🧢", "⛑️", "🎓", "🌟", "✨"]
+    private static let palettes: [(Color, Color)] = [
+        (Color(red: 1, green: 0.84, blue: 0.88), Color(red: 1, green: 0.56, blue: 0.67)),
+        (Color(red: 0.79, green: 0.94, blue: 0.97), Color(red: 0.28, green: 0.79, blue: 0.89)),
+        (Color(red: 0.91, green: 0.93, blue: 0.79), Color(red: 0.68, green: 0.76, blue: 0.47)),
+        (Color(red: 0.99, green: 0.89, blue: 0.89), Color(red: 0.96, green: 0.64, blue: 0.38)),
+        (Color(red: 0.88, green: 0.67, blue: 1), Color(red: 0.62, green: 0.31, blue: 0.87)),
+        (Color(red: 0.85, green: 0.95, blue: 0.86), Color(red: 0.32, green: 0.72, blue: 0.53)),
+    ]
+
+    var body: some View {
+        let h = Self.fnv(avatarKey.isEmpty ? animal : avatarKey)
+        let pal = Self.palettes[Int(h % UInt32(Self.palettes.count))]
+        let emoji = Self.emoji[animal.isEmpty ? "Otter" : animal] ?? "🐾"
+        let hat = Self.hats[Int(h % UInt32(Self.hats.count))]
+
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.32, style: .continuous)
+                .fill(LinearGradient(colors: [pal.0, pal.1], startPoint: .topLeading, endPoint: .bottomTrailing))
+            Text(emoji)
+                .font(.system(size: size * 0.46))
+            Text(hat)
+                .font(.system(size: size * 0.22))
+                .offset(x: size * 0.22, y: -size * 0.28)
+                .rotationEffect(.degrees(16))
+        }
+        .frame(width: size, height: size)
+        .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+        .accessibilityHidden(true)
+    }
+
+    private static func fnv(_ s: String) -> UInt32 {
+        var h: UInt32 = 2_166_136_261
+        for b in s.utf8 {
+            h ^= UInt32(b)
+            h = h &* 16_777_619
+        }
+        return h
     }
 }
 

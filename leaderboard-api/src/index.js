@@ -61,6 +61,10 @@ async function handle(request, env) {
     return getLeaderboard(request, env, url);
   }
 
+  if (url.pathname === "/v1/me" && request.method === "GET") {
+    return getMe(request, env);
+  }
+
   if (url.pathname === "/v1/me" && request.method === "PUT") {
     return putMe(request, env);
   }
@@ -86,27 +90,104 @@ async function getLeaderboard(request, env, url) {
     .bind(limit)
     .all();
 
-  const entries = (rows.results || []).map((row, i) => ({
-    rank: i + 1,
-    display_name: row.display_name,
-    dictations: row.dictations,
-    words: row.words,
-    time_saved_minutes: row.time_saved_minutes,
-    streak_days: row.streak_days,
-    // Seeds fill the board early; they look like any other anonymous speaker.
-    is_seed: row.is_seed === 1,
-  }));
+  const entries = (rows.results || []).map((row, i) => publicEntry(row, i + 1));
 
   return json(
     {
       entries,
       count: entries.length,
+      // Spec: primary sort time_saved, then words, then dictations.
+      sort: ["time_saved_minutes", "words", "dictations"],
+      metrics: ["time_saved_minutes", "words", "dictations", "streak_days"],
       generated_at: new Date().toISOString(),
     },
     200,
     request,
     { "Cache-Control": "public, max-age=30" }
   );
+}
+
+/** Public row shape — counts only + anonymous display + avatar key. */
+function publicEntry(row, rank) {
+  return {
+    rank,
+    display_name: row.display_name,
+    short_name: shortName(row.display_name),
+    animal: animalFromDisplayName(row.display_name),
+    avatar_key: avatarKeyFromDisplayName(row.display_name),
+    dictations: row.dictations,
+    words: row.words,
+    time_saved_minutes: row.time_saved_minutes,
+    streak_days: row.streak_days,
+    is_seed: row.is_seed === 1,
+  };
+}
+
+function shortName(displayName) {
+  // "Anonymous Otter · a1f2" → "Otter · a1f2"
+  return String(displayName || "").replace(/^Anonymous\s+/i, "").trim();
+}
+
+function animalFromDisplayName(displayName) {
+  const m = /^Anonymous\s+(\S+)/i.exec(String(displayName || ""));
+  return m ? m[1] : "Otter";
+}
+
+function avatarKeyFromDisplayName(displayName) {
+  // Stable, non-identifying key for cute avatar art (not a person ID).
+  let h = 2166136261;
+  const s = String(displayName || "");
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+async function getMe(request, env) {
+  const token = bearerToken(request);
+  if (!token || token.length < 32 || token.length > 200) {
+    return json({ error: "invalid_token" }, 401, request);
+  }
+  const tokenHash = await sha256Hex(token);
+  const row = await env.DB.prepare(
+    `SELECT display_name, dictations, words, time_saved_minutes, streak_days, is_seed
+     FROM participants WHERE token_hash = ? AND is_seed = 0`
+  )
+    .bind(tokenHash)
+    .first();
+
+  if (!row) {
+    return json({ error: "not_found", enrolled: false }, 404, request);
+  }
+
+  const rank = await rankForHash(env, tokenHash);
+  return json(
+    {
+      ok: true,
+      enrolled: true,
+      ...publicEntry(row, rank),
+    },
+    200,
+    request,
+    { "Cache-Control": "no-store" }
+  );
+}
+
+async function rankForHash(env, tokenHash) {
+  const rankRow = await env.DB.prepare(
+    `SELECT 1 + (
+       SELECT COUNT(*) FROM participants p2
+       WHERE (p2.time_saved_minutes > p.time_saved_minutes)
+          OR (p2.time_saved_minutes = p.time_saved_minutes AND p2.words > p.words)
+          OR (p2.time_saved_minutes = p.time_saved_minutes AND p2.words = p.words AND p2.dictations > p.dictations)
+     ) AS rank
+     FROM participants p
+     WHERE p.token_hash = ?`
+  )
+    .bind(tokenHash)
+    .first();
+  return rankRow?.rank ?? null;
 }
 
 async function putMe(request, env) {
@@ -170,28 +251,20 @@ async function putMe(request, env) {
     }
   }
 
-  const rankRow = await env.DB.prepare(
-    `SELECT 1 + (
-       SELECT COUNT(*) FROM participants p2
-       WHERE (p2.time_saved_minutes > p.time_saved_minutes)
-          OR (p2.time_saved_minutes = p.time_saved_minutes AND p2.words > p.words)
-          OR (p2.time_saved_minutes = p.time_saved_minutes AND p2.words = p.words AND p2.dictations > p.dictations)
-     ) AS rank
-     FROM participants p
-     WHERE p.token_hash = ?`
-  )
-    .bind(tokenHash)
-    .first();
+  const row = {
+    display_name: name,
+    dictations,
+    words,
+    time_saved_minutes: timeSaved,
+    streak_days: streak,
+    is_seed: 0,
+  };
+  const rank = await rankForHash(env, tokenHash);
 
   return json(
     {
       ok: true,
-      display_name: name,
-      rank: rankRow?.rank ?? null,
-      dictations,
-      words,
-      time_saved_minutes: timeSaved,
-      streak_days: streak,
+      ...publicEntry(row, rank),
     },
     200,
     request

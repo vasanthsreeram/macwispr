@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Leaderboard — MacWispr</title>
-  <meta name="description" content="MacWispr public leaderboard — opt-in, fully anonymous. Dictations, time saved, streaks. No real names." />
+  <meta name="description" content="MacWispr leaderboard — ranked by time saved. Anonymous animals only." />
   <meta name="robots" content="index, follow" />
   <meta name="theme-color" content="#f7f2e8" />
   <link rel="canonical" href="https://fuckwisprflow.com/leaderboard" />
@@ -12,7 +12,7 @@
   <meta property="og:site_name" content="MacWispr" />
   <meta property="og:url" content="https://fuckwisprflow.com/leaderboard" />
   <meta property="og:title" content="Leaderboard — MacWispr" />
-  <meta property="og:description" content="Opt-in public rankings. Anonymous only — no real names, no transcripts." />
+  <meta property="og:description" content="Who saved the most typing time? Opt-in, anonymous animals only." />
   <meta property="og:image" content="https://fuckwisprflow.com/assets/share-og.png" />
   <link rel="icon" type="image/png" sizes="128x128" href="/assets/logo-128.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -23,202 +23,272 @@
     .lb-main {
       position: relative;
       z-index: 1;
-      max-width: 880px;
+      max-width: 720px;
       margin: 0 auto;
-      padding: calc(var(--header-h) + 48px) 24px 80px;
+      padding: calc(var(--header-h) + 40px) 20px 72px;
     }
     .lb-main h1 {
       font-family: var(--serif);
       font-weight: 400;
-      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-size: clamp(2rem, 5vw, 2.8rem);
       line-height: 1.1;
-      margin: 0 0 12px;
+      margin: 0 0 6px;
       letter-spacing: -0.02em;
+      text-align: center;
     }
-    .lb-lede {
+    .lb-sub {
+      text-align: center;
       color: var(--ink-soft);
-      font-size: 1.1rem;
-      margin: 0 0 20px;
-      max-width: 40rem;
+      font-size: 0.98rem;
+      margin: 0 0 28px;
     }
-    .lb-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 28px;
-    }
-    .lb-meta .chip { font-size: 0.85rem; }
-    .chip.live {
-      background: rgba(26, 154, 92, 0.12);
-      color: #157a48;
-      border: 1px solid rgba(26, 154, 92, 0.22);
-    }
-    .chip.anon {
-      background: rgba(59, 110, 245, 0.1);
-      color: #2a56c4;
-      border: 1px solid rgba(59, 110, 245, 0.18);
-    }
+    .lb-sub strong { color: var(--ink); font-weight: 700; }
 
-    .lb-banner {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px 20px;
-      padding: 16px 18px;
-      margin-bottom: 28px;
-      border-radius: 16px;
-      background: rgba(255, 253, 248, 0.72);
+    /* Podium */
+    .podium {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1fr;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+    .pod {
+      text-align: center;
+      padding: 14px 10px 12px;
+      border-radius: 18px;
+      background: rgba(255, 253, 248, 0.78);
       border: 1px solid var(--line-strong);
       box-shadow: var(--shadow-sm);
+      position: relative;
     }
-    .lb-banner strong { display: block; font-size: 1rem; margin-bottom: 2px; }
-    .lb-banner p {
-      margin: 0;
-      color: var(--ink-soft);
-      font-size: 0.95rem;
-      max-width: 36rem;
-    }
-
-    .lb-board {
-      border-radius: 20px;
-      overflow: hidden;
-      border: 1px solid var(--line-strong);
-      background: rgba(255, 253, 248, 0.75);
+    .pod.first {
+      padding-top: 20px;
+      padding-bottom: 16px;
+      border-color: rgba(201, 137, 18, 0.35);
+      background: linear-gradient(180deg, rgba(255, 236, 180, 0.55), rgba(255, 253, 248, 0.9));
       box-shadow: var(--shadow);
+      transform: translateY(-6px);
     }
-    .lb-board-head,
-    .lb-row {
-      display: grid;
-      grid-template-columns: 48px minmax(140px, 1.5fr) repeat(3, minmax(0, 1fr));
-      gap: 10px 12px;
-      align-items: center;
-      padding: 12px 18px;
-    }
-    .lb-board-head {
+    .pod.second { border-color: rgba(122, 122, 130, 0.28); }
+    .pod.third { border-color: rgba(176, 106, 60, 0.28); }
+    .pod-rank {
+      font-weight: 800;
       font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted);
-      border-bottom: 1px solid var(--line);
-      background: rgba(247, 242, 232, 0.65);
+      margin-bottom: 8px;
     }
-    .lb-row {
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--line);
-    }
-    .lb-row:last-child { border-bottom: 0; }
-    .lb-row:hover { background: rgba(255, 255, 255, 0.45); }
-    .lb-rank {
+    .pod.first .pod-rank { color: #c98912; font-size: 0.85rem; }
+    .pod-name {
       font-weight: 800;
-      font-variant-numeric: tabular-nums;
-      color: var(--ink);
-    }
-    .lb-rank.gold { color: #c98912; }
-    .lb-rank.silver { color: #7a7a82; }
-    .lb-rank.bronze { color: #b06a3c; }
-    .lb-user {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 0;
-    }
-    .lb-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-      font-size: 0.85rem;
-      color: #fff;
-      flex-shrink: 0;
-    }
-    .lb-name {
-      font-weight: 700;
+      font-size: 0.95rem;
+      margin: 8px 0 2px;
       color: var(--ink);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .lb-handle {
-      display: block;
-      font-size: 0.85rem;
-      color: var(--muted);
-      font-weight: 500;
-    }
-    .lb-stat {
+    .pod-score {
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
-      color: var(--ink-soft);
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 1.15rem;
+      color: var(--ink);
     }
-    .lb-stat em {
+    .pod-score span {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-left: 2px;
+    }
+    .pod-meta {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    /* Compact list */
+    .lb-list {
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 253, 248, 0.78);
+      box-shadow: var(--shadow-sm);
+    }
+    .lb-row {
+      display: grid;
+      grid-template-columns: 40px 48px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .lb-row:last-child { border-bottom: 0; }
+    .lb-row:hover { background: rgba(255, 255, 255, 0.5); }
+    .lb-r {
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.95rem;
+      color: var(--ink);
+      text-align: center;
+    }
+    .lb-r.gold { color: #c98912; }
+    .lb-r.silver { color: #7a7a82; }
+    .lb-r.bronze { color: #b06a3c; }
+    .lb-who {
+      min-width: 0;
+    }
+    .lb-who strong {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lb-who em {
       font-style: normal;
+      font-size: 0.75rem;
       color: var(--muted);
       font-weight: 500;
-      font-size: 0.8rem;
-      margin-left: 4px;
     }
+    .lb-nums {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+    .lb-primary {
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      font-size: 1rem;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .lb-primary span {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-left: 3px;
+    }
+    .chips {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .chiplet {
+      font-size: 0.68rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(20, 18, 15, 0.06);
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+
+    /* Cute avatar */
+    .av {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: inset 0 -3px 0 rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .av.lg { width: 64px; height: 64px; border-radius: 20px; margin: 0 auto; }
+    .av.xl { width: 76px; height: 76px; border-radius: 24px; margin: 0 auto; }
+    .av-emoji {
+      font-size: 1.55rem;
+      line-height: 1;
+      filter: drop-shadow(0 1px 0 rgba(0,0,0,0.08));
+      transform: translateY(1px);
+    }
+    .av.lg .av-emoji { font-size: 2rem; }
+    .av.xl .av-emoji { font-size: 2.4rem; }
+    .av-hat {
+      position: absolute;
+      top: 2px;
+      right: 3px;
+      font-size: 0.72rem;
+      line-height: 1;
+      transform: rotate(18deg);
+    }
+    .av.lg .av-hat, .av.xl .av-hat { font-size: 0.9rem; top: 3px; right: 5px; }
+    .av-spark {
+      position: absolute;
+      bottom: 3px;
+      left: 4px;
+      font-size: 0.55rem;
+      opacity: 0.9;
+    }
+
     .lb-status {
-      padding: 28px 18px;
+      padding: 28px 16px;
       text-align: center;
       color: var(--ink-soft);
       font-size: 0.95rem;
     }
     .lb-status.error { color: #c44a3b; }
-    .lb-note {
-      margin-top: 28px;
-      padding: 18px 20px;
-      border-radius: 16px;
+
+    .lb-spec {
+      margin-top: 22px;
+      padding: 14px 16px;
+      border-radius: 14px;
       border: 1px dashed var(--line-strong);
-      background: rgba(255, 253, 248, 0.5);
+      background: rgba(255, 253, 248, 0.45);
       color: var(--ink-soft);
-      font-size: 0.95rem;
-      line-height: 1.6;
+      font-size: 0.88rem;
+      line-height: 1.55;
     }
-    .lb-note a { font-weight: 600; }
+    .lb-spec strong { color: var(--ink); }
+    .lb-spec code {
+      font-size: 0.8em;
+      background: rgba(20,18,15,0.06);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .lb-spec details summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--ink);
+      list-style: none;
+    }
+    .lb-spec details summary::-webkit-details-marker { display: none; }
+    .lb-spec details[open] summary { margin-bottom: 8px; }
+    .lb-spec ul { margin: 0; padding-left: 1.1rem; }
     .lb-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 24px;
+      margin-top: 20px;
+      justify-content: center;
     }
     .lb-updated {
-      margin-top: 12px;
-      font-size: 0.8rem;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.75rem;
       color: var(--muted);
     }
 
-    @media (max-width: 720px) {
-      .lb-board-head { display: none; }
+    @media (max-width: 560px) {
+      .podium { grid-template-columns: 1fr; }
+      .pod.first { transform: none; order: -1; }
       .lb-row {
-        grid-template-columns: 36px 1fr;
-        grid-template-areas:
-          "rank user"
-          ". s1"
-          ". s2"
-          ". s3";
-      }
-      .lb-rank { grid-area: rank; align-self: start; padding-top: 8px; }
-      .lb-user { grid-area: user; }
-      .lb-stat:nth-of-type(1) { grid-area: s1; }
-      .lb-stat:nth-of-type(2) { grid-area: s2; }
-      .lb-stat:nth-of-type(3) { grid-area: s3; }
-      .lb-stat {
-        font-size: 0.88rem;
-        background: rgba(20, 18, 15, 0.04);
-        padding: 6px 10px;
-        border-radius: 8px;
+        grid-template-columns: 32px 44px minmax(0, 1fr) auto;
+        padding: 10px 12px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="stage" aria-hidden="true">
-    <div class="aurora"></div>
-  </div>
+  <div class="stage" aria-hidden="true"><div class="aurora"></div></div>
 
   <header class="site-header">
     <div class="header-inner glass">
@@ -237,53 +307,31 @@
 
   <main class="lb-main">
     <h1>Leaderboard</h1>
-    <p class="lb-lede">
-      Power dictators, ranked by time saved — and <strong>only if they opt in</strong>.
-      Everyone appears as <strong>Anonymous &lt;Animal&gt;</strong>. No real names. Not even maintainers can tell who is who.
-    </p>
-    <div class="lb-meta">
-      <span class="chip live">Live</span>
-      <span class="chip anon">Anonymous only</span>
-      <span class="chip yes">Opt-in only</span>
-      <span class="chip yes">No transcripts</span>
-    </div>
+    <p class="lb-sub">Ranked by <strong>time saved</strong>. Opt-in · anonymous animals only.</p>
 
-    <div class="lb-banner" role="status">
-      <div>
-        <strong>True anonymity on purpose</strong>
-        <p>
-          Opt in from MacWispr → Configuration → Privacy. The app posts aggregate counts under a
-          random animal name. Seed speakers keep the board company until more people join.
-        </p>
-      </div>
-      <span class="chip live">API live</span>
+    <div class="podium" id="podium" aria-label="Top 3" hidden></div>
+    <div class="lb-list" id="list" aria-label="Rankings">
+      <div class="lb-status" id="status">Loading…</div>
     </div>
+    <p class="lb-updated" id="updated" hidden></p>
 
-    <div class="lb-board" aria-label="Public leaderboard" id="board">
-      <div class="lb-board-head" aria-hidden="true">
-        <span>#</span>
-        <span>Speaker</span>
-        <span>Dictations</span>
-        <span>Time saved</span>
-        <span>Streak</span>
-      </div>
-      <div class="lb-status" id="board-status">Loading rankings…</div>
-    </div>
-    <p class="lb-updated" id="board-updated" hidden></p>
-
-    <div class="lb-note">
-      <strong>Separate opt-in — more data than reliability telemetry, still no identity.</strong>
-      Anonymous product telemetry (off by default) only sends content-free reliability events
-      and never puts you here. The board needs its own toggle and only accepts:
-      dictation count, word count, time saved, streak. Display names are server-derived from a
-      device-only secret (SHA-256 hash stored server-side). Maintainers cannot reverse a row to a person.
-      Still never: transcript text, audio, email, GitHub, install UUID.
-      See <a href="/privacy">Privacy</a> · tracking <a href="https://github.com/vasanthsreeram/macwispr/issues/11">#11</a>.
+    <div class="lb-spec">
+      <details>
+        <summary>How ranking works</summary>
+        <ul>
+          <li><strong>Primary:</strong> time saved (vs your typing WPM baseline)</li>
+          <li><strong>Tie-break:</strong> words → dictations</li>
+          <li><strong>Also shown:</strong> streak (active days)</li>
+          <li><strong>Identity:</strong> <code>Anonymous &lt;Animal&gt; · tag</code> only — no real names, no install ID</li>
+          <li><strong>Opt-in:</strong> MacWispr → Configuration → Privacy (off by default; separate from telemetry)</li>
+          <li><strong>Never:</strong> transcripts, audio, email, GitHub</li>
+        </ul>
+      </details>
     </div>
 
     <div class="lb-actions">
       <a class="btn btn-dark" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download MacWispr</a>
-      <a class="btn btn-ghost glass" href="/">Back home</a>
+      <a class="btn btn-ghost glass" href="/">Home</a>
     </div>
   </main>
 
@@ -301,112 +349,191 @@
       <a href="/privacy">Privacy</a>
       <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
     </div>
-    <p class="footer-note">Anonymous speakers only. © <span id="y"></span> MacWispr</p>
+    <p class="footer-note">Anonymous animals only. © <span id="y"></span> MacWispr</p>
   </footer>
 
   <script>
     document.getElementById("y").textContent = String(new Date().getFullYear());
 
     const API = "https://macwispr-leaderboard.s-vasanthrojin.workers.dev/v1/leaderboard?limit=50";
-    const AVATAR_GRADIENTS = [
-      "linear-gradient(135deg,#e85d4c,#f0a06a)",
-      "linear-gradient(135deg,#3b6ef5,#7aa2ff)",
-      "linear-gradient(135deg,#1a9a5c,#5fd49a)",
-      "linear-gradient(135deg,#8b5cf6,#c4b5fd)",
-      "linear-gradient(135deg,#0f766e,#5eead4)",
-      "linear-gradient(135deg,#b45309,#fbbf24)",
-      "linear-gradient(135deg,#be185d,#f9a8d4)",
-      "linear-gradient(135deg,#334155,#94a3b8)",
+
+    const ANIMAL_EMOJI = {
+      Otter: "🦦", Fox: "🦊", Wren: "🐦", Lynx: "🐱", Heron: "🦩", Pika: "🐹",
+      Moth: "🦋", Seal: "🦭", Badger: "🦡", Crane: "🦢", Dove: "🕊️", Elk: "🦌",
+      Finch: "🐤", Gecko: "🦎", Hare: "🐰", Ibis: "🪿", Jay: "🦜", Koala: "🐨",
+      Lark: "🐦", Mink: "🦫", Newt: "🐸", Orca: "🐋", Puffin: "🐧", Quail: "🐥",
+      Raven: "🐦‍⬛", Swan: "🦢", Teal: "🦆", Urchin: "🦔", Vole: "🐭", Wolf: "🐺",
+      Yak: "🐂", Zebu: "🐮",
+    };
+    const HATS = ["🎩", "👑", "🎀", "🧢", "⛑️", "🎓", "🌟", "✨", "💫", "🎪", "🍀", "🌸"];
+    const SPARKS = ["💫", "⭐", "✨", "🔥", "💜", "🧡", "💚", "💙"];
+    const PALETTES = [
+      ["#ffd6e0", "#ff8fab"], ["#caf0f8", "#48cae4"], ["#e9edc9", "#adc178"],
+      ["#fde2e4", "#f4a261"], ["#e0aaff", "#9d4edd"], ["#d8f3dc", "#52b788"],
+      ["#fff3b0", "#f4a261"], ["#cce3de", "#6b9080"], ["#f8edeb", "#e5989b"],
+      ["#edf6f9", "#83c5be"], ["#fefae0", "#dda15e"], ["#f1e9fe", "#7b2cbf"],
     ];
 
-    function formatDictations(n) {
-      if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 1 : 1).replace(/\.0$/, "") + "k";
+    function hashStr(s) {
+      let h = 2166136261;
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function animalOf(e) {
+      return e.animal || (String(e.display_name || "").match(/^Anonymous\s+(\S+)/i) || [])[1] || "Otter";
+    }
+
+    function shortOf(e) {
+      return e.short_name || String(e.display_name || "").replace(/^Anonymous\s+/i, "");
+    }
+
+    function avatarHTML(e, sizeClass) {
+      const animal = animalOf(e);
+      const key = e.avatar_key || hashStr(e.display_name || animal).toString(16);
+      const h = parseInt(key.slice(0, 8), 16) || hashStr(animal);
+      const pal = PALETTES[h % PALETTES.length];
+      const emoji = ANIMAL_EMOJI[animal] || "🐾";
+      const hat = HATS[h % HATS.length];
+      const spark = SPARKS[(h >>> 8) % SPARKS.length];
+      const bg = "linear-gradient(145deg," + pal[0] + "," + pal[1] + ")";
+      return (
+        '<div class="av ' + (sizeClass || "") + '" style="background:' + bg + '" title="' +
+        escapeAttr(shortOf(e)) + '">' +
+        '<span class="av-hat" aria-hidden="true">' + hat + "</span>" +
+        '<span class="av-emoji" aria-hidden="true">' + emoji + "</span>" +
+        '<span class="av-spark" aria-hidden="true">' + spark + "</span>" +
+        "</div>"
+      );
+    }
+
+    function escapeAttr(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    }
+
+    function fmtHours(min) {
+      if (min >= 60) {
+        const h = min / 60;
+        return (h >= 10 ? Math.round(h) : Math.round(h * 10) / 10) + "";
+      }
+      return Math.max(1, Math.round(min)) + "m";
+    }
+    function hourUnit(min) { return min >= 60 ? "h" : ""; }
+
+    function fmtK(n) {
+      if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+      if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
       return String(n);
     }
 
-    function formatTimeSaved(minutes) {
-      const h = Math.floor(minutes / 60);
-      if (h >= 1) return h + "h";
-      const m = Math.round(minutes);
-      return m + "m";
-    }
-
-    function initials(name) {
-      const parts = String(name || "").replace(/Anonymous\s+/i, "").split(/[·\s]+/).filter(Boolean);
-      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-      return (parts[0] || "?").slice(0, 2).toUpperCase();
-    }
-
-    function rankClass(rank) {
-      if (rank === 1) return "gold";
-      if (rank === 2) return "silver";
-      if (rank === 3) return "bronze";
+    function rankClass(r) {
+      if (r === 1) return "gold";
+      if (r === 2) return "silver";
+      if (r === 3) return "bronze";
       return "";
     }
 
-    function renderEntries(entries) {
-      const board = document.getElementById("board");
-      const status = document.getElementById("board-status");
-      if (status) status.remove();
-
-      // Keep head; clear previous rows
-      board.querySelectorAll(".lb-row").forEach((el) => el.remove());
-
-      if (!entries.length) {
-        const empty = document.createElement("div");
-        empty.className = "lb-status";
-        empty.textContent = "No speakers yet — opt in from the app to be first.";
-        board.appendChild(empty);
-        return;
-      }
-
-      entries.forEach((e, i) => {
-        const rank = e.rank || i + 1;
-        const row = document.createElement("div");
-        row.className = "lb-row";
-        const rc = rankClass(rank);
-        const grad = AVATAR_GRADIENTS[(rank - 1) % AVATAR_GRADIENTS.length];
-        const seedNote = e.is_seed ? "seed speaker" : "opt-in speaker";
-        row.innerHTML =
-          '<span class="lb-rank ' + rc + '">' + rank + "</span>" +
-          '<div class="lb-user">' +
-            '<span class="lb-avatar" style="background: ' + grad + '">' + initials(e.display_name) + "</span>" +
-            "<div>" +
-              '<span class="lb-name"></span>' +
-              '<span class="lb-handle"></span>' +
-            "</div>" +
-          "</div>" +
-          '<span class="lb-stat">' + formatDictations(e.dictations) + "<em>dictations</em></span>" +
-          '<span class="lb-stat">' + formatTimeSaved(e.time_saved_minutes) + "<em>saved</em></span>" +
-          '<span class="lb-stat">' + e.streak_days + "d<em>streak</em></span>";
-        row.querySelector(".lb-name").textContent = e.display_name;
-        row.querySelector(".lb-handle").textContent = seedNote;
-        board.appendChild(row);
-      });
+    function metaChips(e) {
+      return (
+        '<span class="chiplet">🔥' + e.streak_days + "d</span>" +
+        '<span class="chiplet">' + fmtK(e.dictations) + "×</span>" +
+        '<span class="chiplet">' + fmtK(e.words) + "w</span>"
+      );
     }
 
-    async function loadBoard() {
-      const status = document.getElementById("board-status");
-      const updated = document.getElementById("board-updated");
+    function renderPodium(top) {
+      const el = document.getElementById("podium");
+      if (!top.length) {
+        el.hidden = true;
+        el.innerHTML = "";
+        return;
+      }
+      el.hidden = false;
+      // Visual order: 2nd | 1st | 3rd
+      const slots = [
+        { e: top[1], cls: "second", label: "2nd" },
+        { e: top[0], cls: "first", label: "1st" },
+        { e: top[2], cls: "third", label: "3rd" },
+      ];
+      el.innerHTML = slots
+        .map(({ e, cls, label }) => {
+          if (!e) return '<div class="pod ' + cls + '" style="opacity:.35"></div>';
+          const size = cls === "first" ? "xl" : "lg";
+          const unit = hourUnit(e.time_saved_minutes);
+          const score = fmtHours(e.time_saved_minutes);
+          return (
+            '<div class="pod ' + cls + '">' +
+              '<div class="pod-rank">' + label + "</div>" +
+              avatarHTML(e, size) +
+              '<div class="pod-name">' + escapeAttr(shortOf(e)) + "</div>" +
+              '<div class="pod-score">' + score + (unit ? "<span>" + unit + "</span>" : "") + "</div>" +
+              '<div class="pod-meta">' + metaChips(e) + "</div>" +
+            "</div>"
+          );
+        })
+        .join("");
+    }
+
+    function renderList(entries) {
+      const list = document.getElementById("list");
+      const rest = entries.slice(3);
+      if (!entries.length) {
+        list.innerHTML = '<div class="lb-status">No speakers yet — opt in from the app.</div>';
+        return;
+      }
+      if (!rest.length) {
+        list.innerHTML = '<div class="lb-status" style="padding:14px">Top 3 hold the podium. More ranks appear below as people join.</div>';
+        return;
+      }
+      list.innerHTML = rest
+        .map((e) => {
+          const r = e.rank;
+          const unit = hourUnit(e.time_saved_minutes);
+          const score = fmtHours(e.time_saved_minutes);
+          return (
+            '<div class="lb-row">' +
+              '<div class="lb-r ' + rankClass(r) + '">' + r + "</div>" +
+              avatarHTML(e, "") +
+              '<div class="lb-who"><strong>' + escapeAttr(shortOf(e)) + "</strong>" +
+                (e.is_seed ? "<em>seed</em>" : "<em>opt-in</em>") +
+              "</div>" +
+              '<div class="lb-nums">' +
+                '<div class="lb-primary">' + score + (unit ? "<span>" + unit + "</span>" : "") + "</div>" +
+                '<div class="chips">' + metaChips(e) + "</div>" +
+              "</div>" +
+            "</div>"
+          );
+        })
+        .join("");
+    }
+
+    async function load() {
+      const status = document.getElementById("status");
       try {
         const res = await fetch(API, { credentials: "omit", cache: "no-cache" });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
-        renderEntries(data.entries || []);
-        if (updated && data.generated_at) {
-          updated.hidden = false;
-          updated.textContent = "Updated " + new Date(data.generated_at).toLocaleString();
+        const entries = data.entries || [];
+        renderPodium(entries.slice(0, 3));
+        renderList(entries);
+        const u = document.getElementById("updated");
+        if (u && data.generated_at) {
+          u.hidden = false;
+          u.textContent = "Updated " + new Date(data.generated_at).toLocaleString();
         }
       } catch (err) {
         if (status) {
           status.className = "lb-status error";
-          status.textContent = "Could not load rankings. Try again in a moment.";
+          status.textContent = "Could not load rankings.";
         }
-        console.warn("leaderboard fetch failed", err);
+        console.warn(err);
       }
     }
 
-    loadBoard();
+    load();
   </script>
 </body>
 </html>
