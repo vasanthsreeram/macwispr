@@ -5,19 +5,23 @@ struct MainWindowView: View {
     @State private var selectedSidebar: SidebarItem = .home
 
     var body: some View {
-        NavigationSplitView {
-            sidebar
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
-        } detail: {
-            detailView
-        }
-        .navigationTitle(selectedSidebar.title)
-        .toolbar {
-            // Mic picker (not start/stop) — dictate via ⌥Space or Dictate sidebar.
-            ToolbarItem(placement: .primaryAction) {
-                micInputToolbarMenu
+        // Custom sidebar (not NavigationSplitView): macOS 26.x can recurse in
+        // NavigationStackLayout + DesignLibrary NSSwitch sizeThatFits and SIGSEGV.
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                sidebar
+                    .frame(width: 220)
+                    .frame(maxHeight: .infinity)
+                Divider()
+                VStack(spacing: 0) {
+                    detailHeader
+                    Divider()
+                    detailView
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         }
+        .frame(minWidth: 720, minHeight: 480)
         .onAppear {
             appState.refreshInputDevices()
         }
@@ -29,6 +33,19 @@ struct MainWindowView: View {
             OnboardingView()
                 .environmentObject(appState)
         }
+    }
+
+    /// Title bar row (replaces NavigationSplitView toolbar).
+    private var detailHeader: some View {
+        HStack(spacing: 12) {
+            Text(selectedSidebar.title)
+                .font(.headline)
+            Spacer(minLength: 8)
+            micInputToolbarMenu
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.bar)
     }
 
     /// Top-right: choose which microphone MacWispr uses for dictation.

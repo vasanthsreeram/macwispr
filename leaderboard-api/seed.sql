@@ -1,14 +1,13 @@
 -- Realistic seed board. Ranked primarily by words dictated.
--- Maintainer "Vas" sits at #1 with ~8k words (aligned with real usage scale).
+-- Do NOT seed competitive names real users will claim (e.g. "Vas") —
+-- seeds use only Anonymous <Animal> · <tag> labels so live players can take public names.
 
 DELETE FROM participants WHERE is_seed = 1;
 
 INSERT INTO participants
   (token_hash, display_name, dictations, words, time_saved_minutes, streak_days, is_seed, is_custom_name, created_at, updated_at)
 VALUES
-  -- #1 maintainer (named, competitive)
-  ('seed00000000000000000000000000000000000000000000000000000000000vas', 'Vas', 312, 8240, 168, 16, 1, 1, '2026-06-15T00:00:00.000Z', '2026-07-23T12:00:00.000Z'),
-  -- anonymous seeds below
+  -- anonymous seeds only (no reserved human names)
   ('seed000000000000000000000000000000000000000000000000000000000001', 'Anonymous Otter · a1f2', 248, 6120, 124, 12, 1, 0, '2026-07-01T00:00:00.000Z', '2026-07-22T12:00:00.000Z'),
   ('seed000000000000000000000000000000000000000000000000000000000002', 'Anonymous Fox · b3c4', 191, 4810, 98, 9, 1, 0, '2026-07-01T00:00:00.000Z', '2026-07-22T12:00:00.000Z'),
   ('seed000000000000000000000000000000000000000000000000000000000003', 'Anonymous Wren · c5d6', 164, 3920, 79, 8, 1, 0, '2026-07-01T00:00:00.000Z', '2026-07-21T12:00:00.000Z'),

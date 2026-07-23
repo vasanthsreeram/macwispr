@@ -96,40 +96,66 @@ actor TextPolisher {
         let wordCount = trimmed.split(whereSeparator: \.isWhitespace).count
         // Lists expand with newlines; allow more room than raw word count.
         let maxTokens = min(280, max(48, wordCount * 5))
-        let prompt = Self.buildPrompt(for: trimmed)
 
         do {
-            let output: String = try await container.perform { context in
-                let ids = context.tokenizer.encode(text: prompt)
-                let input = LMInput(tokens: MLXArray(ids))
-                let params = GenerateParameters(maxTokens: maxTokens, temperature: 0.0)
-                var result = ""
-                let stream = try MLXLMCommon.generate(
-                    input: input,
-                    cache: nil,
-                    parameters: params,
-                    context: context
-                )
-                for try await item in stream {
-                    if case .chunk(let chunk) = item {
-                        result += chunk
-                        // Stop if model starts a new example / think block
-                        if result.contains("### Input:") || result.contains("<think>") {
-                            break
-                        }
-                    }
-                }
-                return result
+            // First pass: greedy (temperature 0), our normal deterministic polish.
+            let first = try await generate(trimmed, maxTokens: maxTokens, temperature: 0.0)
+            if FactGuard.preservesFacts(raw: trimmed, output: first) {
+                MLXMemoryPolicy.reclaim(reason: "after-polish")
+                return first.isEmpty ? text : first
             }
-            let cleaned = sanitize(output, original: trimmed)
-            // Intermediate generation buffers are free to recycle now.
+
+            // The polish dropped a provable fact (a literal number or a negation).
+            // Retry once with a little sampling — a different trajectory often
+            // keeps the fact. Cost: one extra ~0.25s generation, only on misses.
+            NSLog("MacWispr TextPolisher: fact guard tripped, retrying")
+            let retry = try await generate(trimmed, maxTokens: maxTokens, temperature: 0.4)
             MLXMemoryPolicy.reclaim(reason: "after-polish")
-            return cleaned.isEmpty ? text : cleaned
+            if FactGuard.preservesFacts(raw: trimmed, output: retry) {
+                return retry.isEmpty ? text : retry
+            }
+
+            // Both passes lost a fact. Fall back to the raw transcript: unpolished
+            // is a mild formatting cost, but a corrupted number destroys trust.
+            NSLog("MacWispr TextPolisher: fact guard fell back to raw")
+            return text
         } catch {
             NSLog("MacWispr TextPolisher (MLX) failed: \(error.localizedDescription)")
             MLXMemoryPolicy.reclaim(reason: "polish-error")
             return text
         }
+    }
+
+    /// One generation pass. Extracted so `polish` can retry with a different
+    /// temperature when the fact guard trips.
+    private func generate(
+        _ trimmed: String, maxTokens: Int, temperature: Float
+    ) async throws -> String {
+        guard let container else { return "" }
+        let prompt = Self.buildPrompt(for: trimmed)
+        let output: String = try await container.perform { context in
+            let ids = context.tokenizer.encode(text: prompt)
+            let input = LMInput(tokens: MLXArray(ids))
+            let params = GenerateParameters(maxTokens: maxTokens, temperature: temperature)
+            var result = ""
+            let stream = try MLXLMCommon.generate(
+                input: input,
+                cache: nil,
+                parameters: params,
+                context: context
+            )
+            for try await item in stream {
+                if case .chunk(let chunk) = item {
+                    result += chunk
+                    // Stop if model starts a new example / think block
+                    if result.contains("### Input:") || result.contains("<think>") {
+                        break
+                    }
+                }
+            }
+            return result
+        }
+        return sanitize(output, original: trimmed)
     }
 
     /// Bare completion prompt — matches Qwen3.5 polish SFT training format.

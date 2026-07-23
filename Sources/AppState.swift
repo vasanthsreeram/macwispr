@@ -908,10 +908,46 @@ final class AppState: ObservableObject {
         UserDefaults.standard.set(enabled, forKey: Self.livePartialsEnabledKey)
     }
 
+    /// Stop an in-flight ASR download/load so the catalog stays usable.
+    /// Does not delete on-disk packs.
+    func cancelASRModelLoad() {
+        guard isModelLoading else { return }
+        modelLoadGeneration += 1
+        isModelLoading = false
+        isModelLoaded = false
+        modelLoadProgress = 0
+        modelLoadStatus = "Cancelled"
+        Task { @MainActor in
+            await transcriptionEngine.unloadModel()
+            // Fall back to a ready pack if the cancelled one isn't on disk.
+            if !asrModelSize.isDownloaded {
+                let fallback = ASRModelSize.dashboardChoices.first(where: { $0.isDownloaded })
+                    ?? ASRModelSize.recommendedDefault
+                if fallback != asrModelSize {
+                    asrModelSize = fallback
+                    UserDefaults.standard.set(fallback.rawValue, forKey: Self.asrModelSizeKey)
+                }
+                if asrModelSize.isDownloaded {
+                    await loadModel()
+                } else {
+                    syncIdlePhase()
+                }
+            } else {
+                // Pack already local — reload it so dictation works again.
+                await loadModel()
+            }
+        }
+    }
+
     /// Remove on-disk ASR weights for this catalog model (frees cache). Active
     /// model is unloaded so the next load re-downloads.
     func deleteDownloadedASRModel(_ size: ASRModelSize) async {
-        if asrModelSize == size || (size == .parakeetInt8 && asrModelSize == .parakeetInt4) {
+        let deletingActive = asrModelSize == size
+            || (size == .parakeetInt8 && (asrModelSize == .parakeetInt8 || asrModelSize == .parakeetInt4))
+        if deletingActive {
+            // Cancel any in-flight load/download of this pack first.
+            modelLoadGeneration += 1
+            isModelLoading = false
             await unloadLocalModelForProviderSwitch()
             isModelLoaded = false
             modelLoadStatus = "Model removed — download again to use"
@@ -921,10 +957,26 @@ final class AppState: ObservableObject {
         if size == .parakeetInt8 {
             ASRModelCache.purge(modelId: ASRModelSize.parakeetInt4.modelId)
         }
+        // If we deleted the active model, switch selection to another installed pack.
+        if deletingActive {
+            if let fallback = ASRModelSize.dashboardChoices.first(where: {
+                $0 != size && $0.isDownloaded
+                    && !(size == .parakeetInt8 && ($0 == .parakeetInt8 || $0 == .parakeetInt4))
+            }) {
+                asrModelSize = fallback
+                UserDefaults.standard.set(fallback.rawValue, forKey: Self.asrModelSizeKey)
+                transcriptionProvider = .local
+                await loadModel()
+            } else {
+                syncIdlePhase()
+            }
+        }
         objectWillChange.send()
     }
 
     /// Select + ensure model is loaded (download if needed).
+    /// Switching models while another is loading cancels the previous load
+    /// (see `loadModel` generation) so the UI never feels stuck.
     func selectAndLoadASRModel(_ size: ASRModelSize) {
         setTranscriptionProvider(.local)
         if size != asrModelSize {

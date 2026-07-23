@@ -154,6 +154,7 @@ struct SettingsView: View {
                     get: { appState.telemetryOptIn },
                     set: { appState.setTelemetryOptIn($0) }
                 ))
+                .toggleStyle(.checkbox)
                 Button("What we collect…") {
                     appState.showTelemetryDisclosure = true
                 }
@@ -187,6 +188,7 @@ struct SettingsView: View {
                     get: { appState.devCaptureEnabled },
                     set: { appState.setDevCaptureEnabled($0) }
                 ))
+                .toggleStyle(.checkbox)
                 Text(
                     "Dev mode: each dictation writes a WAV plus raw STT / post-process / polished text under Application Support → MacWispr → dev-captures. Stays on this Mac only — never uploaded. Keeps the last \(DevCaptureStore.maxCaptures) captures."
                 )
@@ -213,6 +215,7 @@ struct SettingsView: View {
             // Light post-process only; polish packs live under Models → AI Models.
             Section("Post-Processing") {
                 Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
+                    .toggleStyle(.checkbox)
 
                 HStack {
                     Text("Polish")
@@ -266,8 +269,19 @@ struct SettingsView: View {
                     .font(.title2.weight(.semibold))
 
                 if appState.isModelLoading {
-                    ProgressView(value: appState.modelLoadProgress)
+                    HStack(spacing: 10) {
+                        ProgressView(value: appState.modelLoadProgress)
+                            .controlSize(.small)
+                        Text(appState.modelLoadStatus.isEmpty ? "Loading model…" : appState.modelLoadStatus)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                        Spacer(minLength: 8)
+                        Button("Cancel") {
+                            appState.cancelASRModelLoad()
+                        }
                         .controlSize(.small)
+                    }
                 }
                 if appState.isLLMLoading {
                     ProgressView(value: appState.llmLoadProgress)
@@ -337,6 +351,8 @@ struct SettingsView: View {
             && (appState.asrModelSize == size
                 || (size == .parakeetInt8
                     && (appState.asrModelSize == .parakeetInt8 || appState.asrModelSize == .parakeetInt4)))
+        // Only this row is “loading”; others stay clickable so users can switch or delete.
+        let loadingThis = appState.isModelLoading && isActive
         return compactModelRow(
             title: size.catalogTitle,
             badge: size.languageBadge,
@@ -344,7 +360,9 @@ struct SettingsView: View {
             symbol: size.dashboardSymbol,
             isActive: isActive,
             onDisk: size.isDownloaded,
-            busy: appState.isModelLoading || appState.isRecording,
+            isLoadingThis: loadingThis,
+            // Never freeze the whole catalog during a download — only block while dictating.
+            interactionLocked: appState.isRecording,
             onSelect: { appState.selectAndLoadASRModel(size) },
             onDelete: { Task { await appState.deleteDownloadedASRModel(size) } }
         )
@@ -375,7 +393,8 @@ struct SettingsView: View {
                     set: { appState.setShowExperimentalAIModels($0) }
                 )
             )
-            .toggleStyle(.switch)
+            // Avoid .switch (NSSwitch): macOS 26 DesignLibrary sizeThatFits can SIGSEGV.
+            .toggleStyle(.checkbox)
             .labelsHidden()
         }
         .padding(.horizontal, 14)
@@ -410,6 +429,7 @@ struct SettingsView: View {
 
     private func llmModelRow(_ model: PolishLocalModel) -> some View {
         let isActive = appState.polishProvider == .local && appState.polishLocalModel == model
+        let loadingThis = appState.isLLMLoading && isActive
         return compactModelRow(
             title: model.catalogTitle,
             badge: model.catalogBadge,
@@ -417,7 +437,8 @@ struct SettingsView: View {
             symbol: "text.badge.checkmark",
             isActive: isActive,
             onDisk: model.isAvailable,
-            busy: appState.isLLMLoading,
+            isLoadingThis: loadingThis,
+            interactionLocked: false,
             onSelect: { appState.selectAndLoadPolishModel(model) },
             onDelete: {
                 Task {
@@ -433,6 +454,9 @@ struct SettingsView: View {
     }
 
     /// Icon-first row: check · type icon · name · badge · size · download/trash.
+    ///
+    /// Other rows stay interactive while one model downloads so users can switch
+    /// back to a ready model or delete packs without waiting for a multi‑GB fetch.
     private func compactModelRow(
         title: String,
         badge: String,
@@ -440,24 +464,38 @@ struct SettingsView: View {
         symbol: String,
         isActive: Bool,
         onDisk: Bool,
-        busy: Bool,
+        isLoadingThis: Bool,
+        interactionLocked: Bool,
         onSelect: @escaping () -> Void,
         onDelete: @escaping () -> Void
     ) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
-                .font(.body)
-                .frame(width: 22)
+            if isLoadingThis {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 22, height: 22)
+            } else {
+                Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                    .font(.body)
+                    .frame(width: 22)
+            }
 
             Image(systemName: symbol)
                 .font(.title3)
                 .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
                 .frame(width: 26)
 
-            Text(title)
-                .font(.body.weight(.medium))
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body.weight(.medium))
+                    .lineLimit(1)
+                if isLoadingThis {
+                    Text("Downloading / loading…")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             Text(badge)
                 .font(.caption2.weight(.semibold))
@@ -471,29 +509,39 @@ struct SettingsView: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.tertiary)
 
-            if onDisk {
-                Button(action: onDelete) {
+            // Trash always available when pack is on disk (or mid-download of active pack).
+            if onDisk || isLoadingThis {
+                Button {
+                    onDelete()
+                } label: {
                     Image(systemName: "trash")
                         .font(.body)
                 }
                 .buttonStyle(.borderless)
-                .help("Remove")
-                .disabled(busy)
-            } else {
-                Button(action: onSelect) {
+                .help(isLoadingThis ? "Cancel and remove" : "Remove from disk")
+                .disabled(interactionLocked)
+            }
+
+            if !onDisk && !isLoadingThis {
+                Button {
+                    onSelect()
+                } label: {
                     Image(systemName: "arrow.down.circle")
                         .font(.title3)
                 }
                 .buttonStyle(.borderless)
                 .help("Download \(sizeLabel)")
-                .disabled(busy)
+                .disabled(interactionLocked)
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
+        .background(isLoadingThis ? Color.accentColor.opacity(0.06) : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard !busy else { return }
+            guard !interactionLocked else { return }
+            // Tapping the loading row is a no-op; use Cancel / trash / another model.
+            if isLoadingThis { return }
             onSelect()
         }
     }
@@ -673,7 +721,8 @@ struct SettingsView: View {
                                 get: { appState.livePartialsEnabled },
                                 set: { appState.setLivePartialsEnabled($0) }
                             ))
-                            .toggleStyle(.switch)
+                            // Avoid .switch (NSSwitch): macOS 26 DesignLibrary sizeThatFits can SIGSEGV.
+                            .toggleStyle(.checkbox)
                             .labelsHidden()
                         }
                         .padding(.horizontal, 16)
@@ -789,26 +838,17 @@ struct SettingsView: View {
                 .fill(Color.white.opacity(style == .clear ? 0.22 : 0.12))
                 .frame(width: 40, height: 22)
                 .overlay {
-                    if #available(macOS 26.0, *) {
-                        Capsule()
-                            .fill(Color.clear)
-                            .glassEffect(
-                                style == .clear
-                                    ? .clear
-                                    : .regular.tint(Color.accentColor.opacity(0.55)),
-                                in: Capsule()
+                    // Prefer material over glassEffect — DesignLibrary glass + layout
+                    // passes have been flaky on macOS 26.x in this app.
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            Capsule().fill(
+                                style == .tinted
+                                    ? Color.accentColor.opacity(0.35)
+                                    : Color.white.opacity(0.15)
                             )
-                    } else {
-                        Capsule()
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                Capsule().fill(
-                                    style == .tinted
-                                        ? Color.accentColor.opacity(0.35)
-                                        : Color.white.opacity(0.15)
-                                )
-                            )
-                    }
+                        )
                 }
                 .overlay(
                     // Diagonal sheen like Apple’s glass tiles
@@ -1107,6 +1147,7 @@ struct SettingsView: View {
                 get: { appState.soundFeedbackEnabled },
                 set: { appState.setSoundFeedbackEnabled($0) }
             ))
+            .toggleStyle(.checkbox)
             Text("Recording window (Classic / Mini / None) is under Appearance.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
