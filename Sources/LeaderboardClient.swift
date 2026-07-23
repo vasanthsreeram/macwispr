@@ -20,6 +20,27 @@ struct LeaderboardStats: Equatable, Sendable {
     static let zero = LeaderboardStats(dictations: 0, words: 0, timeSavedMinutes: 0, streakDays: 0)
 }
 
+/// Snapshot of the caller's public board identity (anonymous only).
+struct LeaderboardStanding: Equatable, Sendable {
+    var rank: Int?
+    var displayName: String
+    var shortName: String
+    var animal: String
+    var avatarKey: String
+    var stats: LeaderboardStats
+    var isSeed: Bool
+
+    static let empty = LeaderboardStanding(
+        rank: nil,
+        displayName: "",
+        shortName: "",
+        animal: "",
+        avatarKey: "",
+        stats: .zero,
+        isSeed: false
+    )
+}
+
 /// Privacy-first client for the public leaderboard API.
 final class LeaderboardClient: @unchecked Sendable {
     static let shared = LeaderboardClient()
@@ -32,6 +53,10 @@ final class LeaderboardClient: @unchecked Sendable {
 
     private static let optInKey = "leaderboardOptIn"
     private static let displayNameKey = "leaderboardDisplayName"
+    private static let rankKey = "leaderboardRank"
+    private static let shortNameKey = "leaderboardShortName"
+    private static let animalKey = "leaderboardAnimal"
+    private static let avatarKeyKey = "leaderboardAvatarKey"
     private static let lastSyncKey = "leaderboardLastSyncAt"
     private static let keychainService = "com.macwispr.leaderboard"
     private static let keychainAccount = "participant_token"
@@ -41,12 +66,14 @@ final class LeaderboardClient: @unchecked Sendable {
     private let syncDebounceSeconds: TimeInterval = 12
     private let session: URLSession
 
+    /// Fired on main after a successful sync / rank refresh.
+    var onStandingChanged: ((LeaderboardStanding) -> Void)?
+
     private init() {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 20
         config.timeoutIntervalForResource = 30
         config.waitsForConnectivity = false
-        // Do not send cookies; minimize ambient identifiers.
         config.httpCookieAcceptPolicy = .never
         config.httpShouldSetCookies = false
         session = URLSession(configuration: config)
@@ -58,10 +85,23 @@ final class LeaderboardClient: @unchecked Sendable {
         UserDefaults.standard.bool(forKey: Self.optInKey)
     }
 
-    /// Server-derived anonymous label (e.g. "Anonymous Otter · a1f2"). Empty until first sync.
-    var displayName: String {
-        UserDefaults.standard.string(forKey: Self.displayNameKey) ?? ""
+    /// Cached standing from last successful network response (or empty).
+    var standing: LeaderboardStanding {
+        let defaults = UserDefaults.standard
+        let rankRaw = defaults.object(forKey: Self.rankKey) as? Int
+        return LeaderboardStanding(
+            rank: rankRaw,
+            displayName: defaults.string(forKey: Self.displayNameKey) ?? "",
+            shortName: defaults.string(forKey: Self.shortNameKey) ?? "",
+            animal: defaults.string(forKey: Self.animalKey) ?? "",
+            avatarKey: defaults.string(forKey: Self.avatarKeyKey) ?? "",
+            stats: .zero,
+            isSeed: false
+        )
     }
+
+    var displayName: String { standing.displayName }
+    var rank: Int? { standing.rank }
 
     /// Enable or disable public board participation.
     /// Opt-out deletes the server row (if reachable) and destroys the local token.
@@ -73,14 +113,15 @@ final class LeaderboardClient: @unchecked Sendable {
         } else {
             let token = loadToken()
             UserDefaults.standard.set(false, forKey: Self.optInKey)
-            UserDefaults.standard.removeObject(forKey: Self.displayNameKey)
-            UserDefaults.standard.removeObject(forKey: Self.lastSyncKey)
-            // Drop local identity so re-opt-in starts a fresh anonymous row.
+            clearStandingDefaults()
             try? deleteToken()
             if let token {
                 queue.async { [weak self] in
                     self?.deleteRemote(token: token)
                 }
+            }
+            DispatchQueue.main.async { [weak self] in
+                self?.onStandingChanged?(.empty)
             }
         }
     }
@@ -97,6 +138,17 @@ final class LeaderboardClient: @unchecked Sendable {
             self.syncWorkItem = work
             let delay = force ? 0.05 : self.syncDebounceSeconds
             self.queue.asyncAfter(deadline: .now() + delay, execute: work)
+        }
+    }
+
+    /// Refresh rank without writing new stats (Home on appear).
+    func refreshStanding(completion: ((LeaderboardStanding) -> Void)? = nil) {
+        guard isOptedIn, let token = loadToken() else {
+            completion?(.empty)
+            return
+        }
+        queue.async { [weak self] in
+            self?.fetchMe(token: token, completion: completion)
         }
     }
 
@@ -117,7 +169,6 @@ final class LeaderboardClient: @unchecked Sendable {
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        // Avoid defaulting to identifiable User-Agent patterns where possible.
         request.setValue("MacWispr-Leaderboard/1", forHTTPHeaderField: "User-Agent")
 
         let body: [String: Any] = [
@@ -129,7 +180,6 @@ final class LeaderboardClient: @unchecked Sendable {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         session.dataTask(with: request) { [weak self] data, response, error in
-            // Fail-silent: board sync must never affect dictation.
             guard error == nil,
                   let http = response as? HTTPURLResponse,
                   (200...299).contains(http.statusCode),
@@ -137,12 +187,92 @@ final class LeaderboardClient: @unchecked Sendable {
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             else { return }
 
-            if let name = json["display_name"] as? String, !name.isEmpty {
-                UserDefaults.standard.set(name, forKey: Self.displayNameKey)
-            }
+            let standing = self?.applyStandingJSON(json, fallbackStats: stats) ?? .empty
             UserDefaults.standard.set(Date(), forKey: Self.lastSyncKey)
-            _ = self
+            DispatchQueue.main.async {
+                self?.onStandingChanged?(standing)
+            }
         }.resume()
+    }
+
+    private func fetchMe(token: String, completion: ((LeaderboardStanding) -> Void)?) {
+        var request = URLRequest(url: Self.apiBaseURL.appendingPathComponent("v1/me"))
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("MacWispr-Leaderboard/1", forHTTPHeaderField: "User-Agent")
+
+        session.dataTask(with: request) { [weak self] data, response, error in
+            guard error == nil,
+                  let http = response as? HTTPURLResponse,
+                  (200...299).contains(http.statusCode),
+                  let data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else {
+                DispatchQueue.main.async { completion?(self?.standing ?? .empty) }
+                return
+            }
+            let standing = self?.applyStandingJSON(json, fallbackStats: .zero) ?? .empty
+            DispatchQueue.main.async {
+                self?.onStandingChanged?(standing)
+                completion?(standing)
+            }
+        }.resume()
+    }
+
+    private func applyStandingJSON(_ json: [String: Any], fallbackStats: LeaderboardStats) -> LeaderboardStanding {
+        let defaults = UserDefaults.standard
+        if let name = json["display_name"] as? String, !name.isEmpty {
+            defaults.set(name, forKey: Self.displayNameKey)
+        }
+        if let short = json["short_name"] as? String, !short.isEmpty {
+            defaults.set(short, forKey: Self.shortNameKey)
+        }
+        if let animal = json["animal"] as? String, !animal.isEmpty {
+            defaults.set(animal, forKey: Self.animalKey)
+        }
+        if let avatar = json["avatar_key"] as? String, !avatar.isEmpty {
+            defaults.set(avatar, forKey: Self.avatarKeyKey)
+        }
+        if let rank = json["rank"] as? Int {
+            defaults.set(rank, forKey: Self.rankKey)
+        } else if let rank = json["rank"] as? Double {
+            defaults.set(Int(rank), forKey: Self.rankKey)
+        }
+
+        let stats = LeaderboardStats(
+            dictations: (json["dictations"] as? Int)
+                ?? (json["dictations"] as? Double).map { Int($0) }
+                ?? fallbackStats.dictations,
+            words: (json["words"] as? Int)
+                ?? (json["words"] as? Double).map { Int($0) }
+                ?? fallbackStats.words,
+            timeSavedMinutes: (json["time_saved_minutes"] as? Double)
+                ?? (json["time_saved_minutes"] as? Int).map { Double($0) }
+                ?? fallbackStats.timeSavedMinutes,
+            streakDays: (json["streak_days"] as? Int)
+                ?? (json["streak_days"] as? Double).map { Int($0) }
+                ?? fallbackStats.streakDays
+        )
+
+        return LeaderboardStanding(
+            rank: defaults.object(forKey: Self.rankKey) as? Int,
+            displayName: defaults.string(forKey: Self.displayNameKey) ?? "",
+            shortName: defaults.string(forKey: Self.shortNameKey) ?? "",
+            animal: defaults.string(forKey: Self.animalKey) ?? "",
+            avatarKey: defaults.string(forKey: Self.avatarKeyKey) ?? "",
+            stats: stats,
+            isSeed: (json["is_seed"] as? Bool) ?? false
+        )
+    }
+
+    private func clearStandingDefaults() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: Self.displayNameKey)
+        defaults.removeObject(forKey: Self.rankKey)
+        defaults.removeObject(forKey: Self.shortNameKey)
+        defaults.removeObject(forKey: Self.animalKey)
+        defaults.removeObject(forKey: Self.avatarKeyKey)
+        defaults.removeObject(forKey: Self.lastSyncKey)
     }
 
     private func deleteRemote(token: String) {
@@ -150,14 +280,11 @@ final class LeaderboardClient: @unchecked Sendable {
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("MacWispr-Leaderboard/1", forHTTPHeaderField: "User-Agent")
-        session.dataTask(with: request) { _, _, _ in
-            // Best-effort leave; local identity already wiped.
-        }.resume()
+        session.dataTask(with: request) { _, _, _ in }.resume()
     }
 
     // MARK: - Token (Keychain)
 
-    /// Random 32-byte secret, base64url, never derived from install ID or hardware.
     @discardableResult
     private func ensureToken() -> String? {
         if let existing = loadToken(), existing.count >= 32 {
@@ -247,7 +374,6 @@ extension UsageStats {
         guard !entries.isEmpty else { return 0 }
         let daysWithActivity = Set(entries.map { calendar.startOfDay(for: $0.timestamp) })
         var cursor = calendar.startOfDay(for: reference)
-        // Allow streak to start from yesterday if nothing today yet.
         if !daysWithActivity.contains(cursor) {
             guard let yesterday = calendar.date(byAdding: .day, value: -1, to: cursor) else { return 0 }
             cursor = yesterday
@@ -262,7 +388,6 @@ extension UsageStats {
         return streak
     }
 
-    /// All-time board payload from on-device history.
     func leaderboardStats(entries: [TranscriptionEntry], reference: Date = Date()) -> LeaderboardStats {
         let snap = allTimeSnapshot(entries: entries)
         return LeaderboardStats(

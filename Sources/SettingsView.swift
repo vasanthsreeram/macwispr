@@ -168,16 +168,30 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 if appState.leaderboardOptIn {
-                    if !appState.leaderboardDisplayName.isEmpty {
-                        LabeledContent("Your public name") {
-                            Text(appState.leaderboardDisplayName)
+                    HStack(spacing: 12) {
+                        LeaderboardAvatarView(
+                            animal: appState.leaderboardAnimal,
+                            avatarKey: appState.leaderboardAvatarKey.isEmpty
+                                ? appState.leaderboardDisplayName
+                                : appState.leaderboardAvatarKey,
+                            size: 40
+                        )
+                        VStack(alignment: .leading, spacing: 2) {
+                            if let rank = appState.leaderboardRank {
+                                Text("Rank #\(rank)")
+                                    .font(.headline)
+                            } else {
+                                Text("Rank syncing…")
+                                    .font(.headline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text(appState.leaderboardDisplayName.isEmpty
+                                 ? "Anonymous name pending"
+                                 : appState.leaderboardDisplayName)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .textSelection(.enabled)
                         }
-                    } else {
-                        Text("Syncing anonymous name…")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
                     }
                     HStack {
                         Button("Open leaderboard") {
@@ -185,9 +199,7 @@ struct SettingsView: View {
                         }
                         Button("Sync now") {
                             appState.syncLeaderboardIfNeeded(force: true)
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                appState.leaderboardDisplayName = LeaderboardClient.shared.displayName
-                            }
+                            appState.refreshLeaderboardStanding()
                         }
                     }
                 }
