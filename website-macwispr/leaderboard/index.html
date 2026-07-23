@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Leaderboard — MacWispr</title>
+  <meta name="description" content="MacWispr public leaderboard — opt-in, fully anonymous. Dictations, time saved, streaks. No real names." />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#f7f2e8" />
+  <link rel="canonical" href="https://macwispr.lintware.com/leaderboard" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="MacWispr" />
+  <meta property="og:url" content="https://macwispr.lintware.com/leaderboard" />
+  <meta property="og:title" content="Leaderboard — MacWispr" />
+  <meta property="og:description" content="Opt-in public rankings. Anonymous only — no real names, no transcripts." />
+  <meta property="og:image" content="https://macwispr.lintware.com/assets/share-og.png" />
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/logo-128.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="/styles.v8.css" />
+  <style>
+    .lb-main {
+      position: relative;
+      z-index: 1;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: calc(var(--header-h) + 48px) 24px 80px;
+    }
+    .lb-main h1 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      line-height: 1.1;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+    .lb-lede {
+      color: var(--ink-soft);
+      font-size: 1.1rem;
+      margin: 0 0 20px;
+      max-width: 40rem;
+    }
+    .lb-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .lb-meta .chip { font-size: 0.85rem; }
+    .chip.live {
+      background: rgba(26, 154, 92, 0.12);
+      color: #157a48;
+      border: 1px solid rgba(26, 154, 92, 0.22);
+    }
+    .chip.anon {
+      background: rgba(59, 110, 245, 0.1);
+      color: #2a56c4;
+      border: 1px solid rgba(59, 110, 245, 0.18);
+    }
+
+    .lb-banner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px 20px;
+      padding: 16px 18px;
+      margin-bottom: 28px;
+      border-radius: 16px;
+      background: rgba(255, 253, 248, 0.72);
+      border: 1px solid var(--line-strong);
+      box-shadow: var(--shadow-sm);
+    }
+    .lb-banner strong { display: block; font-size: 1rem; margin-bottom: 2px; }
+    .lb-banner p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      max-width: 36rem;
+    }
+
+    .lb-board {
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 253, 248, 0.75);
+      box-shadow: var(--shadow);
+    }
+    .lb-board-head,
+    .lb-row {
+      display: grid;
+      grid-template-columns: 48px minmax(140px, 1.5fr) repeat(3, minmax(0, 1fr));
+      gap: 10px 12px;
+      align-items: center;
+      padding: 12px 18px;
+    }
+    .lb-board-head {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 242, 232, 0.65);
+    }
+    .lb-row {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .lb-row:last-child { border-bottom: 0; }
+    .lb-row:hover { background: rgba(255, 255, 255, 0.45); }
+    .lb-rank {
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--ink);
+    }
+    .lb-rank.gold { color: #c98912; }
+    .lb-rank.silver { color: #7a7a82; }
+    .lb-rank.bronze { color: #b06a3c; }
+    .lb-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .lb-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .lb-name {
+      font-weight: 700;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lb-handle {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .lb-stat {
+      font-variant-numeric: tabular-nums;
+      color: var(--ink-soft);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .lb-stat em {
+      font-style: normal;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.8rem;
+      margin-left: 4px;
+    }
+    .lb-status {
+      padding: 28px 18px;
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+    }
+    .lb-status.error { color: #c44a3b; }
+    .lb-note {
+      margin-top: 28px;
+      padding: 18px 20px;
+      border-radius: 16px;
+      border: 1px dashed var(--line-strong);
+      background: rgba(255, 253, 248, 0.5);
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .lb-note a { font-weight: 600; }
+    .lb-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .lb-updated {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 720px) {
+      .lb-board-head { display: none; }
+      .lb-row {
+        grid-template-columns: 36px 1fr;
+        grid-template-areas:
+          "rank user"
+          ". s1"
+          ". s2"
+          ". s3";
+      }
+      .lb-rank { grid-area: rank; align-self: start; padding-top: 8px; }
+      .lb-user { grid-area: user; }
+      .lb-stat:nth-of-type(1) { grid-area: s1; }
+      .lb-stat:nth-of-type(2) { grid-area: s2; }
+      .lb-stat:nth-of-type(3) { grid-area: s3; }
+      .lb-stat {
+        font-size: 0.88rem;
+        background: rgba(20, 18, 15, 0.04);
+        padding: 6px 10px;
+        border-radius: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" aria-hidden="true">
+    <div class="aurora"></div>
+  </div>
+
+  <header class="site-header">
+    <div class="header-inner glass">
+      <a class="brand" href="/" aria-label="MacWispr home">
+        <img src="/assets/logo-mark.png" width="32" height="32" alt="" decoding="async" />
+        <span class="brand-text">Mac<span class="soft">Wispr</span></span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="/#features">Features</a>
+        <a href="/leaderboard" aria-current="page">Leaderboard</a>
+        <a href="/privacy">Privacy</a>
+      </nav>
+      <a class="btn btn-dark btn-sm" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download</a>
+    </div>
+  </header>
+
+  <main class="lb-main">
+    <h1>Leaderboard</h1>
+    <p class="lb-lede">
+      Power dictators, ranked by time saved — and <strong>only if they opt in</strong>.
+      Everyone appears as <strong>Anonymous &lt;Animal&gt;</strong>. No real names. Not even maintainers can tell who is who.
+    </p>
+    <div class="lb-meta">
+      <span class="chip live">Live</span>
+      <span class="chip anon">Anonymous only</span>
+      <span class="chip yes">Opt-in only</span>
+      <span class="chip yes">No transcripts</span>
+    </div>
+
+    <div class="lb-banner" role="status">
+      <div>
+        <strong>True anonymity on purpose</strong>
+        <p>
+          Opt in from MacWispr → Configuration → Privacy. The app posts aggregate counts under a
+          random animal name. Seed speakers keep the board company until more people join.
+        </p>
+      </div>
+      <span class="chip live">API live</span>
+    </div>
+
+    <div class="lb-board" aria-label="Public leaderboard" id="board">
+      <div class="lb-board-head" aria-hidden="true">
+        <span>#</span>
+        <span>Speaker</span>
+        <span>Dictations</span>
+        <span>Time saved</span>
+        <span>Streak</span>
+      </div>
+      <div class="lb-status" id="board-status">Loading rankings…</div>
+    </div>
+    <p class="lb-updated" id="board-updated" hidden></p>
+
+    <div class="lb-note">
+      <strong>Separate opt-in — more data than reliability telemetry, still no identity.</strong>
+      Anonymous product telemetry (off by default) only sends content-free reliability events
+      and never puts you here. The board needs its own toggle and only accepts:
+      dictation count, word count, time saved, streak. Display names are server-derived from a
+      device-only secret (SHA-256 hash stored server-side). Maintainers cannot reverse a row to a person.
+      Still never: transcript text, audio, email, GitHub, install UUID.
+      See <a href="/privacy">Privacy</a> · tracking <a href="https://github.com/vasanthsreeram/macwispr/issues/11">#11</a>.
+    </div>
+
+    <div class="lb-actions">
+      <a class="btn btn-dark" href="https://github.com/vasanthsreeram/macwispr/releases/latest/download/MacWispr-macos-arm64.dmg">Download MacWispr</a>
+      <a class="btn btn-ghost glass" href="/">Back home</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="/assets/logo-mark.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
+      <div>
+        <strong>MacWispr</strong>
+        <span>Mac only · free local dictation</span>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/leaderboard">Leaderboard</a>
+      <a href="/privacy">Privacy</a>
+      <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+    </div>
+    <p class="footer-note">Anonymous speakers only. © <span id="y"></span> MacWispr</p>
+  </footer>
+
+  <script>
+    document.getElementById("y").textContent = String(new Date().getFullYear());
+
+    const API = "https://macwispr-leaderboard.s-vasanthrojin.workers.dev/v1/leaderboard?limit=50";
+    const AVATAR_GRADIENTS = [
+      "linear-gradient(135deg,#e85d4c,#f0a06a)",
+      "linear-gradient(135deg,#3b6ef5,#7aa2ff)",
+      "linear-gradient(135deg,#1a9a5c,#5fd49a)",
+      "linear-gradient(135deg,#8b5cf6,#c4b5fd)",
+      "linear-gradient(135deg,#0f766e,#5eead4)",
+      "linear-gradient(135deg,#b45309,#fbbf24)",
+      "linear-gradient(135deg,#be185d,#f9a8d4)",
+      "linear-gradient(135deg,#334155,#94a3b8)",
+    ];
+
+    function formatDictations(n) {
+      if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 1 : 1).replace(/\.0$/, "") + "k";
+      return String(n);
+    }
+
+    function formatTimeSaved(minutes) {
+      const h = Math.floor(minutes / 60);
+      if (h >= 1) return h + "h";
+      const m = Math.round(minutes);
+      return m + "m";
+    }
+
+    function initials(name) {
+      const parts = String(name || "").replace(/Anonymous\s+/i, "").split(/[·\s]+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return (parts[0] || "?").slice(0, 2).toUpperCase();
+    }
+
+    function rankClass(rank) {
+      if (rank === 1) return "gold";
+      if (rank === 2) return "silver";
+      if (rank === 3) return "bronze";
+      return "";
+    }
+
+    function renderEntries(entries) {
+      const board = document.getElementById("board");
+      const status = document.getElementById("board-status");
+      if (status) status.remove();
+
+      // Keep head; clear previous rows
+      board.querySelectorAll(".lb-row").forEach((el) => el.remove());
+
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "lb-status";
+        empty.textContent = "No speakers yet — opt in from the app to be first.";
+        board.appendChild(empty);
+        return;
+      }
+
+      entries.forEach((e, i) => {
+        const rank = e.rank || i + 1;
+        const row = document.createElement("div");
+        row.className = "lb-row";
+        const rc = rankClass(rank);
+        const grad = AVATAR_GRADIENTS[(rank - 1) % AVATAR_GRADIENTS.length];
+        const seedNote = e.is_seed ? "seed speaker" : "opt-in speaker";
+        row.innerHTML =
+          '<span class="lb-rank ' + rc + '">' + rank + "</span>" +
+          '<div class="lb-user">' +
+            '<span class="lb-avatar" style="background: ' + grad + '">' + initials(e.display_name) + "</span>" +
+            "<div>" +
+              '<span class="lb-name"></span>' +
+              '<span class="lb-handle"></span>' +
+            "</div>" +
+          "</div>" +
+          '<span class="lb-stat">' + formatDictations(e.dictations) + "<em>dictations</em></span>" +
+          '<span class="lb-stat">' + formatTimeSaved(e.time_saved_minutes) + "<em>saved</em></span>" +
+          '<span class="lb-stat">' + e.streak_days + "d<em>streak</em></span>";
+        row.querySelector(".lb-name").textContent = e.display_name;
+        row.querySelector(".lb-handle").textContent = seedNote;
+        board.appendChild(row);
+      });
+    }
+
+    async function loadBoard() {
+      const status = document.getElementById("board-status");
+      const updated = document.getElementById("board-updated");
+      try {
+        const res = await fetch(API, { credentials: "omit", cache: "no-cache" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        renderEntries(data.entries || []);
+        if (updated && data.generated_at) {
+          updated.hidden = false;
+          updated.textContent = "Updated " + new Date(data.generated_at).toLocaleString();
+        }
+      } catch (err) {
+        if (status) {
+          status.className = "lb-status error";
+          status.textContent = "Could not load rankings. Try again in a moment.";
+        }
+        console.warn("leaderboard fetch failed", err);
+      }
+    }
+
+    loadBoard();
+  </script>
+</body>
+</html>

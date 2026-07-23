@@ -1,0 +1,9 @@
+name = "macwispr-leaderboard"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "macwispr-leaderboard"
+database_id = "f7ec5471-b433-4995-b925-8c80e29281d9"

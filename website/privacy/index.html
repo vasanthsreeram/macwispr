@@ -204,14 +204,30 @@
     </table>
     <p>Turning telemetry on does <strong>not</strong> change where transcription runs. Local stays local.</p>
 
+    <h2>Optional public leaderboard</h2>
+    <p>A separate, <strong>off-by-default</strong> opt-in can place you on the <a href="/leaderboard">public leaderboard</a>. This is <strong>not</strong> reliability telemetry.</p>
+    <table>
+      <thead>
+        <tr><th>Shared when opted in</th><th>Never shared</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Dictation count, word count, time saved, streak; server-made name like <code>Anonymous Otter · a1f2</code></td>
+          <td>Real name, email, GitHub, install UUID, transcripts, audio</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>The app holds a random secret on your Mac; the server stores only a one-way hash. Maintainers cannot reverse a board row to a person. Turning telemetry on alone never enrolls you.</p>
+
     <h2>Summary</h2>
     <ol>
       <li><strong>Local by default</strong> for speech-to-text.</li>
       <li><strong>Telemetry is opt-in</strong> and off until you enable it in Settings.</li>
       <li>We only send <strong>anonymous, non-content</strong> reliability signals.</li>
+      <li><strong>Leaderboard is a separate anonymous opt-in</strong> (animal names only).</li>
       <li>We <strong>never</strong> send what you said, your audio, keys, or personal identifiers.</li>
     </ol>
-    <p>This page is the public contract: if something is not listed under “What we collect,” it is not telemetry.</p>
+    <p>This page is the public contract: if something is not listed under “What we collect,” it is not telemetry (leaderboard fields are listed above).</p>
 
     <p class="doc-note">Source of truth in the repo: <a href="https://github.com/vasanthsreeram/macwispr/blob/main/PRIVACY.md">PRIVACY.md</a>. Last aligned with MacWispr 1.2.x.</p>
   </main>

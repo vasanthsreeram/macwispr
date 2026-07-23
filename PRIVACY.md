@@ -106,14 +106,61 @@ Turning telemetry on does **not** change where transcription runs. Local stays l
 
 ---
 
+## Optional public leaderboard (separate opt-in)
+
+MacWispr can show **opt-in** speakers on a public website leaderboard
+([fuckwisprflow.com/leaderboard](https://fuckwisprflow.com/leaderboard)).
+This is **not** product telemetry and is **off by default**.
+
+| | |
+|---|---|
+| **Default** | Off |
+| **Enable** | Settings → Configuration → Privacy → **Appear on public leaderboard** |
+| **Disable** | Turn the same toggle **off** (removes your row from the board) |
+
+### What the board stores
+
+When you opt in, the app posts **aggregate counts only**:
+
+| Field | Notes |
+|-------|--------|
+| Dictation count | How many completed dictations (on-device history) |
+| Word count | Total words dictated (counts only — not the words) |
+| Time saved | Derived minutes vs your typing WPM baseline |
+| Streak | Consecutive active days |
+| Display name | Server-derived **`Anonymous <Animal> · <tag>`** only |
+
+### Anonymity (including from maintainers)
+
+- The app generates a **random secret token** stored only in your Mac’s Keychain.
+- The server stores **`SHA-256(token)`**, never the token itself and never the telemetry install UUID.
+- Display names are **not** chosen free-form and are **not** your real name, email, or GitHub handle.
+- With database access alone, maintainers **cannot** reverse a row to a person or device.
+- Still never: transcript text, audio, clipboard, vocabulary, API keys, hardware IDs.
+
+Turning on reliability telemetry does **not** put you on the board. Leaving the board (toggle off) deletes your non-seed row and destroys the local token so a future opt-in starts a fresh anonymous identity.
+
+The board may include a few **seeded demo speakers** so the page is not empty; they are labeled as seed speakers and are not real people.
+
+### Where leaderboard data goes
+
+| | |
+|---|---|
+| **Service** | Cloudflare Worker + D1 (`macwispr-leaderboard`) |
+| **Transport** | HTTPS only |
+| **Public read** | Ranked aggregates + anonymous display names |
+
+---
+
 ## Summary
 
 1. **Local by default** for speech-to-text.  
 2. **Telemetry is opt-in** and off until you enable it in Settings.  
 3. We only send **anonymous, non-content** reliability signals.  
-4. We **never** send what you said, your audio, keys, or personal identifiers.
+4. **Leaderboard is a separate opt-in** with anonymous animal names only.  
+5. We **never** send what you said, your audio, keys, or personal identifiers.
 
-See the epic and related issues on GitHub for implementation details. This document is the public contract: if something is not listed under [What we collect](#what-we-collect), it is not telemetry.
+See the epic and related issues on GitHub for implementation details. This document is the public contract: if something is not listed under [What we collect](#what-we-collect), it is not telemetry (and leaderboard fields are listed under [Optional public leaderboard](#optional-public-leaderboard-separate-opt-in)).
 
 ### Implementation note (maintainers)
 

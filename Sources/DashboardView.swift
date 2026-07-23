@@ -17,10 +17,40 @@ struct DashboardView: View {
                 weekCards
                 weeklyChart
                 allTimeRow
+                leaderboardRow
                 tip
             }
             .padding(20)
         }
+    }
+
+    private var leaderboardRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "trophy.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Public leaderboard")
+                    .font(.subheadline.weight(.semibold))
+                Text(
+                    appState.leaderboardOptIn
+                        ? (appState.leaderboardDisplayName.isEmpty
+                            ? "Opted in · syncing anonymous name…"
+                            : appState.leaderboardDisplayName)
+                        : "Opt in from Configuration → Privacy (anonymous only)"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            Button("Open") {
+                appState.openPublicLeaderboard()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.quaternary.opacity(0.5)))
     }
 
     private var header: some View {
