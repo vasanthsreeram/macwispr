@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import AVFoundation
+import AppKit
 
 enum DictationMode: String, CaseIterable, Identifiable {
     case hold = "Hold"
@@ -106,6 +107,11 @@ final class AppState: ObservableObject {
     @Published var telemetryOptIn = false
     /// First-run (or first Settings visit) disclosure sheet for telemetry.
     @Published var showTelemetryDisclosure = false
+    /// Privacy Settings: appear on the public website leaderboard (default OFF).
+    /// Identity is anonymous only — never linked to telemetry install ID.
+    @Published var leaderboardOptIn = false
+    /// Server-derived label (e.g. "Anonymous Otter · a1f2") after first sync.
+    @Published var leaderboardDisplayName: String = ""
     /// Pipeline phase for menu bar / HUD (Ready → Listening → Transcribing → Done/Fail).
     @Published var dictationPhase: DictationPhase = .setup
     /// Short human label for the current phase (tooltips, HUD).
@@ -398,6 +404,8 @@ final class AppState: ObservableObject {
             customVocabulary = saved
         }
         telemetryOptIn = Telemetry.shared.isOptedIn
+        leaderboardOptIn = LeaderboardClient.shared.isOptedIn
+        leaderboardDisplayName = LeaderboardClient.shared.displayName
         // Dev capture: UserDefaults, or force-on via MACWISPR_DEV_CAPTURE=1.
         devCaptureEnabled = DevCaptureStore.isEnabled
         // First-run disclosure: show once until the user acknowledges the manifest.
@@ -421,6 +429,7 @@ final class AppState: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             self?.emitHotkeyHealthIfNeeded()
             self?.syncIdlePhase()
+            self?.syncLeaderboardIfNeeded(force: false)
         }
     }
 
@@ -447,6 +456,42 @@ final class AppState: ObservableObject {
         Telemetry.shared.markDisclosureSeen()
         showTelemetryDisclosure = false
         setTelemetryOptIn(optIn)
+    }
+
+    /// Opt into the public website leaderboard. Separate from reliability telemetry.
+    /// You appear only as an anonymous animal name — no real identity is sent.
+    func setLeaderboardOptIn(_ enabled: Bool) {
+        LeaderboardClient.shared.setOptIn(enabled) { [weak self] in
+            self?.currentLeaderboardStats() ?? .zero
+        }
+        leaderboardOptIn = LeaderboardClient.shared.isOptedIn
+        leaderboardDisplayName = LeaderboardClient.shared.displayName
+        if enabled {
+            // Refresh label after first network round-trip.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.leaderboardDisplayName = LeaderboardClient.shared.displayName
+            }
+        }
+    }
+
+    func currentLeaderboardStats() -> LeaderboardStats {
+        UsageStats(typingWPM: typingWPM).leaderboardStats(entries: transcriptionHistory)
+    }
+
+    func syncLeaderboardIfNeeded(force: Bool = false) {
+        guard leaderboardOptIn else { return }
+        LeaderboardClient.shared.scheduleSync(
+            statsProvider: { [weak self] in
+                self?.currentLeaderboardStats() ?? .zero
+            },
+            force: force
+        )
+        // Keep UI label in sync when a prior name is cached.
+        leaderboardDisplayName = LeaderboardClient.shared.displayName
+    }
+
+    func openPublicLeaderboard() {
+        NSWorkspace.shared.open(LeaderboardClient.publicBoardURL)
     }
 
     // MARK: - Microphone input
@@ -1212,6 +1257,8 @@ final class AppState: ObservableObject {
                 polishedHasNewlines: processed.contains(where: \.isNewline),
                 polishedLooksLikeList: Telemetry.looksLikeList(processed)
             )
+            // Public board aggregates only (if opted in) — never transcript text.
+            syncLeaderboardIfNeeded(force: false)
             // Live partials leave many free Metal buffers; keep only the 1.5 GiB cap
             // worth of cache and drop the rest (weights stay loaded).
             if transcriptionProvider == .local {

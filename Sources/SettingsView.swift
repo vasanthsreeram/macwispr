@@ -157,6 +157,40 @@ struct SettingsView: View {
                 Button("What we collect…") {
                     appState.showTelemetryDisclosure = true
                 }
+
+                Toggle("Appear on public leaderboard", isOn: Binding(
+                    get: { appState.leaderboardOptIn },
+                    set: { appState.setLeaderboardOptIn($0) }
+                ))
+                Text(
+                    "Posts only anonymous totals (dictations, words, time saved, streak) under a random animal name. No real name, email, or install ID. Separate from usage telemetry — off by default."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                if appState.leaderboardOptIn {
+                    if !appState.leaderboardDisplayName.isEmpty {
+                        LabeledContent("Your public name") {
+                            Text(appState.leaderboardDisplayName)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    } else {
+                        Text("Syncing anonymous name…")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    HStack {
+                        Button("Open leaderboard") {
+                            appState.openPublicLeaderboard()
+                        }
+                        Button("Sync now") {
+                            appState.syncLeaderboardIfNeeded(force: true)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                appState.leaderboardDisplayName = LeaderboardClient.shared.displayName
+                            }
+                        }
+                    }
+                }
             }
 
             Section("Developer") {
