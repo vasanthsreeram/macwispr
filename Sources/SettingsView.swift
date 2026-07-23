@@ -163,7 +163,7 @@ struct SettingsView: View {
                     set: { appState.setLeaderboardOptIn($0) }
                 ))
                 Text(
-                    "Posts counts only (dictations, words, time saved, streak). Default identity is a random animal name. Optionally set a public name to compete. Separate from usage telemetry — off by default. Never sends transcripts."
+                    "Posts counts only. Ranked by words dictated (plus dictations, time saved, streak). Default identity is a random animal name; optional public name to compete. Separate from usage telemetry — off by default. Never sends transcripts."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
