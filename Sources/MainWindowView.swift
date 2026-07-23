@@ -113,6 +113,8 @@ struct MainWindowView: View {
             Section {
                 Label("History", systemImage: "clock.fill")
                     .tag(SidebarItem.history)
+                Label("Leaderboard", systemImage: "trophy.fill")
+                    .tag(SidebarItem.leaderboard)
                 Label("About", systemImage: "info.circle.fill")
                     .tag(SidebarItem.about)
             }
@@ -137,6 +139,8 @@ struct MainWindowView: View {
                 SettingsView(pane: .sound)
             case .history:
                 historyDetail
+            case .leaderboard:
+                LeaderboardView()
             case .about:
                 SettingsView(pane: .about)
             }
@@ -147,6 +151,7 @@ struct MainWindowView: View {
             switch item {
             case .home: Telemetry.shared.reportUIOpen(surface: "dashboard")
             case .history: Telemetry.shared.reportUIOpen(surface: "history")
+            case .leaderboard: Telemetry.shared.reportUIOpen(surface: "dashboard")
             case .configuration, .models, .vocabulary, .appearance, .sound, .about:
                 Telemetry.shared.reportUIOpen(surface: "settings")
             }
@@ -154,6 +159,9 @@ struct MainWindowView: View {
         .onReceive(NotificationCenter.default.publisher(for: .macWisprShowSettings)) { _ in
             // Menu “Settings…” → Configuration (not a nested tab strip).
             selectedSidebar = .configuration
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .macWisprShowLeaderboard)) { _ in
+            selectedSidebar = .leaderboard
         }
     }
 
@@ -249,6 +257,7 @@ private enum SidebarItem: Hashable {
     case configuration
     case sound
     case history
+    case leaderboard
     case about
 
     var title: String {
@@ -260,6 +269,7 @@ private enum SidebarItem: Hashable {
         case .configuration: return "Configuration"
         case .sound: return "Sound"
         case .history: return "History"
+        case .leaderboard: return "Leaderboard"
         case .about: return "About"
         }
     }
@@ -267,4 +277,5 @@ private enum SidebarItem: Hashable {
 
 extension Notification.Name {
     static let macWisprShowSettings = Notification.Name("macWisprShowSettings")
+    static let macWisprShowLeaderboard = Notification.Name("macWisprShowLeaderboard")
 }
