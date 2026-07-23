@@ -1,10 +1,10 @@
 import Foundation
-import Security
 
 // MARK: - Public opt-in leaderboard (anonymous)
 //
 // Separate from product telemetry (PostHog). When enabled:
-// - App holds a random secret token in Keychain (never the install UUID).
+// - App holds a random secret token in UserDefaults (never Keychain — no
+//   scary system password prompts; never the install UUID).
 // - Server stores only SHA-256(token) + aggregates + a server-derived
 //   "Anonymous <Animal> · <tag>" display name.
 // - Maintainers cannot reverse a board row to a person or device.
@@ -65,8 +65,8 @@ final class LeaderboardClient: @unchecked Sendable {
     private static let publicNameKey = "leaderboardPublicName"
     private static let lastSyncKey = "leaderboardLastSyncAt"
     private static let lastNameErrorKey = "leaderboardLastNameError"
-    private static let keychainService = "com.macwispr.leaderboard"
-    private static let keychainAccount = "participant_token"
+    /// Random participant secret (local only). Not Keychain — avoids system prompts.
+    private static let participantTokenKey = "leaderboardParticipantToken"
 
     /// Max length for a public competitive name (matches API).
     static let publicNameMaxLength = 24
@@ -139,7 +139,7 @@ final class LeaderboardClient: @unchecked Sendable {
             let token = loadToken()
             UserDefaults.standard.set(false, forKey: Self.optInKey)
             clearStandingDefaults()
-            try? deleteToken()
+            deleteToken()
             if let token {
                 queue.async { [weak self] in
                     self?.deleteRemote(token: token)
@@ -361,88 +361,46 @@ final class LeaderboardClient: @unchecked Sendable {
         session.dataTask(with: request) { _, _, _ in }.resume()
     }
 
-    // MARK: - Token (Keychain)
+    // MARK: - Token (UserDefaults — no Keychain prompts)
 
     @discardableResult
     private func ensureToken() -> String? {
         if let existing = loadToken(), existing.count >= 32 {
             return existing
         }
+        // SystemRandomNumberGenerator — no Security/Keychain framework.
+        var rng = SystemRandomNumberGenerator()
         var bytes = [UInt8](repeating: 0, count: 32)
-        let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        guard status == errSecSuccess else { return nil }
+        for i in 0..<bytes.count {
+            bytes[i] = UInt8.random(in: 0...255, using: &rng)
+        }
         let token = Data(bytes).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
-        do {
-            try saveToken(token)
-            return token
-        } catch {
-            return nil
-        }
+        saveToken(token)
+        return token
     }
 
     private func loadToken() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.keychainService,
-            kSecAttrAccount as String: Self.keychainAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess,
-              let data = item as? Data,
-              let string = String(data: data, encoding: .utf8),
-              !string.isEmpty
-        else { return nil }
-        return string
+        let s = UserDefaults.standard.string(forKey: Self.participantTokenKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let s, s.count >= 32 else { return nil }
+        return s
     }
 
-    private func saveToken(_ value: String) throws {
-        guard let data = value.data(using: .utf8) else { return }
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.keychainService,
-            kSecAttrAccount as String: Self.keychainAccount,
-        ]
-        let attributes: [String: Any] = [
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-        ]
-        let status = SecItemCopyMatching(query as CFDictionary, nil)
-        if status == errSecSuccess {
-            let update = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
-            guard update == errSecSuccess else { throw LeaderboardKeychainError.unhandled(update) }
-        } else if status == errSecItemNotFound {
-            var add = query
-            add[kSecValueData as String] = data
-            add[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            let addStatus = SecItemAdd(add as CFDictionary, nil)
-            guard addStatus == errSecSuccess else { throw LeaderboardKeychainError.unhandled(addStatus) }
-        } else {
-            throw LeaderboardKeychainError.unhandled(status)
-        }
+    private func saveToken(_ value: String) {
+        UserDefaults.standard.set(value, forKey: Self.participantTokenKey)
     }
 
-    private func deleteToken() throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.keychainService,
-            kSecAttrAccount as String: Self.keychainAccount,
-        ]
-        let status = SecItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw LeaderboardKeychainError.unhandled(status)
-        }
+    private func deleteToken() {
+        UserDefaults.standard.removeObject(forKey: Self.participantTokenKey)
     }
 }
 
-private enum LeaderboardKeychainError: Error {
-    case unhandled(OSStatus)
-}
+// Need SecRandomCopyBytes without importing full Keychain password APIs.
+import Security
+
 
 // MARK: - Stats helpers
 

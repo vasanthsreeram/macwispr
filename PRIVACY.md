@@ -137,7 +137,7 @@ When you opt in, the app posts **aggregate counts only**:
 | **Anonymous (default)** | Random animal label | Nobody — maintainers only see a hash of a device-only secret |
 | **Public name (optional)** | The name you type | Anyone who sees the board (you chose that label) |
 
-- The app generates a **random secret token** stored only in your Mac’s Keychain.
+- The app generates a **random secret token** stored only in local app preferences on your Mac (not Keychain — no system password prompts).
 - The server stores **`SHA-256(token)`**, never the token itself and never the telemetry install UUID.
 - Choosing a public name is **extra opt-in on top of board opt-in** — leave the field blank to stay anonymous.
 - Still never: transcript text, audio, clipboard, vocabulary, API keys, hardware IDs, email, GitHub.
