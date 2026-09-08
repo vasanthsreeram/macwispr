@@ -50,6 +50,7 @@ actor TextPolisher {
     func unload() {
         container = nil
         loadedModel = nil
+        Memory.cacheLimit = 0
         Memory.clearCache()
     }
 
@@ -79,6 +80,9 @@ actor TextPolisher {
         }
 
         progressHandler?(0.97, "Loading \(target.shortName)")
+        if Memory.cacheLimit < 256 * 1_024 * 1_024 {
+            Memory.cacheLimit = 1_024 * 1_024 * 1_024
+        }
         let loaded = try await loadModelContainer(
             from: dir, using: #huggingFaceTokenizerLoader())
         progressHandler?(1.0, "Ready · \(target.shortName)")

@@ -46,6 +46,7 @@ actor TranscriptionEngine {
         // Drop incomplete/corrupt HF cache *before* load so speech-swift does not
         // treat a stub `model.safetensors` as “already downloaded”.
         ASRModelCache.prepareForLoad(size: size)
+        Self.prepareGPUCacheForLoad()
 
         do {
             try await loadModelOnce(
@@ -166,7 +167,22 @@ actor TranscriptionEngine {
         isWarmedUp = false
         loadedModelId = nil
         loadedEngine = nil
+        Self.releaseGPUCache()
+    }
+
+    /// MLX cacheLimit defaults to the (large) memoryLimit, so `clearCache()`
+    /// alone can leave ~100MB+ of reusable Metal buffers after unload.
+    /// Measured: Grok-after-unload 158 MB vs cold Grok 39 MB.
+    private static func releaseGPUCache() {
+        Memory.cacheLimit = 0
         Memory.clearCache()
+    }
+
+    /// Inference wants a modest pool; 0 (idle) would thrash every layer.
+    private static func prepareGPUCacheForLoad() {
+        if Memory.cacheLimit < 256 * 1_024 * 1_024 {
+            Memory.cacheLimit = 1_024 * 1_024 * 1_024
+        }
     }
 
     private func warmUpQwen(_ model: Qwen3ASRModel) {
