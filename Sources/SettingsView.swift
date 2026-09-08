@@ -299,15 +299,20 @@ struct SettingsView: View {
                     }
                 }
 
-                // Cloud STT — icons only
+                // Cloud STT — icons only. Grok matches Home chip (session or consent).
                 catalogSection(icon: "cloud", title: "Cloud") {
                     cloudProviderRow(.openAI, title: "OpenAI", symbol: "cloud")
                     Divider().opacity(0.3).padding(.leading, 44)
                     cloudProviderRow(.elevenLabs, title: "ElevenLabs", symbol: "cloud")
+                    if appState.hasGrokSession || appState.grokSTTConsented {
+                        Divider().opacity(0.3).padding(.leading, 44)
+                        grokCloudRow
+                    }
                 }
             }
             .padding(20)
         }
+        .onAppear { appState.refreshGrokSession() }
     }
 
     private func catalogSection<Content: View>(
@@ -524,6 +529,45 @@ struct SettingsView: View {
         .onTapGesture {
             guard !appState.isRecording else { return }
             appState.setTranscriptionProvider(provider)
+        }
+    }
+
+    /// Same catalog as Home / Configuration — SuperGrok is not BYOK.
+    private var grokCloudRow: some View {
+        let isActive = appState.transcriptionProvider == .grok
+        return HStack(spacing: 12) {
+            Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .font(.body)
+                .frame(width: 22)
+            Image(systemName: "sparkles")
+                .font(.title3)
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .frame(width: 26)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Grok")
+                    .font(.body.weight(.medium))
+                Text("SuperGrok session")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if isActive {
+                Image(systemName: "checkmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !appState.isRecording else { return }
+            if appState.grokSTTConsented {
+                appState.setTranscriptionProvider(.grok)
+            } else {
+                appState.acceptGrokSTTConsent(switchProvider: true)
+            }
         }
     }
 
