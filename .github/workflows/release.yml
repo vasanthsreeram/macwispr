@@ -31,7 +31,7 @@ permissions:
 jobs:
   release:
     name: Build, sign, publish
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
 
     steps:
@@ -73,9 +73,15 @@ jobs:
 
       - name: Prepare Xcode + Metal
         run: |
-          xcode-select -s /Applications/Xcode.app/Contents/Developer
-          xcodebuild -runFirstLaunch
-          xcodebuild -downloadComponent MetalToolchain
+          if [ -d /Applications/Xcode.app/Contents/Developer ]; then
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          elif [ -d /Applications/Xcode_26.5.app/Contents/Developer ]; then
+            sudo xcode-select -s /Applications/Xcode_26.5.app/Contents/Developer
+          elif [ -d /Applications/Xcode_26.app/Contents/Developer ]; then
+            sudo xcode-select -s /Applications/Xcode_26.app/Contents/Developer
+          fi
+          sudo xcodebuild -runFirstLaunch || xcodebuild -runFirstLaunch || true
+          xcodebuild -downloadComponent MetalToolchain || true
           ./scripts/preflight-xcode.sh
 
       - name: Import signing certificate

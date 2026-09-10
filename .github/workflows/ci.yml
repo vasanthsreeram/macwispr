@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     name: Build & self-test
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
 
     steps:
@@ -27,12 +27,27 @@ jobs:
           # GitHub macos runners often need sudo for xcode-select (else exit 1 immediately).
           if [ -d /Applications/Xcode.app/Contents/Developer ]; then
             sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          elif [ -d /Applications/Xcode_16.app/Contents/Developer ]; then
-            sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+          elif [ -d /Applications/Xcode_26.5.app/Contents/Developer ]; then
+            sudo xcode-select -s /Applications/Xcode_26.5.app/Contents/Developer
+          elif [ -d /Applications/Xcode_26.app/Contents/Developer ]; then
+            sudo xcode-select -s /Applications/Xcode_26.app/Contents/Developer
           fi
           sudo xcodebuild -runFirstLaunch || xcodebuild -runFirstLaunch || true
           xcodebuild -downloadComponent MetalToolchain || true
           ./scripts/preflight-xcode.sh
+
+      - name: Cache on-device ASR weights
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/qwen3-speech
+            ~/.cache/huggingface
+          key: qwen-asr-0.6b-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: |
+            qwen-asr-0.6b-${{ runner.os }}-
+
+      - name: Unit tests (no model download)
+        run: swift test --filter MacWisprCoreTests
 
       - name: Build app bundle
         run: ./scripts/build-app.sh

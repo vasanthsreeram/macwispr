@@ -4,7 +4,8 @@ import AudioToolbox
 import MacWisprCore
 
 final class AudioRecorder: @unchecked Sendable {
-    private let engine = AVAudioEngine()
+    private var engine = AVAudioEngine()
+    private var activeDeviceUID: String?
     /// Core Audio device UID. `nil` / empty → system default input.
     var inputDeviceUID: String?
     /// Long captures spill older PCM to disk; only a short tail stays in RAM.
@@ -28,6 +29,44 @@ final class AudioRecorder: @unchecked Sendable {
     private var convertBuffer: AVAudioPCMBuffer?
     /// True when input is already 16 kHz mono — append channel data directly.
     private var usesPassthrough = false
+
+    init() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleEngineConfigurationChange),
+            name: .AVAudioEngineConfigurationChange,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        stopEngine()
+    }
+
+    @objc private func handleEngineConfigurationChange(_ notification: Notification) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            // When idle, rebuild the engine so new routes (AirPods, USB mic) are picked up cleanly.
+            if !self.isTapped && !self.engine.isRunning {
+                self.rebuildEngine()
+            }
+        }
+    }
+
+    private func rebuildEngine() {
+        if isTapped {
+            engine.inputNode.removeTap(onBus: 0)
+            isTapped = false
+        }
+        if engine.isRunning {
+            engine.stop()
+        }
+        engine = AVAudioEngine()
+        converter = nil
+        convertBuffer = nil
+        usesPassthrough = false
+    }
 
     /// Prompt for mic access if needed. Safe to call at launch.
     static func requestPermissionIfNeeded() {
@@ -54,32 +93,38 @@ final class AudioRecorder: @unchecked Sendable {
         return meterLevel
     }
 
-    func startRecording() {
+    @discardableResult
+    func startRecording() -> Bool {
         capture.reset()
         lock.lock()
         meterLevel = 0
         lock.unlock()
 
         // Clean up a prior session that never stopped cleanly.
-        if isTapped {
-            engine.inputNode.removeTap(onBus: 0)
-            isTapped = false
+        stopEngine()
+
+        if inputDeviceUID != activeDeviceUID {
+            rebuildEngine()
+            activeDeviceUID = inputDeviceUID
         }
-        if engine.isRunning {
-            engine.stop()
-        }
-        engine.reset()
-        converter = nil
-        convertBuffer = nil
-        usesPassthrough = false
 
         applyInputDeviceUID(inputDeviceUID)
 
         let inputNode = engine.inputNode
-        let inputFormat = inputNode.outputFormat(forBus: 0)
-        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
-            NSLog("AudioRecorder: invalid input format (mic permission / device?)")
-            return
+
+        // Hardware format is the ground truth. On macOS, inputNode.outputFormat(forBus: 0)
+        // can stay stale (e.g. 48 kHz default) even when hardware switched to 16 kHz (Bluetooth HFP/SCO).
+        // Passing the true hardware format prevents AVAudioEngine's fatal Format mismatch exception.
+        let hwFormat = inputNode.inputFormat(forBus: 0)
+        let busFormat = inputNode.outputFormat(forBus: 0)
+        let inputFormat: AVAudioFormat
+        if hwFormat.sampleRate > 0 && hwFormat.channelCount > 0 {
+            inputFormat = hwFormat
+        } else if busFormat.sampleRate > 0 && busFormat.channelCount > 0 {
+            inputFormat = busFormat
+        } else {
+            NSLog("AudioRecorder: invalid input format (hw: \(hwFormat), bus: \(busFormat))")
+            return false
         }
 
         guard let targetFormat = AVAudioFormat(
@@ -89,7 +134,7 @@ final class AudioRecorder: @unchecked Sendable {
             interleaved: false
         ) else {
             NSLog("AudioRecorder: failed to create target format")
-            return
+            return false
         }
 
         let alreadyTarget =
@@ -129,10 +174,15 @@ final class AudioRecorder: @unchecked Sendable {
 
         do {
             try engine.start()
+            return true
         } catch {
             NSLog("AudioRecorder: Failed to start engine: \(error)")
-            inputNode.removeTap(onBus: 0)
-            isTapped = false
+            if isTapped {
+                inputNode.removeTap(onBus: 0)
+                isTapped = false
+            }
+            rebuildEngine()
+            return false
         }
     }
 
@@ -145,7 +195,11 @@ final class AudioRecorder: @unchecked Sendable {
         if engine.isRunning {
             engine.stop()
         }
+        engine.reset()
         converter?.reset()
+        converter = nil
+        convertBuffer = nil
+        usesPassthrough = false
         lock.lock()
         meterLevel = 0
         lock.unlock()

@@ -46,6 +46,7 @@ actor TranscriptionEngine {
         // Drop incomplete/corrupt HF cache *before* load so speech-swift does not
         // treat a stub `model.safetensors` as “already downloaded”.
         ASRModelCache.prepareForLoad(size: size)
+        Self.prepareGPUCacheForLoad()
 
         do {
             try await loadModelOnce(
@@ -166,7 +167,24 @@ actor TranscriptionEngine {
         isWarmedUp = false
         loadedModelId = nil
         loadedEngine = nil
+        Self.releaseGPUCache()
+    }
+
+    /// Drop unused Metal buffers. Do **not** pin `cacheLimit` to 0 — that is
+    /// process-global and would starve polish (or the other ASR) if still loaded.
+    /// A small cap evicts the multi-GB pool without a zero-cache thrash.
+    private static func releaseGPUCache() {
         Memory.clearCache()
+        if Memory.cacheLimit > 32 * 1_024 * 1_024 {
+            Memory.cacheLimit = 32 * 1_024 * 1_024
+        }
+    }
+
+    /// Inference wants a modest pool after idle/cloud unload.
+    private static func prepareGPUCacheForLoad() {
+        if Memory.cacheLimit < 256 * 1_024 * 1_024 {
+            Memory.cacheLimit = 1_024 * 1_024 * 1_024
+        }
     }
 
     private func warmUpQwen(_ model: Qwen3ASRModel) {

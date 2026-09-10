@@ -21,6 +21,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.setActivationPolicy(.accessory)
         NSWindow.allowsAutomaticWindowTabbing = false
         installCommandKeyMonitor()
+
+        // Intercept reopen Apple Events directly so clicking the app in Spotlight,
+        // Raycast, Finder, or running `open -a MacWispr` always opens the dashboard window,
+        // even when running as an accessory (LSUIElement) app where SwiftUI scene events are bypassed.
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleReopenAppleEvent(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kCoreEventClass),
+            andEventID: AEEventID(kAEReopenApplication)
+        )
+
         DispatchQueue.main.async { [weak self] in
             self?.closeStrayMacWisprWindows(keeping: self?.dashboardWindow)
         }
@@ -76,14 +87,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 print("FAIL status item missing")
             }
 
-            // 2. Wait for model (up to ~60s)
+            // 2. Wait for model. Cold CI downloads ~1 GB Qwen 0.6B; 60s is not enough
+            // (failed at “Downloading weights… 30%”). Cap ~8 min.
             let state = appState ?? AppState.shared
             guard let state else {
                 print("FAIL no AppState")
                 exit(1)
             }
-            for _ in 0..<120 {
+            let maxTicks = 960 // 8 min @ 0.5s
+            for tick in 0..<maxTicks {
                 if state.isModelLoaded || state.modelLoadStatus.hasPrefix("Error") { break }
+                if tick > 0, tick % 20 == 0 {
+                    print("self-test waiting for model: \(state.modelLoadStatus)")
+                }
                 try? await Task.sleep(nanoseconds: 500_000_000)
             }
             if state.isModelLoaded {
@@ -220,6 +236,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return true
     }
 
+    @objc private func handleReopenAppleEvent(
+        _ event: NSAppleEventDescriptor,
+        withReplyEvent reply: NSAppleEventDescriptor
+    ) {
+        showDashboard()
+    }
+
     /// Opens (or focuses) the Time Saved dashboard. Safe to call from the menu bar.
     /// Always hops to the main queue after a short delay so MenuBarExtra can dismiss first.
     func showDashboard() {
@@ -271,6 +294,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         guard let window = dashboardWindow else { return }
+
+        // If the window was miniaturized (e.g. ⌘M), unminimize it so it becomes visible.
+        if window.isMiniaturized {
+            window.deminiaturize(nil)
+        }
+
+        // If the window is off-screen (e.g. disconnected external monitor), re-center it.
+        if let screen = window.screen ?? NSScreen.main {
+            let visibleFrame = screen.visibleFrame
+            if !visibleFrame.intersects(window.frame) {
+                window.center()
+            }
+        }
 
         // If the user closed it, it's hidden but retained — show again.
         if !window.isVisible {
@@ -372,7 +408,7 @@ private extension NSWindow {
         if identifier?.rawValue == "MacWisprDashboard" || identifier?.rawValue == "main" {
             return true
         }
-        if title == "MacWispr" || title == "Settings" || title == "Preferences" {
+        if title == "MacWispr" || title == "Settings" || title == "Preferences" || title == "Home" {
             return true
         }
         return false

@@ -1289,7 +1289,12 @@ final class AppState: ObservableObject {
             guard isRecording, recordingSession == session else { return }
             // Always re-apply the user’s mic choice before opening the engine.
             syncAudioInputDevice()
-            audioRecorder.startRecording()
+            guard audioRecorder.startRecording() else {
+                isRecording = false
+                stopElapsedTimer()
+                presentFailure("Could not access microphone — check audio device in Settings.")
+                return
+            }
             // Live partials: local = batch re-runs; Grok = real streaming STT (Grok Build).
             if transcriptionProvider == .grok {
                 startGrokLiveStream(session: session)
