@@ -41,6 +41,17 @@ if [[ ! -f "$DMG" || ! -f "$DMG_STABLE" ]]; then
   exit 1
 fi
 
+# A Developer ID app must ship in a notarized DMG; an unsigned DMG makes
+# Gatekeeper say "cannot be verified" even though the app inside is notarized.
+if codesign -dv --verbose=4 "$ROOT/dist/MacWispr.app" 2>&1 | grep -q "Developer ID Application"; then
+  for dmg in "$DMG" "$DMG_STABLE"; do
+    if ! xcrun stapler validate "$dmg" >/dev/null 2>&1; then
+      echo "error: $dmg is not notarized + stapled (see build-dmg.sh output)" >&2
+      exit 1
+    fi
+  done
+fi
+
 if ! command -v gh >/dev/null 2>&1; then
   echo "gh CLI required to publish. Assets ready under dist/" >&2
   exit 1
