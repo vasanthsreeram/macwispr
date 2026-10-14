@@ -18,8 +18,6 @@ struct DashboardView: View {
                 weekCards
                 weeklyChart
                 allTimeRow
-                leaderboardRow
-                tip
             }
             .padding(20)
         }
@@ -145,17 +143,14 @@ struct DashboardView: View {
     private var header: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Time Saved")
+                Text("This week")
                     .font(.title2.weight(.semibold))
-                Text("Last 7 days · typing baseline \(Int(appState.typingWPM)) WPM")
+                Text("Hold \(appState.dictationHotkey.displayString), speak, let go. Your words appear where you are typing.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
-            HStack(alignment: .top, spacing: 10) {
-                micQuickSwitch
-                modelQuickSwitch
-            }
+            readinessPill
         }
         .onAppear {
             appState.refreshInputDevices()
@@ -237,164 +232,52 @@ struct DashboardView: View {
         return items
     }
 
-    /// Top-right chip: current STT model / provider with a one-click switcher.
-    private var modelQuickSwitch: some View {
-        VStack(alignment: .trailing, spacing: 4) {
+    /// One glanceable status: ready, setting up (with progress), or needs attention.
+    private var readinessPill: some View {
+        VStack(alignment: .trailing, spacing: 6) {
             HStack(spacing: 6) {
-                if appState.isModelLoading && appState.transcriptionProvider == .local {
-                    ProgressView()
-                        .controlSize(.small)
+                if appState.isModelLoading {
+                    ProgressView().controlSize(.small)
                 } else {
-                    Image(systemName: modelChipSymbol)
-                        .font(.caption.weight(.semibold))
+                    Image(systemName: pillOK ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(pillOK ? .green : .orange)
                 }
-                Text(modelChipTitle)
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                Text(pillTitle)
+                    .font(.callout.weight(.semibold))
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
             .background(.quaternary.opacity(0.7), in: Capsule())
-            .allowsHitTesting(false)
-            .overlay {
-                GeometryReader { _ in
-                    AppKitPullDownMenu(
-                        items: modelMenuItems,
-                        isEnabled: !appState.isRecording,
-                        accessibilityLabel: "\(modelChipTitle) \(modelChipSubtitle)",
-                        toolTip: modelChipHelp
-                    )
-                }
-            }
-            .fixedSize()
-            .help(modelChipHelp)
-
-            if appState.isModelLoading, appState.transcriptionProvider == .local {
-                Text(appState.modelLoadStatus.isEmpty ? "Loading…" : appState.modelLoadStatus)
+            if appState.isModelLoading {
+                ProgressView(value: appState.modelLoadProgress)
+                    .frame(width: 180)
+                Text(appState.modelLoadStatus)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .frame(maxWidth: 200, alignment: .trailing)
-            } else if !appState.isReadyToDictate, appState.transcriptionProvider == .openAI || appState.transcriptionProvider == .elevenLabs {
-                Text("Add API key in Settings")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
-            } else if !appState.isReadyToDictate, appState.transcriptionProvider == .grok {
-                Text(appState.hasGrokSession ? "Enable Grok in Settings" : "Run grok login")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
-            } else {
-                Text(modelChipSubtitle)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+            } else if !appState.accessibilityTrusted || !appState.hotkeyArmed {
+                Button(appState.accessibilityTrusted ? "Fix Shortcut" : "Turn on Accessibility…") {
+                    appState.repairHotkey()
+                }
+                .controlSize(.small)
+            } else if !appState.isReadyToDictate {
+                Button("Set Up") { Task { await appState.loadModel() } }
+                    .controlSize(.small)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 
-    private var modelChipTitle: String {
-        switch appState.transcriptionProvider {
-        case .local:
-            // Clean chip label; specific model is in the menu + subtitle.
-            return "Local"
-        case .openAI:
-            return "OpenAI"
-        case .elevenLabs:
-            return "ElevenLabs"
-        case .grok:
-            return "Grok"
-        }
+    private var pillOK: Bool {
+        appState.isReadyToDictate && appState.accessibilityTrusted && appState.hotkeyArmed
     }
 
-    private var modelChipSymbol: String {
-        switch appState.transcriptionProvider {
-        case .local:
-            return "laptopcomputer"
-        case .openAI, .elevenLabs, .grok:
-            return "cloud"
-        }
-    }
-
-    private var modelChipHelp: String {
-        switch appState.transcriptionProvider {
-        case .local:
-            return "\(appState.asrModelSize.displayName)\n\(appState.asrModelSize.subtitle)"
-        case .openAI:
-            return "Cloud STT via your OpenAI key"
-        case .elevenLabs:
-            return "Cloud STT via your ElevenLabs key"
-        case .grok:
-            let who = appState.grokSessionLabel.isEmpty ? "Grok CLI session" : appState.grokSessionLabel
-            return "Cloud STT via SuperGrok (\(who))"
-        }
-    }
-
-    /// Second line under the chip — which local engine, not the chip title.
-    private var modelChipSubtitle: String {
-        switch appState.transcriptionProvider {
-        case .local:
-            return appState.asrModelSize.shortName
-        case .openAI, .elevenLabs:
-            return "Cloud · BYOK"
-        case .grok:
-            return "Cloud · SuperGrok"
-        }
-    }
-
-    private func isSelectedLocalModel(_ size: ASRModelSize) -> Bool {
-        guard appState.transcriptionProvider == .local else { return false }
-        // Legacy Parakeet-INT4 maps to the same INT8 weights as parakeetInt8.
-        if size == .parakeetInt8 {
-            return appState.asrModelSize == .parakeetInt8 || appState.asrModelSize == .parakeetInt4
-        }
-        return appState.asrModelSize == size
-    }
-
-    private var modelMenuItems: [AppKitSafeMenuItem] {
-        let localEnabled = !appState.isModelLoading && !appState.isRecording
-        var items: [AppKitSafeMenuItem] = [.header("Local")]
-        for size in ASRModelSize.dashboardChoices {
-            items.append(.action(
-                title: size.displayName,
-                checked: isSelectedLocalModel(size),
-                enabled: localEnabled
-            ) {
-                appState.setTranscriptionProvider(.local)
-                appState.setASRModelSize(size)
-            })
-        }
-        items.append(.header("Cloud (BYOK)"))
-        items.append(.action(
-            title: "OpenAI",
-            checked: appState.transcriptionProvider == .openAI
-        ) {
-            appState.setTranscriptionProvider(.openAI)
-        })
-        items.append(.action(
-            title: "ElevenLabs",
-            checked: appState.transcriptionProvider == .elevenLabs
-        ) {
-            appState.setTranscriptionProvider(.elevenLabs)
-        })
-        if appState.hasGrokSession || appState.grokSTTConsented {
-            let grokEnabled = appState.hasGrokSession || appState.grokSTTConsented
-            items.append(.header("Grok"))
-            items.append(.action(
-                title: "Grok (SuperGrok)",
-                checked: appState.transcriptionProvider == .grok,
-                enabled: grokEnabled
-            ) {
-                if appState.grokSTTConsented {
-                    appState.setTranscriptionProvider(.grok)
-                } else {
-                    appState.acceptGrokSTTConsent(switchProvider: true)
-                }
-            })
-        }
-        return items
+    private var pillTitle: String {
+        if appState.isModelLoading { return "Setting up…" }
+        if !appState.isReadyToDictate { return "Speech model not ready" }
+        if !appState.accessibilityTrusted { return "Needs Accessibility" }
+        if !appState.hotkeyArmed { return "Shortcut not active" }
+        return "Ready · hold \(appState.dictationHotkey.displayString)"
     }
 
     private var weekCards: some View {

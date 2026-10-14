@@ -1,4 +1,6 @@
 import Cocoa
+import Carbon
+import MacWisprCore
 
 /// Result of trying to put transcribed text into the user's workflow.
 enum InsertOutcome: Equatable {
@@ -12,42 +14,34 @@ final class TextInserter: @unchecked Sendable {
     /// Serial queue for character type-out so `usleep` never blocks the main actor.
     private let typeQueue = DispatchQueue(label: "com.macwispr.textinserter.type")
 
-    /// Insert text per mode. Always attempts clipboard when mode wants it.
-    /// Synthetic ⌘V / keystrokes require Accessibility — without it we leave
-    /// text on the pasteboard and report clipboardOnly so the UI can explain.
+    /// Insert text per mode. The pasteboard always gets the text first, so it
+    /// is never lost. Synthetic ⌘V / keystrokes need Accessibility and are
+    /// dropped by macOS while Secure Event Input is on (password fields).
     @discardableResult
     func insert(text: String, mode: InsertionMode) -> InsertOutcome {
         guard !text.isEmpty else { return .failed(reason: "Empty transcription") }
 
-        let ax = AXIsProcessTrusted()
-        switch mode {
-        case .clipboard:
-            copyToClipboard(text)
-            if !ax {
-                return .clipboardOnly(reason: "Copied — enable Accessibility to auto-paste")
-            }
-            pasteFromClipboard()
-            return .ok
-
+        copyToClipboard(text)
+        let action = InsertionDecision.decide(
+            typeOut: mode == .typeOut,
+            canPostEvents: Self.canPostEvents,
+            secureInputActive: IsSecureEventInputEnabled()
+        )
+        switch action {
+        case .copyOnly(let reason):
+            return .clipboardOnly(reason: reason)
         case .typeOut:
-            if !ax {
-                // Preserve prior fallback: put text on clipboard so the user can paste.
-                copyToClipboard(text)
-                return .clipboardOnly(reason: "Copied — enable Accessibility to type into apps")
-            }
-            // Type-out is fire-and-forget on a background queue so the main
-            // actor is not blocked by per-character usleep (5ms × N).
             typeTextAsync(text)
             return .ok
-
-        case .both:
-            copyToClipboard(text)
-            if !ax {
-                return .clipboardOnly(reason: "Copied — enable Accessibility to auto-paste")
-            }
+        case .copyAndPaste:
             pasteFromClipboard()
             return .ok
         }
+    }
+
+    /// Accessibility grant that covers posting synthetic key events.
+    static var canPostEvents: Bool {
+        AXIsProcessTrusted() || CGPreflightPostEventAccess()
     }
 
     /// Update the general pasteboard without synthesizing paste/type.

@@ -3,18 +3,18 @@ import AudioCommon
 
 /// On-disk integrity helpers for speech-swift Hugging Face caches.
 ///
-/// Qwen 0.6B / 1.7B downloads can leave a partial `model.safetensors` after a
+/// Qwen 0.6B downloads can leave a partial `model.safetensors` after a
 /// flaky network drop. speech-swift’s existence check only looks for *any*
 /// `.safetensors` file, so the next launch skips re-download and MLX fails with
 /// Cocoa’s “The file couldn’t be opened.”
 enum ASRModelCache {
     /// Conservative minimum size for a usable weight file (bytes).
-    /// Real HF sizes: ~0.6B-8bit ≈ 1.0 GB, ~1.7B-8bit ≈ 2.3 GB.
+    /// Real HF sizes: ~0.6B-8bit ≈ 1.0 GB.
     private static let minWeightBytes: [ASRModelSize: Int64] = [
         .small: 700_000_000,
-        .large: 1_800_000_000,
         .parakeetInt4: 50_000_000,
         .parakeetInt8: 50_000_000,
+        .parakeetRedux: 100_000_000,
     ]
 
     /// Resolve the cache directory speech-swift would use for this model id.
@@ -30,6 +30,8 @@ enum ASRModelCache {
             return qwenPackLooksComplete(at: dir, minWeight: minWeightBytes[size] ?? 700_000_000)
         case .parakeetCoreML:
             return parakeetPackLooksComplete(at: dir)
+        case .photonParakeet:
+            return PhotonSidecar.isReady
         }
     }
 

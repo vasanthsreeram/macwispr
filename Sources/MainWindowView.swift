@@ -1,8 +1,13 @@
 import SwiftUI
+import MacWisprCore
 
 struct MainWindowView: View {
     @EnvironmentObject var appState: AppState
-    @State private var selectedSidebar: SidebarItem = .home
+    @State private var selectedSidebar: MainPane
+
+    init(initialPane: MainPane = .home) {
+        _selectedSidebar = State(initialValue: initialPane)
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -94,37 +99,12 @@ struct MainWindowView: View {
             .name ?? "Microphone"
     }
 
-    /// SuperWhisper-style left rail — one item per destination, no nested tab bar.
+    /// Three destinations only: Home, History, Settings.
     private var sidebar: some View {
         List(selection: $selectedSidebar) {
-            Section {
-                Label("Home", systemImage: "house.fill")
-                    .tag(SidebarItem.home)
-            }
-
-            Section("Library") {
-                Label("Models", systemImage: "square.stack.3d.up.fill")
-                    .tag(SidebarItem.models)
-                Label("Vocabulary", systemImage: "text.book.closed.fill")
-                    .tag(SidebarItem.vocabulary)
-            }
-
-            Section("App") {
-                Label("Appearance", systemImage: "paintbrush.fill")
-                    .tag(SidebarItem.appearance)
-                Label("Configuration", systemImage: "gearshape.fill")
-                    .tag(SidebarItem.configuration)
-                Label("Sound", systemImage: "speaker.wave.2.fill")
-                    .tag(SidebarItem.sound)
-            }
-
-            Section {
-                Label("History", systemImage: "clock.fill")
-                    .tag(SidebarItem.history)
-                Label("Leaderboard", systemImage: "trophy.fill")
-                    .tag(SidebarItem.leaderboard)
-                Label("About", systemImage: "info.circle.fill")
-                    .tag(SidebarItem.about)
+            ForEach(MainPane.allCases, id: \.self) { pane in
+                Label(pane.title, systemImage: pane.systemImage)
+                    .tag(pane)
             }
         }
         .listStyle(.sidebar)
@@ -135,22 +115,10 @@ struct MainWindowView: View {
             switch selectedSidebar {
             case .home:
                 DashboardView()
-            case .models:
-                SettingsView(pane: .models)
-            case .vocabulary:
-                SettingsView(pane: .vocabulary)
-            case .appearance:
-                SettingsView(pane: .appearance)
-            case .configuration:
-                SettingsView(pane: .configuration)
-            case .sound:
-                SettingsView(pane: .sound)
             case .history:
                 historyDetail
-            case .leaderboard:
-                LeaderboardView()
-            case .about:
-                SettingsView(pane: .about)
+            case .settings:
+                SimpleSettingsView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -159,17 +127,11 @@ struct MainWindowView: View {
             switch item {
             case .home: Telemetry.shared.reportUIOpen(surface: "dashboard")
             case .history: Telemetry.shared.reportUIOpen(surface: "history")
-            case .leaderboard: Telemetry.shared.reportUIOpen(surface: "dashboard")
-            case .configuration, .models, .vocabulary, .appearance, .sound, .about:
-                Telemetry.shared.reportUIOpen(surface: "settings")
+            case .settings: Telemetry.shared.reportUIOpen(surface: "settings")
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .macWisprShowSettings)) { _ in
-            // Menu “Settings…” → Configuration (not a nested tab strip).
-            selectedSidebar = .configuration
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .macWisprShowLeaderboard)) { _ in
-            selectedSidebar = .leaderboard
+            selectedSidebar = .settings
         }
     }
 
@@ -253,32 +215,6 @@ private struct EditableHistoryRow: View {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(entry.text, forType: .string)
             }
-        }
-    }
-}
-
-private enum SidebarItem: Hashable {
-    case home
-    case models
-    case vocabulary
-    case appearance
-    case configuration
-    case sound
-    case history
-    case leaderboard
-    case about
-
-    var title: String {
-        switch self {
-        case .home: return "Home"
-        case .models: return "Models"
-        case .vocabulary: return "Vocabulary"
-        case .appearance: return "Appearance"
-        case .configuration: return "Configuration"
-        case .sound: return "Sound"
-        case .history: return "History"
-        case .leaderboard: return "Leaderboard"
-        case .about: return "About"
         }
     }
 }

@@ -1407,7 +1407,7 @@ private struct AppearanceTileItem: Identifiable {
 // MARK: - Click-to-record shortcut (SuperWhisper-style)
 
 /// Click → “Recording…” → next key chord becomes the shortcut.
-private struct ShortcutRecorderControl: View {
+struct ShortcutRecorderControl: View {
     let chord: KeyChord
     var requireSafeGlobal: Bool = true
     let onRecorded: (KeyChord) -> Void

@@ -7,9 +7,15 @@ struct OnboardingView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
-                Image(systemName: "waveform.circle.fill")
-                    .font(.system(size: 36))
-                    .foregroundStyle(.tint)
+                Group {
+                    if let logo = NSImage.appLogo {
+                        Image(nsImage: logo).resizable().aspectRatio(contentMode: .fit)
+                    } else {
+                        Image(systemName: "waveform.circle.fill").resizable().foregroundStyle(.tint)
+                    }
+                }
+                .frame(width: 44, height: 44)
+                .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Welcome to MacWispr")
                         .font(.title2.weight(.semibold))
@@ -31,11 +37,13 @@ struct OnboardingView: View {
                     done: appState.accessibilityTrusted,
                     title: "Accessibility",
                     detail: appState.accessibilityTrusted
-                        ? "Granted — paste into other apps works"
-                        : "Required for ⌥Space and auto-paste"
+                        ? "On — MacWispr can type into other apps"
+                        : "Needed for the shortcut and to type your words. Switch MacWispr on in the list that opens."
                 ) {
-                    Button("Grant") { appState.repairHotkey() }
-                        .controlSize(.small)
+                    if !appState.accessibilityTrusted {
+                        Button("Turn On…") { appState.repairHotkey() }
+                            .controlSize(.small)
+                    }
                 }
                 checklistRow(
                     done: appState.hotkeyArmed,
@@ -51,8 +59,10 @@ struct OnboardingView: View {
                 }
                 checklistRow(
                     done: appState.isReadyToDictate,
-                    title: "Speech engine",
-                    detail: appState.readinessLabel
+                    title: "Speech model",
+                    detail: appState.isModelLoading
+                        ? appState.modelLoadStatus
+                        : appState.readinessLabel
                 )
                 checklistRow(
                     done: appState.soundFeedbackEnabled && !appState.outputMuted,

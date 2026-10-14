@@ -32,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Accessibility is required for the global ⌥Space hotkey (event tap /
         // Carbon) and for pasting into other apps. Mic is required to capture audio.
         let trusted = AXIsProcessTrusted()
-        if !trusted {
+        if !trusted, HeadlessTranscribe.requestedFiles == nil, UISnapshot.outputDirectory == nil {
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
         }
@@ -46,6 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // First-run onboarding / telemetry: open the dashboard so sheets can present.
         // Skip during automated self-test / when dashboard already requested.
         if !CommandLine.arguments.contains("--self-test"),
+           HeadlessTranscribe.requestedFiles == nil,
+           UISnapshot.outputDirectory == nil,
            !CommandLine.arguments.contains("--open-dashboard")
         {
             let needsOnboarding = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
@@ -57,6 +59,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Automated smoke test: --self-test
         if CommandLine.arguments.contains("--self-test") {
             runSelfTest()
+        }
+        if let dir = UISnapshot.outputDirectory {
+            Task { @MainActor in
+                guard let state = self.appState ?? AppState.shared else { exit(3) }
+                UISnapshot.run(to: dir, state: state)
+            }
+            return
+        }
+        if let files = HeadlessTranscribe.requestedFiles {
+            Task { @MainActor in
+                guard let state = self.appState ?? AppState.shared else { exit(3) }
+                HeadlessTranscribe.run(files: files, state: state)
+            }
         }
     }
 
@@ -147,7 +162,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     print("FAIL hotkey synthetic UP")
                 }
 
-                // 6. Hotkey via real CGEvent.post (tests event tap / monitors)
+                // 6. Hotkey via real CGEvent.post (tests event tap / monitors).
+                // Posts a system-wide ⌥Space; skip with MACWISPR_SELFTEST_NO_INJECT=1
+                // when the Mac is in use (it would reach the frontmost app).
+                if ProcessInfo.processInfo.environment["MACWISPR_SELFTEST_NO_INJECT"] == "1" {
+                    print("SKIP hotkey CGEvent inject (MACWISPR_SELFTEST_NO_INJECT=1)")
+                } else {
                 state.setDictationMode(.hold)
                 let downs2 = hotkey.downCount
                 hotkey.injectOptionSpace(down: true)
@@ -164,6 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 if state.isRecording {
                     // Force cleanup so we exit cleanly.
                     await state.stopRecordingAndTranscribe()
+                }
                 }
                 print("hotkey totals: downs=\(hotkey.downCount) ups=\(hotkey.upCount)")
             }

@@ -9,6 +9,7 @@ actor TranscriptionEngine {
     private enum Backend {
         case qwen(Qwen3ASRModel)
         case parakeet(ParakeetASRModel)
+        case photon(PhotonSidecar)
     }
 
     private var backend: Backend?
@@ -119,6 +120,22 @@ actor TranscriptionEngine {
             self.loadedEngine = .parakeetCoreML
             try warmUpParakeet(loaded)
             progressHandler(1.0, "Ready")
+
+        case .photonParakeet:
+            vadModel = nil
+            let sidecar = PhotonSidecar()
+            try await Task.detached {
+                try sidecar.start(progress: progressHandler)
+            }.value
+            guard generation == loadGeneration else {
+                sidecar.stop()
+                throw CancellationError()
+            }
+            self.backend = .photon(sidecar)
+            self.loadedModelId = modelId
+            self.loadedEngine = .photonParakeet
+            isWarmedUp = true
+            progressHandler(1.0, "Ready")
         }
     }
 
@@ -158,6 +175,8 @@ actor TranscriptionEngine {
             model.unload()
         case .parakeet(let model):
             model.unload()
+        case .photon(let sidecar):
+            sidecar.stop()
         case .none:
             break
         }
@@ -240,7 +259,7 @@ actor TranscriptionEngine {
 
     private var windowParams: (Int, Int) {
         switch loadedEngine {
-        case .parakeetCoreML:
+        case .parakeetCoreML, .photonParakeet:
             return (AudioChunkPlanner.parakeetWindowSamples, AudioChunkPlanner.parakeetOverlapSamples)
         default:
             return (AudioChunkPlanner.qwenWindowSamples, AudioChunkPlanner.qwenOverlapSamples)
@@ -264,6 +283,14 @@ actor TranscriptionEngine {
                 language: language,
                 context: context
             )
+
+        case .photon(let sidecar):
+            // The sidecar can die (killed, OOM); restart it once instead of failing.
+            if !sidecar.isRunning {
+                NSLog("MacWispr: Photon sidecar not running — restarting")
+                try await Task.detached { try sidecar.start { _, _ in } }.value
+            }
+            return try sidecar.transcribe(samples: samples)
 
         case .parakeet(let model):
             if !isWarmedUp { try warmUpParakeet(model) }
@@ -299,7 +326,7 @@ actor TranscriptionEngine {
         }
 
         switch backend {
-        case .parakeet:
+        case .parakeet, .photon:
             // Parakeet TDT is batch-only in this build.
             let text = try await transcribe(
                 samples: samples, language: language, context: context)

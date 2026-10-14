@@ -124,7 +124,7 @@ struct MenuBarView: View {
                     StatusBarController.shared.closePopover()
                     openMainWindow()
                 }
-                menuRow(title: "Settings…", systemImage: "gear") {
+                menuRow(title: "Settings…", systemImage: "gearshape") {
                     StatusBarController.shared.closePopover()
                     openMainWindow()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -162,14 +162,14 @@ struct MenuBarView: View {
 
     private var modelLoadSection: some View {
         VStack(spacing: 8) {
-            if appState.transcriptionProvider == .local && appState.isModelLoading {
+            if appState.isModelLoading {
                 ProgressView(value: appState.modelLoadProgress) {
                     Text(appState.modelLoadStatus.isEmpty
-                          ? "Loading model… \(Int(appState.modelLoadProgress * 100))%"
+                          ? "Setting up… \(Int(appState.modelLoadProgress * 100))%"
                           : appState.modelLoadStatus)
                         .font(.caption)
                 }
-                Text("~500 MB–1.5 GB first run · stays on this Mac")
+                Text("One-time setup · stays on this Mac")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             } else {
@@ -177,19 +177,8 @@ struct MenuBarView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                if appState.transcriptionProvider == .openAI || appState.transcriptionProvider == .elevenLabs {
-                    Text("Add your API key in Settings")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                } else if appState.transcriptionProvider == .grok, !appState.hasGrokSession {
-                    Text("Run grok login in Terminal")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                Button("Open Setup") {
-                    StatusBarController.shared.closePopover()
-                    appState.reopenOnboarding()
-                    openMainWindow()
+                Button("Try Again") {
+                    Task { await appState.loadModel() }
                 }
                 .controlSize(.small)
             }

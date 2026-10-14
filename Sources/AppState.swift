@@ -244,9 +244,10 @@ final class AppState: ObservableObject {
     var readinessLabel: String {
         switch transcriptionProvider {
         case .local:
-            if isModelLoaded { return "Ready · Local" }
-            if isModelLoading { return modelLoadStatus.isEmpty ? "Loading model…" : modelLoadStatus }
-            return modelLoadStatus.hasPrefix("Error") ? modelLoadStatus : "Model not loaded"
+            if isModelLoaded { return "Ready" }
+            if isModelLoading { return modelLoadStatus.isEmpty ? "Setting up…" : modelLoadStatus }
+            if ASRModelCache.looksComplete(size: asrModelSize) { return "Ready" }
+            return modelLoadStatus.hasPrefix("Error") ? modelLoadStatus : "Speech model not set up yet"
         case .openAI:
             return hasOpenAIKey ? "Ready · OpenAI" : "Add OpenAI API key"
         case .elevenLabs:
@@ -374,45 +375,20 @@ final class AppState: ObservableObject {
         } else {
             cancelHotkey = .defaultCancel
         }
-        if let raw = UserDefaults.standard.string(forKey: Self.asrModelSizeKey),
-           let size = ASRModelSize(rawValue: raw)
-        {
-            // Legacy Parakeet-INT4 picker value → single INT8 fixed-shape model.
-            if size == .parakeetInt4 {
-                asrModelSize = .parakeetInt8
-                UserDefaults.standard.set(asrModelSize.rawValue, forKey: Self.asrModelSizeKey)
-            } else {
-                asrModelSize = size
-            }
-        } else {
-            // First run / no saved choice: 1.7B when RAM > 16 GB, else 0.6B.
-            asrModelSize = ASRModelSize.recommendedDefault
-            UserDefaults.standard.set(asrModelSize.rawValue, forKey: Self.asrModelSizeKey)
-        }
-        if let raw = UserDefaults.standard.string(forKey: Self.transcriptionProviderKey),
-           let provider = TranscriptionProvider(rawValue: raw)
-        {
-            transcriptionProvider = provider
-        }
+        // One shipped model: every saved choice from older builds maps to Redux.
+        let savedModel = UserDefaults.standard.string(forKey: Self.asrModelSizeKey)
+        asrModelSize = ASRModelSize(rawValue: ModelCatalog.migrate(savedModelID: savedModel))
+            ?? .parakeetRedux
+        UserDefaults.standard.set(asrModelSize.rawValue, forKey: Self.asrModelSizeKey)
+        // On-device only; cloud providers are no longer offered.
+        transcriptionProvider = .local
+        UserDefaults.standard.set(TranscriptionProvider.local.rawValue, forKey: Self.transcriptionProviderKey)
         // Polish is Off by default. Only restore a saved choice; never auto-enable.
         // Legacy: llmPolishEnabled=true alone used to imply Local — keep that one-time
         // migration so upgrades don't surprise people who already opted in.
-        if let raw = UserDefaults.standard.string(forKey: Self.polishProviderKey),
-           let polish = PolishProvider(rawValue: raw)
-        {
-            polishProvider = polish
-        } else if UserDefaults.standard.object(forKey: "llmPolishEnabled") != nil,
-                  UserDefaults.standard.bool(forKey: "llmPolishEnabled")
-        {
-            polishProvider = .local
-            UserDefaults.standard.set(PolishProvider.local.rawValue, forKey: Self.polishProviderKey)
-        } else {
-            polishProvider = .off
-            // Persist Off so Settings shows the product default on first run.
-            if UserDefaults.standard.string(forKey: Self.polishProviderKey) == nil {
-                UserDefaults.standard.set(PolishProvider.off.rawValue, forKey: Self.polishProviderKey)
-            }
-        }
+        // Polish LLMs are not part of the minimal app; Redux output is used as-is.
+        polishProvider = .off
+        UserDefaults.standard.set(PolishProvider.off.rawValue, forKey: Self.polishProviderKey)
         llmPolishEnabled = polishProvider == .local
 
         if let raw = UserDefaults.standard.string(forKey: Self.polishLocalModelKey),
@@ -456,12 +432,9 @@ final class AppState: ObservableObject {
         refreshInputDevices()
         refreshKeyPresence()
         refreshGrokSession()
-        // If a previous run selected Grok but consent/session is gone, fall back to local.
-        if transcriptionProvider == .grok, !isReadyToDictate {
-            transcriptionProvider = .local
-            UserDefaults.standard.set(TranscriptionProvider.local.rawValue, forKey: Self.transcriptionProviderKey)
-        }
         syncIdlePhase()
+        // Headless transcription drives the engine itself; no hotkey or auto-load.
+        guard HeadlessTranscribe.requestedFiles == nil, UISnapshot.outputDirectory == nil else { return }
         setupHotkey()
         Task { await prepareActiveProvider() }
         if polishProvider == .local {
@@ -472,7 +445,6 @@ final class AppState: ObservableObject {
             self?.emitHotkeyHealthIfNeeded()
             self?.syncIdlePhase()
             self?.syncLeaderboardIfNeeded(force: false)
-            self?.maybeOfferGrokConsent()
         }
         installMemoryPressureMonitor()
     }
@@ -916,7 +888,7 @@ final class AppState: ObservableObject {
                 syncIdlePhase()
             }
             if level == .critical, !isRecording {
-                presentFailure(MemoryPressurePolicy.oomUserMessage(triedLarge: asrModelSize == .large))
+                presentFailure(MemoryPressurePolicy.oomUserMessage(triedLarge: false))
             }
             NSLog("MacWispr: memory %@ — unloaded ASR + polish", level == .critical ? "critical" : "warning")
         }
@@ -927,30 +899,11 @@ final class AppState: ObservableObject {
         modelLoadGeneration += 1
         let generation = modelLoadGeneration
 
-        if asrModelSize == .large,
-           !MemoryPressurePolicy.canLoadLargeQwen(availableBytes: ProcessMemory.availableBytes())
-        {
-            isModelLoading = false
-            isModelLoaded = false
-            modelLoadStatus = MemoryPressurePolicy.oomUserMessage(triedLarge: true)
-            presentFailure(modelLoadStatus)
-            return
-        }
-        if asrModelSize == .small,
-           !MemoryPressurePolicy.canLoadSmallQwen(availableBytes: ProcessMemory.availableBytes())
-        {
-            isModelLoading = false
-            isModelLoaded = false
-            modelLoadStatus = MemoryPressurePolicy.oomUserMessage(triedLarge: false)
-            presentFailure(modelLoadStatus)
-            return
-        }
-
         // Allow reload when switching size (isModelLoaded may already be true).
         isModelLoading = true
         isModelLoaded = false
         modelLoadProgress = 0
-        modelLoadStatus = "Loading \(asrModelSize.displayName)..."
+        modelLoadStatus = asrModelSize.isDownloaded ? "Loading speech model…" : "Setting up speech model…"
 
         do {
             let engine = transcriptionEngine
@@ -1007,7 +960,7 @@ final class AppState: ObservableObject {
             let raw = error.localizedDescription
             if MemoryPressurePolicy.looksLikeOOM(raw) {
                 modelLoadStatus = MemoryPressurePolicy.oomUserMessage(
-                    triedLarge: asrModelSize == .large
+                    triedLarge: false
                 )
                 presentFailure(modelLoadStatus)
             } else {
@@ -1134,6 +1087,7 @@ final class AppState: ObservableObject {
             modelLoadStatus = "Model removed — download again to use"
             modelLoadProgress = 0
         }
+        if size == .parakeetRedux { PhotonSidecar.uninstall() }
         ASRModelCache.purge(modelId: size.modelId)
         if size == .parakeetInt8 {
             ASRModelCache.purge(modelId: ASRModelSize.parakeetInt4.modelId)
@@ -1683,9 +1637,10 @@ final class AppState: ObservableObject {
 
             case .clipboardOnly(let reason):
                 telemetryOutcome = .clipboardOnly
-                accessibilityTrusted = false
+                let axMissing = !TextInserter.canPostEvents
+                accessibilityTrusted = !axMissing
                 hotkeyArmed = hotkeyManager.isArmed
-                presentFailure(reason, preferAccessibilityFix: true)
+                presentFailure(reason, preferAccessibilityFix: axMissing)
             case .failed(let reason):
                 telemetryOutcome = .failed
                 if !AXIsProcessTrusted() {
@@ -1735,7 +1690,7 @@ final class AppState: ObservableObject {
             if let cloud = error as? CloudSTTError, case .quotaExhausted(let msg) = cloud {
                 presentFailure(msg)
             } else if MemoryPressurePolicy.looksLikeOOM(error.localizedDescription) {
-                presentFailure(MemoryPressurePolicy.oomUserMessage(triedLarge: asrModelSize == .large))
+                presentFailure(MemoryPressurePolicy.oomUserMessage(triedLarge: false))
             } else {
                 presentFailure("Transcription failed: \(error.localizedDescription)")
             }
@@ -2325,13 +2280,36 @@ final class AppState: ObservableObject {
     }
 
     /// Prompt for Accessibility and re-arm the global hotkey.
+    ///
+    /// The first click shows the system prompt and opens the Accessibility list.
+    /// If MacWispr is still untrusted on a later click, the existing entry is
+    /// stale (it belongs to an older signature even if the switch looks on), so
+    /// the app resets its own entry and asks again.
     func repairHotkey() {
         if !AXIsProcessTrusted() {
+            if accessibilityRepairAttempts > 0, let bundleID = Bundle.main.bundleIdentifier {
+                Self.resetAccessibilityEntry(bundleID: bundleID)
+            }
+            accessibilityRepairAttempts += 1
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
+            NSWorkspace.shared.open(AccessibilityRepair.settingsURL)
         }
         hotkeyManager.register()
         refreshHotkeyHealth()
+    }
+
+    private var accessibilityRepairAttempts = 0
+
+    private static func resetAccessibilityEntry(bundleID: String) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: AccessibilityRepair.tccutilPath)
+        p.arguments = AccessibilityRepair.resetArguments(bundleID: bundleID)
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        try? p.run()
+        p.waitUntilExit()
+        NSLog("MacWispr: reset stale Accessibility entry (status %d)", p.terminationStatus)
     }
 }
 

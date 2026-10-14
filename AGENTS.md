@@ -6,11 +6,10 @@ Instructions for coding agents working in this repository.
 
 **MacWispr** is a macOS menu-bar voice dictation app (Apple Silicon, macOS 14+).
 
-- On-device STT (UI labels — language coverage first):
-  - **Qwen 0.6B (En + Asian)** / **Qwen 1.7B (En + Asian)** via **MLX** (GPU)
-  - **Parakeet v3 (En + EU)** via **Core ML** (Neural Engine)
-- Dashboard chip shows **Local** (or OpenAI / ElevenLabs); model detail is in the menu / subtitle
-- Default model: **Qwen 0.6B** (lighter; user can switch to 1.7B or Parakeet)
+- **1.3.0+: one model, nothing to configure** — Moondream **Parakeet Redux** via the Photon
+  runtime (Python sidecar, installed on first launch by the bundled `uv`). See
+  [RELEASE_1.3.0.md](docs/context/RELEASE_1.3.0.md). Qwen / Parakeet v3 / cloud code paths
+  remain in the source but are not reachable from the UI.
 - **Live partials (local Qwen + Parakeet):** while the mic is open, re-run ASR on the growing buffer and show a monochrome multi-line draft HUD; **final full pass on release** — [docs/context/LIVE_PARTIALS.md](docs/context/LIVE_PARTIALS.md)
 - Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional **local polish** (off by default; Qwen3.5 SFT via MLX **4-bit** — **not** in Sparkle zip; downloads ~400 MB from HF on enable into Application Support — [POLISH_TRAINING.md](docs/context/POLISH_TRAINING.md))
 - Global hotkey: **⌥Space** (hold or toggle)

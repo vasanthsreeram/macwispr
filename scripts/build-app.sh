@@ -15,7 +15,7 @@ cd "$ROOT"
 "$ROOT/scripts/preflight-xcode.sh"
 
 APP_NAME="MacWispr"
-VERSION="${MACWISPR_VERSION:-1.2.11}"
+VERSION="${MACWISPR_VERSION:-1.3.0}"
 BUILD_DIR="${BUILD_DIR:-$ROOT/.build}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 CONFIG="${CONFIG:-release}"
@@ -133,25 +133,36 @@ if command -v install_name_tool >/dev/null 2>&1; then
 fi
 echo "    Sparkle.framework → $FRAMEWORKS_DIR/"
 
-# App icon + bundled logo for About / UI (.icns from PNG)
+# App icon + bundled logo for About / UI. Source: scripts/brand/make_logo.py
 ICON_SRC="$ROOT/docs/assets/logo.png"
-if [[ -f "$ICON_SRC" ]]; then
-  # PNG used by About screen and any runtime UI.
-  cp "$ICON_SRC" "$APP/Contents/Resources/AppLogo.png"
-  if command -v sips >/dev/null 2>&1 && command -v iconutil >/dev/null 2>&1; then
-    ICONSET="$(mktemp -d)/AppIcon.iconset"
-    mkdir -p "$ICONSET"
-    for s in 16 32 64 128 256 512; do
-      sips -z "$s" "$s" "$ICON_SRC" --out "$ICONSET/icon_${s}x${s}.png" >/dev/null
-      double=$((s * 2))
-      sips -z "$double" "$double" "$ICON_SRC" --out "$ICONSET/icon_${s}x${s}@2x.png" >/dev/null
-    done
-    iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
-    rm -rf "$(dirname "$ICONSET")"
-  else
-    cp "$ICON_SRC" "$APP/Contents/Resources/AppIcon.png"
-  fi
+cp "$ICON_SRC" "$APP/Contents/Resources/AppLogo.png"
+ICONSET="$(mktemp -d)/AppIcon.iconset"
+mkdir -p "$ICONSET"
+for s in 16 32 128 256 512; do
+  sips -z "$s" "$s" "$ICON_SRC" --out "$ICONSET/icon_${s}x${s}.png" >/dev/null
+  double=$((s * 2))
+  sips -z "$double" "$double" "$ICON_SRC" --out "$ICONSET/icon_${s}x${s}@2x.png" >/dev/null
+done
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+rm -rf "$(dirname "$ICONSET")"
+
+# Bundle uv: installs the Parakeet Redux runtime (uv-managed Python) on first
+# launch, with no system Python and ~10x faster than pip. Pinned + checksummed.
+UV_VERSION="0.13.1"
+UV_SHA256="cfe454573412ff7380d15fc7dae5997ab53ffce72fce0a78e91ddbc84001acd2"
+UV_CACHE="$BUILD_DIR/uv-$UV_VERSION"
+if [[ ! -x "$UV_CACHE/uv" ]]; then
+  echo "==> Fetching uv $UV_VERSION..."
+  mkdir -p "$UV_CACHE"
+  curl -fsSL -o "$UV_CACHE/uv.tgz" \
+    "https://github.com/astral-sh/uv/releases/download/$UV_VERSION/uv-aarch64-apple-darwin.tar.gz"
+  echo "$UV_SHA256  $UV_CACHE/uv.tgz" | shasum -a 256 -c -
+  tar -xzf "$UV_CACHE/uv.tgz" -C "$UV_CACHE" --strip-components=1 uv-aarch64-apple-darwin/uv
 fi
+mkdir -p "$APP/Contents/Helpers"
+cp "$UV_CACHE/uv" "$APP/Contents/Helpers/uv"
+chmod +x "$APP/Contents/Helpers/uv"
+echo "    uv $UV_VERSION → Contents/Helpers/"
 
 # Sign (Developer ID when MACWISPR_SIGN_IDENTITY is set; else ad-hoc)
 if command -v codesign >/dev/null 2>&1; then

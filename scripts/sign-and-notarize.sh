@@ -47,6 +47,14 @@ sign_developer_id() {
     exit 1
   fi
 
+  # Nested helper executables need their own hardened-runtime signature for
+  # notarization (--deep does not apply --options runtime to them reliably).
+  if [[ -d "$APP/Contents/Helpers" ]]; then
+    for helper in "$APP"/Contents/Helpers/*; do
+      codesign --force --options runtime --timestamp --sign "$IDENTITY" "$helper"
+    done
+  fi
+
   # Deep sign nested binaries first, then the bundle.
   codesign \
     --force \

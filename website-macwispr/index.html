@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>MacWispr — Free local dictation for Mac</title>
+  <meta name="description" content="Free on-device speech-to-text for Mac. Local ASR under 0.5s on Apple Silicon. No account required. Open source MIT." />
+  <meta name="keywords" content="MacWispr, free dictation Mac, local speech to text, Apple Silicon ASR, offline dictation macOS, voice typing Mac" />
+  <meta name="author" content="MacWispr" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta name="theme-color" content="#f7f2e8" />
+  <meta name="color-scheme" content="light" />
+  <link rel="canonical" href="https://macwispr.lintlabs.org/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="MacWispr" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:url" content="https://macwispr.lintlabs.org/" />
+  <meta property="og:title" content="MacWispr — Free local dictation for Mac" />
+  <meta property="og:description" content="On-device ASR under 0.5s. Free. Private by default. Built for Apple Silicon." />
+  <meta property="og:image" content="https://macwispr.lintlabs.org/brand/macwispr-share-v2.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="MacWispr — free local dictation for Mac" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MacWispr — Free local dictation for Mac" />
+  <meta name="twitter:description" content="On-device ASR under 0.5s. Free. Private by default." />
+  <meta name="twitter:image" content="https://macwispr.lintlabs.org/brand/macwispr-share-v2.png" />
+
+  <link rel="icon" type="image/png" sizes="128x128" href="/brand/macwispr-icon-v2-128.png" />
+  <link rel="icon" type="image/png" sizes="256x256" href="/brand/macwispr-icon-v2-256.png" />
+  <link rel="apple-touch-icon" href="/brand/macwispr-icon-v2-256.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://github.com" />
+
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+  </noscript>
+
+  <link rel="stylesheet" href="/styles.v8.css" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://macwispr.lintlabs.org/#website",
+        "url": "https://macwispr.lintlabs.org/",
+        "name": "MacWispr",
+        "description": "Free local dictation for Mac. On-device speech-to-text under 0.5 seconds.",
+        "inLanguage": "en-US",
+        "publisher": { "@id": "https://macwispr.lintlabs.org/#software" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://macwispr.lintlabs.org/#software",
+        "name": "MacWispr",
+        "applicationCategory": "UtilitiesApplication",
+        "applicationSubCategory": "Speech Recognition",
+        "operatingSystem": "macOS 14+",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "isAccessibleForFree": true,
+        "license": "https://github.com/vasanthsreeram/macwispr/blob/main/LICENSE",
+        "downloadUrl": "https://macwispr.lintlabs.org/download/MacWispr-1.3.0-macos-arm64.dmg",
+        "url": "https://macwispr.lintlabs.org/",
+        "image": "https://macwispr.lintlabs.org/brand/macwispr-share-v2.png"
+      }
+    ]
+  }
+  </script>
+</head>
+<body class="home-flow">
+  <div class="stage stage-quiet" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="header-inner glass">
+      <a class="brand" href="/" aria-label="MacWispr home">
+        <img src="/brand/macwispr-icon-v2-128.png" width="32" height="32" alt="" decoding="async" />
+        <span class="brand-text">Mac<span class="soft">Wispr</span></span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="/training">Training</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/privacy">Privacy</a>
+      </nav>
+      <a class="btn btn-lilac btn-sm" href="https://macwispr.lintlabs.org/download/MacWispr-1.3.0-macos-arm64.dmg">
+        <svg class="apple-ico" width="14" height="14" viewBox="0 0 14 17" aria-hidden="true"><path fill="currentColor" d="M11.7 9.1c0-1.9 1.6-2.8 1.6-2.9-.9-1.3-2.3-1.5-2.8-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7C3.5 4.7 2 5.7 1 7.4c-1.9 3.4-.5 8.3 1.4 11 .9 1.3 2 2.8 3.4 2.7 1.4 0 1.9-.9 3.5-.9s2.1.9 3.5.8c1.5 0 2.4-1.3 3.3-2.6.6-.9 1.1-1.9 1.4-2.9-3.3-1.2-3.8-5.8-1.8-7.4zM9.8 3.2c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.3.7-3.1 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.4-.6 3.1-1.5z"/></svg>
+        Download for macOS
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero hero-flow" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">
+          <span class="line muted-line">Don’t type,</span>
+          <span class="line solid-line">just speak</span>
+        </h1>
+        <p class="lede">
+          Free on-device speech-to-text for Mac.<br class="hide-sm" />
+          Under half a second. Private by default.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-lilac btn-lg" href="https://macwispr.lintlabs.org/download/MacWispr-1.3.0-macos-arm64.dmg">
+            <svg class="apple-ico" width="16" height="16" viewBox="0 0 14 17" aria-hidden="true"><path fill="currentColor" d="M11.7 9.1c0-1.9 1.6-2.8 1.6-2.9-.9-1.3-2.3-1.5-2.8-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7C3.5 4.7 2 5.7 1 7.4c-1.9 3.4-.5 8.3 1.4 11 .9 1.3 2 2.8 3.4 2.7 1.4 0 1.9-.9 3.5-.9s2.1.9 3.5.8c1.5 0 2.4-1.3 3.3-2.6.6-.9 1.1-1.9 1.4-2.9-3.3-1.2-3.8-5.8-1.8-7.4zM9.8 3.2c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.3.7-3.1 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.4-.6 3.1-1.5z"/></svg>
+            Download for macOS
+          </a>
+        </div>
+        <p class="hero-avail">v1.3.0 · Free · Apple Silicon · macOS 14+ · MIT open source</p>
+      </div>
+
+      <div class="speech-arc" aria-hidden="true">
+        <div class="speech-arc-track">
+          <span class="arc-raw">uh so can you check in with them and see if the notes from yesterday…</span>
+          <span class="wave-pill">
+            <span class="wave-bars">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </span>
+          </span>
+          <span class="arc-clean">Can you check in with them and see if the notes from yesterday’s meeting were sent?</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section proof-section cv-auto" id="features" aria-labelledby="features-title">
+      <div class="section-head reveal">
+        <h2 id="features-title">Local. Fast. Free.</h2>
+      </div>
+      <div class="proof-grid">
+        <article class="proof-card glass-card reveal">
+          <h3>On your Mac</h3>
+          <p>ASR runs on-device via MLX. No account. No cloud queue by default.</p>
+        </article>
+        <article class="proof-card glass-card reveal" data-delay="0.05">
+          <h3>Option + Space</h3>
+          <p>Hold or toggle. Speak. Text lands in the app you’re already in.</p>
+        </article>
+        <article class="proof-card glass-card reveal" data-delay="0.1">
+          <h3>$0 forever</h3>
+          <p>MIT open source. Optional polish &amp; BYOK cloud if you want them.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section install cv-auto" id="install" aria-labelledby="install-title">
+      <div class="section-head reveal">
+        <h2 id="install-title">Three steps</h2>
+      </div>
+      <ol class="steps steps-tight">
+        <li class="glass-card reveal">
+          <span class="step-n">01</span>
+          <div>
+            <strong>Download</strong>
+            <p>MacWispr 1.3.0 for Apple Silicon.</p>
+          </div>
+        </li>
+        <li class="glass-card reveal" data-delay="0.06">
+          <span class="step-n">02</span>
+          <div>
+            <strong>Install</strong>
+            <p>Drag to Applications and open it. Signed and notarized by Apple.</p>
+          </div>
+        </li>
+        <li class="glass-card reveal" data-delay="0.12">
+          <span class="step-n">03</span>
+          <div>
+            <strong>Dictate</strong>
+            <p>Allow Mic + Accessibility, then <kbd>⌥</kbd> <kbd>Space</kbd>.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section cta-final cv-auto" aria-labelledby="cta-title">
+      <div class="cta-box glass-card reveal">
+        <div class="cta-glow" aria-hidden="true"></div>
+        <h2 id="cta-title">Speak freely on your Mac.</h2>
+        <p class="cta-note">Free local dictation for Apple Silicon.</p>
+        <div class="hero-actions center">
+          <a class="btn btn-lilac btn-lg" href="https://macwispr.lintlabs.org/download/MacWispr-1.3.0-macos-arm64.dmg">
+            <svg class="apple-ico" width="16" height="16" viewBox="0 0 14 17" aria-hidden="true"><path fill="currentColor" d="M11.7 9.1c0-1.9 1.6-2.8 1.6-2.9-.9-1.3-2.3-1.5-2.8-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7C3.5 4.7 2 5.7 1 7.4c-1.9 3.4-.5 8.3 1.4 11 .9 1.3 2 2.8 3.4 2.7 1.4 0 1.9-.9 3.5-.9s2.1.9 3.5.8c1.5 0 2.4-1.3 3.3-2.6.6-.9 1.1-1.9 1.4-2.9-3.3-1.2-3.8-5.8-1.8-7.4zM9.8 3.2c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.3.7-3.1 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.4-.6 3.1-1.5z"/></svg>
+            Download for macOS
+          </a>
+          <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="/brand/macwispr-icon-v2-128.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
+      <div>
+        <strong>MacWispr</strong>
+        <span>by Lintware · free local dictation</span>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
+      <a href="https://github.com/vasanthsreeram/macwispr/releases">Releases</a>
+      <a href="https://github.com/vasanthsreeram/macwispr/blob/main/LICENSE">MIT</a>
+      <a href="/training">Training</a>
+      <a href="/leaderboard">Leaderboard</a>
+      <a href="/privacy">Privacy</a>
+    </div>
+    <p class="footer-note">© <span id="y"></span> MacWispr. Not affiliated with Wispr Flow.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js" defer></script>
+  <script src="/app.v8.js" defer></script>
+</body>
+</html>
