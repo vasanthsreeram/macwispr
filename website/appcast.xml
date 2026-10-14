@@ -17,6 +17,32 @@
     <language>en</language>
 
     <item>
+      <title>MacWispr 1.3.0</title>
+      <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.3.0</link>
+      <sparkle:version>1.3.0</sparkle:version>
+      <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Wed, 14 Oct 2026 13:53:01 +0000</pubDate>
+      <description><![CDATA[
+        <h2>MacWispr 1.3.0</h2>
+<ul>
+  <li><strong>One model, no setup</strong> — on-device Parakeet Redux is the only speech model. Your saved model setting moves to Redux automatically.</li>
+  <li><strong>Removed</strong> — Qwen models, cloud providers (OpenAI, ElevenLabs, Grok) and AI clean-up.</li>
+  <li><strong>Simpler window</strong> — Home, History and Settings. Everything else is under Advanced.</li>
+  <li><strong>No Python needed</strong> — the app installs its own runtime. First launch downloads about 700 MB once.</li>
+  <li><strong>Safer pasting</strong> — your text always goes on the clipboard first, and password fields get a clear message.</li>
+  <li><strong>New icon</strong></li>
+</ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/vasanthsreeram/macwispr/releases/download/v1.3.0/MacWispr-1.3.0-macos-arm64.zip"
+        length="58013630"
+        type="application/octet-stream"
+        sparkle:edSignature="nJhacTM8nAuj6I+io0m3e7Wxp/wZ/YUrWNnc4J5kdg1GGkqt8inMqMTblqQG4JrAUTkDJBWCzMMpng3QeiWeBQ=="
+      />
+    </item>
+
+    <item>
       <title>MacWispr 1.2.10</title>
       <link>https://github.com/vasanthsreeram/macwispr/releases/tag/v1.2.10</link>
       <sparkle:version>1.2.10</sparkle:version>

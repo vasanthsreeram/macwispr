@@ -35,5 +35,10 @@ https://fuckwisprflow.com/download/MacWispr-1.3.0-macos-arm64.dmg (served from R
 - `MacWispr --render-ui <dir>` renders Home/Settings/History/onboarding/menu offscreen.
 - `MACWISPR_SELFTEST_NO_INJECT=1 MacWispr --self-test` skips the global ⌥Space injection.
 
-## Not done
-- Sparkle appcast still lists 1.2.10 (unchanged on purpose); GitHub release not created.
+## Published (2026-10-14)
+- GitHub release `v1.3.0` (Latest) with the zip, the versioned DMG and `MacWispr-macos-arm64.dmg`.
+- Sparkle appcast item 1.3.0 is live at https://fuckwisprflow.com/appcast.xml. The zip was signed locally
+  with the Keychain EdDSA key (`sign_update`); 1.2.x users with automatic checks now get 1.3.0.
+- The `Release` workflow still fails at "Validate secrets" (no repo secrets), so this release was manual.
+- `scripts/ci-publish-github-release.sh` fails on macOS bash 3.2 (empty arrays under `set -u`);
+  `gh release create` was run directly.

@@ -135,7 +135,7 @@ open -a MacWispr
 
 | Line | Doc | GitHub |
 |------|-----|--------|
-| **Stable 1.2.11** | [RELEASE_1.2.11.md](docs/context/RELEASE_1.2.11.md) | `latest` + Sparkle appcast |
+| **Stable 1.3.0** | [RELEASE_1.3.0.md](docs/context/RELEASE_1.3.0.md) | `latest` + Sparkle appcast |
 | **Prior stable 1.2.10** | [RELEASE_1.2.10.md](docs/context/RELEASE_1.2.10.md) | previous production |
 
 ### GitHub Actions (preferred)
