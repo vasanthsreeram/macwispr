@@ -380,7 +380,7 @@ final class AppState: ObservableObject {
                 asrModelSize = size
             }
         } else {
-            // First run / no saved choice: 1.7B when RAM > 16 GB, else 0.6B.
+            // First run / no saved choice: 0.6B.
             asrModelSize = ASRModelSize.recommendedDefault
             UserDefaults.standard.set(asrModelSize.rawValue, forKey: Self.asrModelSizeKey)
         }
@@ -1013,6 +1013,7 @@ final class AppState: ObservableObject {
             modelLoadStatus = "Model removed — download again to use"
             modelLoadProgress = 0
         }
+        if size == .parakeetRedux { PhotonSidecar.uninstall() }
         ASRModelCache.purge(modelId: size.modelId)
         if size == .parakeetInt8 {
             ASRModelCache.purge(modelId: ASRModelSize.parakeetInt4.modelId)
