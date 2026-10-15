@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Render the MacWispr app icon from geometry (one source for every size).
 
-Mark: five rounded voice bars of rising/falling height that resolve into a
-tall text cursor on the right — speech turning into typed text. Deep indigo →
-violet squircle, soft top sheen, white bars with a mint cursor.
+Mark: a silver studio microphone on a dark graphite squircle with a soft
+red glow, in the style of Apple's own macOS icons (Voice Memos, Dictation).
 
 Usage: make_logo.py <out_dir>
 Writes logo-1024.png (macOS icon canvas with margin + shadow), logo-mark.png
@@ -51,43 +50,70 @@ def gradient(size, top, bottom):
     return g.resize((size, size), Image.BICUBIC)
 
 
-def render_mark(size):
-    """Full-bleed squircle tile with the waveform→cursor glyph."""
-    k = size / 1024.0
-    tile = gradient(size, (58, 52, 220), (150, 62, 240)).convert("RGBA")
+def vgrad(w, h, top, bottom):
+    """Vertical gradient image (RGBA)."""
+    g = Image.new("RGBA", (1, 256))
+    for y in range(256):
+        g.putpixel((0, y), lerp(top, bottom, y / 255) + (255,))
+    return g.resize((max(1, int(w)), max(1, int(h))), Image.BICUBIC)
 
-    # top sheen
+
+def render_mark(size):
+    """Full-bleed squircle tile with a studio microphone, macOS style."""
+    k = size / 1024.0
+    tile = vgrad(size, size, (64, 64, 72), (14, 14, 18))
+
+    # soft top sheen on the tile
     sheen = Image.new("L", (size, size), 0)
-    ImageDraw.Draw(sheen).ellipse((-0.3 * size, -0.9 * size, 1.3 * size, 0.5 * size), fill=34)
-    sheen = sheen.filter(ImageFilter.GaussianBlur(220 * k))
-    white = Image.new("RGBA", (size, size), (255, 255, 255, 255))
-    tile = Image.composite(white, tile, sheen)
+    ImageDraw.Draw(sheen).ellipse((-0.25 * size, -0.95 * size, 1.25 * size, 0.42 * size), fill=40)
+    sheen = sheen.filter(ImageFilter.GaussianBlur(180 * k))
+    tile = Image.composite(Image.new("RGBA", (size, size), (255, 255, 255, 255)), tile, sheen)
+
+    cx = size / 2
+    # capsule head
+    hw, top, bot = 300 * k, 170 * k, 640 * k
+    head_box = (cx - hw / 2, top, cx + hw / 2, bot)
+
+    # warm glow behind the capsule
+    glow = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(glow).ellipse((cx - 260 * k, 230 * k, cx + 260 * k, 640 * k), fill=120)
+    glow = glow.filter(ImageFilter.GaussianBlur(120 * k))
+    tile = Image.composite(Image.new("RGBA", (size, size), (255, 69, 58, 255)), tile, glow)
+
+    # capsule: brushed-silver vertical gradient
+    cap = vgrad(hw, bot - top, (250, 250, 252), (176, 178, 186))
+    cmask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(cmask).rounded_rectangle(head_box, radius=hw / 2, fill=255)
+    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    layer.paste(cap, (int(head_box[0]), int(top)))
+    tile = Image.composite(layer, tile, cmask)
 
     d = ImageDraw.Draw(tile)
-    bar_w = 74 * k
-    gap = 46 * k
-    heights = [200, 380, 540, 340, 180]  # voice envelope
-    cursor_h = 560
-    cap_extra = bar_w * 0.55  # cursor caps overhang the cursor column
-    total_w = len(heights) * bar_w + len(heights) * gap + 26 * k + bar_w + cap_extra
-    x = (size - total_w) / 2
-    cy = size / 2
-    for h in heights:
-        h *= k
-        d.rounded_rectangle((x, cy - h / 2, x + bar_w, cy + h / 2), radius=bar_w / 2, fill=(255, 255, 255, 255))
-        x += bar_w + gap
-    x += 26 * k
-    # text cursor: tall mint bar with serif caps
-    ch = cursor_h * k
-    cw = bar_w * 0.62
-    cx = x + (bar_w - cw) / 2
-    mint = (110, 245, 200, 255)
-    d.rounded_rectangle((cx, cy - ch / 2, cx + cw, cy + ch / 2), radius=cw / 2, fill=mint)
-    cap_w = bar_w * 1.7
-    cap_h = cw
-    capx = cx + cw / 2 - cap_w / 2
-    d.rounded_rectangle((capx, cy - ch / 2, capx + cap_w, cy - ch / 2 + cap_h), radius=cap_h / 2, fill=mint)
-    d.rounded_rectangle((capx, cy + ch / 2 - cap_h, capx + cap_w, cy + ch / 2), radius=cap_h / 2, fill=mint)
+    # grille lines across the capsule
+    for i in range(5):
+        y = top + (150 + i * 62) * k
+        d.rounded_rectangle((cx - hw * 0.30, y, cx + hw * 0.30, y + 14 * k), radius=7 * k,
+                            fill=(140, 142, 152, 255))
+    # highlight streak on the capsule
+    hl = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(hl).rounded_rectangle((cx - hw * 0.36, top + 40 * k, cx - hw * 0.22, bot - 90 * k),
+                                         radius=20 * k, fill=150)
+    hl = hl.filter(ImageFilter.GaussianBlur(10 * k))
+    tile = Image.composite(Image.new("RGBA", (size, size), (255, 255, 255, 255)), tile, hl)
+
+    # U-shaped holder, stem and base in white
+    d = ImageDraw.Draw(tile)
+    w = 34 * k
+    white = (245, 245, 247, 255)
+    yoke = (cx - hw / 2 - 70 * k, 330 * k, cx + hw / 2 + 70 * k, 760 * k)
+    d.arc(yoke, start=0, end=180, fill=white, width=int(w))
+    # round caps where the arc ends, plus short uprights toward the capsule
+    ry = (yoke[1] + yoke[3]) / 2
+    for side in (-1, 1):
+        x = cx + side * (hw / 2 + 70 * k)
+        d.rounded_rectangle((x - w / 2, ry - 70 * k, x + w / 2, ry + w / 2), radius=w / 2, fill=white)
+    d.rounded_rectangle((cx - w / 2, 750 * k, cx + w / 2, 850 * k), radius=w / 2, fill=white)
+    d.rounded_rectangle((cx - 120 * k, 832 * k, cx + 120 * k, 832 * k + w), radius=w / 2, fill=white)
 
     out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     out.paste(tile, (0, 0), squircle_mask(size, 0))
