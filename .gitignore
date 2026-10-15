@@ -27,5 +27,6 @@ sparkle-private*
 # Benchmark datasets & large result caches (keep SUMMARY.md committed)
 /bench/data/
 /bench/results/*.json
+/bench/results/asr_gate/
 !/bench/results/SUMMARY.md
 !/bench/results/.gitkeep

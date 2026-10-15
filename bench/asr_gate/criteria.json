@@ -1,0 +1,22 @@
+{
+  "_doc": "Pass criteria for replacing the speech engine. See bench/asr_gate/README.md. WER is word error rate in percent. max_wer_increase applies when check.py gets --baseline (the current shipping engine).",
+  "accuracy": {
+    "english":      { "max_wer": 3.5, "max_wer_increase": 0.75 },
+    "english_long": { "max_wer": 6.0, "max_wer_increase": 1.0 },
+    "longform":     { "max_wer": 3.0, "max_wer_increase": 1.5 },
+    "multilingual": { "max_wer": 5.0, "max_wer_increase": 2.0 }
+  },
+  "silence": { "max_words": 0 },
+  "latency": {
+    "english_p50_seconds": 0.30,
+    "english_p95_seconds": 1.00,
+    "longform_max_rtf": 0.05
+  },
+  "memory": {
+    "max_peak_mb": 1200,
+    "max_idle_mb": 1000
+  },
+  "load": {
+    "max_warm_load_seconds": 15
+  }
+}
