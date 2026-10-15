@@ -1,0 +1,4 @@
+# PRINT ONLY. Execute manually only after publication approval and a fresh local verification.
+# Use a NEW empty repository. Stop if creation fails; do not reuse an existing runtime repository.
+# Explicit requested visibility is private. Public creation is the hf CLI default.
+hf repos create approved-owner/redux-mlx --repo-type model --private && hf upload approved-owner/redux-mlx /Users/vas/Documents/macwispr/bench/results/redux_mlx/hf-release . --repo-type model --private --include model.safetensors --include config.json --include tokenizer.json --include ternary.json --include conversion.json --include packed_tensors.json --include README.md --include LICENSE --include source-model.json --include parity-summary.json --include release-manifest.json --commit-message 'Experimental Redux custom MLX weight-only export'

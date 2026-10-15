@@ -1,0 +1,38 @@
+{
+  "engine": "mlx",
+  "source": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/converted",
+  "wav": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus/say-fr.wav",
+  "wav_sha256": "a5e81bfcd3d7b5ffeb716cec1b129eca72f30ed4545a5e6f941f1754b2f94d4f",
+  "audio_seconds": 4.223625,
+  "window_samples": 448000,
+  "overlap_samples": 32000,
+  "python": "3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "versions": {
+    "mlx": "0.31.2",
+    "numpy": "2.4.4",
+    "tokenizers": "0.22.2"
+  },
+  "load_including_imports_seconds": 0.2913412080379203,
+  "first_call_seconds": 0.1058809170499444,
+  "cold_cached_weights_seconds": 0.3972221250878647,
+  "warm_seconds": [
+    0.08054433396318927,
+    0.1511479169712402,
+    0.1504488750360906,
+    0.13064650003798306,
+    0.11273254099069163,
+    0.11299037496792153,
+    0.13968391600064933
+  ],
+  "warm_median_seconds": 0.13064650003798306,
+  "warm_min_seconds": 0.08054433396318927,
+  "warm_max_seconds": 0.1511479169712402,
+  "peak_active_bytes": 256226886,
+  "peak_active_method": "MLX allocator high-water",
+  "peak_driver_or_cache_bytes": 37157004,
+  "peak_driver_or_cache_label": "MLX cache bytes",
+  "rss_high_water_bytes": 307265536,
+  "first_text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+  "repeat_transcripts_identical": true
+}

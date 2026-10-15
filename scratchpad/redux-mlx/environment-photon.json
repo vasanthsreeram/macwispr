@@ -1,0 +1,74 @@
+{
+  "engine": "photon",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.12.15 (main, Oct 14 2026, 00:55:37) [Clang 23.1.3 ]",
+  "packages": {
+    "torch": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/torch",
+      "logical_bytes": 545409684,
+      "version": "2.14.1"
+    },
+    "kestrel": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel",
+      "logical_bytes": 3313487,
+      "version": "0.9.1"
+    },
+    "kestrel_kernels": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel_kernels",
+      "logical_bytes": 6031375,
+      "version": "0.7.4"
+    },
+    "moondream": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/moondream",
+      "logical_bytes": 247841,
+      "version": "2.6.1"
+    },
+    "numpy": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/numpy",
+      "logical_bytes": 22592725,
+      "version": "2.5.4"
+    },
+    "tokenizers": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/tokenizers",
+      "logical_bytes": 9886392,
+      "version": "0.23.3"
+    },
+    "safetensors": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/safetensors",
+      "logical_bytes": 1174816,
+      "version": "0.8.0"
+    }
+  },
+  "binaries": {
+    "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel_kernels/_kestrel_mps.so": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel_kernels/_kestrel_mps.so",
+      "bytes": 535008,
+      "sha256": "4583c9a6890a222bc5a3d60c69ff55e08249c1a1fc0b406860be3da979c7290c"
+    },
+    "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel_kernels/kestrel_mps.kstlc": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel_kernels/kestrel_mps.kstlc",
+      "bytes": 333094,
+      "sha256": "a6473353f942d33b4912c9e341d50c28e2a8a79e8eb9acb5bb51087b11df879c"
+    },
+    "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel_kernels/kestrel_cpu.kstlc": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel_kernels/kestrel_cpu.kstlc",
+      "bytes": 103273,
+      "sha256": "1c47b94ba7951b1ccb1e4c034bd316328aac3e5505621a88b0a41f04bdd17ad7"
+    },
+    "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel_kernels/_native_loader.cpython-312-darwin.so": {
+      "path": "/Users/vas/Library/Application Support/MacWispr/photon/venv/lib/python3.12/site-packages/kestrel_kernels/_native_loader.cpython-312-darwin.so",
+      "bytes": 52664,
+      "sha256": "9312482a34580ef9a728663d17114812e9b655274542c59005af332ad6062bf4"
+    }
+  },
+  "runtime_disk_parts": {
+    "venv": 704748227,
+    "managed_python": 70449785
+  },
+  "runtime_logical_bytes_sum": 775198012,
+  "limits": [
+    "Logical file-byte counts; filesystem allocation and hardlinks can change du results.",
+    "MLX footprint uses this Homebrew installation; it is not a built standalone installer.",
+    "Model weights and OS frameworks are excluded. Python remains in both prototypes."
+  ]
+}

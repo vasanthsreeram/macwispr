@@ -1,0 +1,14 @@
+{
+  "name": "missing-weights",
+  "returncode": 2,
+  "wall_seconds": 3.014142416010145,
+  "binary_sha256": "4a33272bf436bb8622944372ab81f73df3045569176432c1a2e6cbc35860b2e0",
+  "code_directory": "/Users/vas/Documents/macwispr/dist/redux-mlx-local.ysj2k8/MacWispr.app/Contents/Resources/ReduxMLX",
+  "events": [
+    {
+      "error": "Redux MLX: Set an executable MLX Python and a local packed.py converted weights directory. Nothing is installed or downloaded automatically. Select Photon manually to use the reference runtime.",
+      "event": "load_failed"
+    }
+  ],
+  "stderr": "2026-10-15 21:10:54.658 MacWispr[4402:32566214] MacWispr: menu bar status item installed\n2026-10-15 21:10:55.053 MacWispr[4402:32566214] MacWispr: Sparkle not started (no SUFeedURL in Info.plist — expected for bare SPM builds)\n"
+}

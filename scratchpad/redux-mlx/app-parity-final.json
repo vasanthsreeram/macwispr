@@ -1,0 +1,1976 @@
+{
+  "passed_exact_transcript_parity": true,
+  "reference_sha256": "2d2335e330f3da4c0b94f430696e727e46e965311ee10ab4de6891571cccf5b8",
+  "candidate_sha256": "35ddc8c4ff771ecacf8b793e538e50b8177891aaa7804c7892841b41dce51507",
+  "overall": {
+    "cases": 42,
+    "errors": 0,
+    "expected_rejections_matched": 1,
+    "parity": {
+      "raw_exact": 41,
+      "evaluated": 41,
+      "wer": 0.0,
+      "word_errors": 0,
+      "words": 729,
+      "cer": 0.0,
+      "character_errors": 0,
+      "characters": 3291
+    },
+    "photon_accuracy": {
+      "raw_exact": 18,
+      "evaluated": 41,
+      "wer": 0.009615384615384616,
+      "word_errors": 7,
+      "words": 728,
+      "cer": 0.0030358227079538553,
+      "character_errors": 10,
+      "characters": 3294
+    },
+    "mlx_accuracy": {
+      "raw_exact": 18,
+      "evaluated": 41,
+      "wer": 0.009615384615384616,
+      "word_errors": 7,
+      "words": 728,
+      "cer": 0.0030358227079538553,
+      "character_errors": 10,
+      "characters": 3294
+    },
+    "photon_latency_seconds": {
+      "median": 0.10911283298628405,
+      "p95": 0.394460582989268
+    },
+    "photon_total_seconds": 8.599608257063664,
+    "mlx_latency_seconds": {
+      "median": 0.08465825003804639,
+      "p95": 0.29640583298169076
+    },
+    "mlx_total_seconds": 6.14398749708198
+  },
+  "groups": {
+    "public-english": {
+      "cases": 20,
+      "errors": 0,
+      "expected_rejections_matched": 0,
+      "parity": {
+        "raw_exact": 20,
+        "evaluated": 20,
+        "wer": 0.0,
+        "word_errors": 0,
+        "words": 412,
+        "cer": 0.0,
+        "character_errors": 0,
+        "characters": 1821
+      },
+      "photon_accuracy": {
+        "raw_exact": 0,
+        "evaluated": 20,
+        "wer": 0.009732360097323601,
+        "word_errors": 4,
+        "words": 411,
+        "cer": 0.0016474464579901153,
+        "character_errors": 3,
+        "characters": 1821
+      },
+      "mlx_accuracy": {
+        "raw_exact": 0,
+        "evaluated": 20,
+        "wer": 0.009732360097323601,
+        "word_errors": 4,
+        "words": 411,
+        "cer": 0.0016474464579901153,
+        "character_errors": 3,
+        "characters": 1821
+      },
+      "photon_latency_seconds": {
+        "median": 0.19725629151798785,
+        "p95": 0.37236938574642414
+      },
+      "photon_total_seconds": 4.297690670005977,
+      "mlx_latency_seconds": {
+        "median": 0.16500425001140684,
+        "p95": 0.3008910746313632
+      },
+      "mlx_total_seconds": 3.754654499993194
+    },
+    "public-english-concatenated": {
+      "cases": 1,
+      "errors": 0,
+      "expected_rejections_matched": 0,
+      "parity": {
+        "raw_exact": 1,
+        "evaluated": 1,
+        "wer": 0.0,
+        "word_errors": 0,
+        "words": 250,
+        "cer": 0.0,
+        "character_errors": 0,
+        "characters": 1132
+      },
+      "photon_accuracy": {
+        "raw_exact": 0,
+        "evaluated": 1,
+        "wer": 0.004,
+        "word_errors": 1,
+        "words": 250,
+        "cer": 0.00088261253309797,
+        "character_errors": 1,
+        "characters": 1133
+      },
+      "mlx_accuracy": {
+        "raw_exact": 0,
+        "evaluated": 1,
+        "wer": 0.004,
+        "word_errors": 1,
+        "words": 250,
+        "cer": 0.00088261253309797,
+        "character_errors": 1,
+        "characters": 1133
+      },
+      "photon_latency_seconds": {
+        "median": 2.422043834987562,
+        "p95": 2.422043834987562
+      },
+      "photon_total_seconds": 2.422043834987562,
+      "mlx_latency_seconds": {
+        "median": 1.524879582982976,
+        "p95": 1.524879582982976
+      },
+      "mlx_total_seconds": 1.524879582982976
+    },
+    "synthetic-boundary": {
+      "cases": 12,
+      "errors": 0,
+      "expected_rejections_matched": 1,
+      "parity": {
+        "raw_exact": 11,
+        "evaluated": 11,
+        "wer": 0.0,
+        "word_errors": 0,
+        "words": 0,
+        "cer": 0.0,
+        "character_errors": 0,
+        "characters": 0
+      },
+      "photon_accuracy": {
+        "raw_exact": 11,
+        "evaluated": 11,
+        "wer": 0.0,
+        "word_errors": 0,
+        "words": 0,
+        "cer": 0.0,
+        "character_errors": 0,
+        "characters": 0
+      },
+      "mlx_accuracy": {
+        "raw_exact": 11,
+        "evaluated": 11,
+        "wer": 0.0,
+        "word_errors": 0,
+        "words": 0,
+        "cer": 0.0,
+        "character_errors": 0,
+        "characters": 0
+      },
+      "photon_latency_seconds": {
+        "median": 0.05553825001697987,
+        "p95": 0.13265489600598812
+      },
+      "photon_total_seconds": 0.7370010421145707,
+      "mlx_latency_seconds": {
+        "median": 0.019205750024411827,
+        "p95": 0.04411987500498071
+      },
+      "mlx_total_seconds": 0.27809104102198035
+    },
+    "synthetic-quiet": {
+      "cases": 2,
+      "errors": 0,
+      "expected_rejections_matched": 0,
+      "parity": {
+        "raw_exact": 2,
+        "evaluated": 2,
+        "wer": 0.0,
+        "word_errors": 0,
+        "words": 0,
+        "cer": 0.0,
+        "character_errors": 0,
+        "characters": 0
+      },
+      "photon_accuracy": {
+        "raw_exact": 2,
+        "evaluated": 2,
+        "wer": 0.0,
+        "word_errors": 0,
+        "words": 0,
+        "cer": 0.0,
+        "character_errors": 0,
+        "characters": 0
+      },
+      "mlx_accuracy": {
+        "raw_exact": 2,
+        "evaluated": 2,
+        "wer": 0.0,
+        "word_errors": 0,
+        "words": 0,
+        "cer": 0.0,
+        "character_errors": 0,
+        "characters": 0
+      },
+      "photon_latency_seconds": {
+        "median": 0.21810333349276334,
+        "p95": 0.3768248580396175
+      },
+      "photon_total_seconds": 0.4362066669855267,
+      "mlx_latency_seconds": {
+        "median": 0.048371937533374876,
+        "p95": 0.058954681578325105
+      },
+      "mlx_total_seconds": 0.09674387506674975
+    },
+    "synthetic-speech": {
+      "cases": 7,
+      "errors": 0,
+      "expected_rejections_matched": 0,
+      "parity": {
+        "raw_exact": 7,
+        "evaluated": 7,
+        "wer": 0.0,
+        "word_errors": 0,
+        "words": 67,
+        "cer": 0.0,
+        "character_errors": 0,
+        "characters": 338
+      },
+      "photon_accuracy": {
+        "raw_exact": 5,
+        "evaluated": 7,
+        "wer": 0.029850746268656716,
+        "word_errors": 2,
+        "words": 67,
+        "cer": 0.01764705882352941,
+        "character_errors": 6,
+        "characters": 340
+      },
+      "mlx_accuracy": {
+        "raw_exact": 5,
+        "evaluated": 7,
+        "wer": 0.029850746268656716,
+        "word_errors": 2,
+        "words": 67,
+        "cer": 0.01764705882352941,
+        "character_errors": 6,
+        "characters": 340
+      },
+      "photon_latency_seconds": {
+        "median": 0.09978258400224149,
+        "p95": 0.1075689207878895
+      },
+      "photon_total_seconds": 0.7066660429700278,
+      "mlx_latency_seconds": {
+        "median": 0.07381145801628008,
+        "p95": 0.08961031230282969
+      },
+      "mlx_total_seconds": 0.48961849801708013
+    }
+  },
+  "cases": [
+    {
+      "id": "silence-319",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "expected_rejection_match": true
+    },
+    {
+      "id": "silence-320",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.1853077500127256,
+      "mlx_seconds": 0.0555979170021601,
+      "duration_seconds": 0.02
+    },
+    {
+      "id": "silence-321",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.04497904103482142,
+      "mlx_seconds": 0.032641833007801324,
+      "duration_seconds": 0.0200625
+    },
+    {
+      "id": "silence-479",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.04292279202491045,
+      "mlx_seconds": 0.025805999990552664,
+      "duration_seconds": 0.0299375
+    },
+    {
+      "id": "silence-480",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.05553825001697987,
+      "mlx_seconds": 0.019205750024411827,
+      "duration_seconds": 0.03
+    },
+    {
+      "id": "silence-481",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.04186091700103134,
+      "mlx_seconds": 0.01769254100508988,
+      "duration_seconds": 0.0300625
+    },
+    {
+      "id": "silence-1279",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.06537562498124316,
+      "mlx_seconds": 0.01642670895671472,
+      "duration_seconds": 0.0799375
+    },
+    {
+      "id": "silence-1280",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.06794620904838666,
+      "mlx_seconds": 0.029293457977473736,
+      "duration_seconds": 0.08
+    },
+    {
+      "id": "silence-1281",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.04624670802149922,
+      "mlx_seconds": 0.016481292026583105,
+      "duration_seconds": 0.0800625
+    },
+    {
+      "id": "silence-16000",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.08000204199925065,
+      "mlx_seconds": 0.03237450000597164,
+      "duration_seconds": 1.0
+    },
+    {
+      "id": "edge-impulses-1280",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.0496808749740012,
+      "mlx_seconds": 0.01631862501380965,
+      "duration_seconds": 0.08
+    },
+    {
+      "id": "edge-impulses-1281",
+      "group": "synthetic-boundary",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.05714083299972117,
+      "mlx_seconds": 0.016252416011411697,
+      "duration_seconds": 0.0800625
+    },
+    {
+      "id": "say-en-short",
+      "group": "synthetic-speech",
+      "reference_text": "Please send the report.",
+      "photon_text": "Please send the report.",
+      "mlx_text": "Please send the report.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 4,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 19,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 4,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 19,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 4,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 19,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.09978258400224149,
+      "mlx_seconds": 0.03686941700289026,
+      "duration_seconds": 1.1823125
+    },
+    {
+      "id": "say-en-sentence",
+      "group": "synthetic-speech",
+      "reference_text": "The meeting starts at nine tomorrow morning. Please send the final report before Friday.",
+      "photon_text": "The meeting starts at 9 tomorrow morning. Please send the final report before Friday.",
+      "mlx_text": "The meeting starts at 9 tomorrow morning. Please send the final report before Friday.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 14,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 70,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 14,
+        "wer": 0.07142857142857142,
+        "character_errors": 4,
+        "reference_characters": 73,
+        "cer": 0.0547945205479452
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 14,
+        "wer": 0.07142857142857142,
+        "character_errors": 4,
+        "reference_characters": 73,
+        "cer": 0.0547945205479452
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.10911283298628405,
+      "mlx_seconds": 0.07381145801628008,
+      "duration_seconds": 4.7605625
+    },
+    {
+      "id": "say-fr",
+      "group": "synthetic-speech",
+      "reference_text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+      "photon_text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+      "mlx_text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 11,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 56,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 11,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 56,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 11,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 56,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.10396645899163559,
+      "mlx_seconds": 0.09241762501187623,
+      "duration_seconds": 4.223625
+    },
+    {
+      "id": "say-de",
+      "group": "synthetic-speech",
+      "reference_text": "Guten Morgen, ich möchte einen Termin für nächste Woche vereinbaren.",
+      "photon_text": "Guten Morgen, ich möchte einen Termin für nächste Woche vereinbaren.",
+      "mlx_text": "Guten Morgen, ich möchte einen Termin für nächste Woche vereinbaren.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 57,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 57,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 57,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.0976672499673441,
+      "mlx_seconds": 0.06534087500767782,
+      "duration_seconds": 3.9591875
+    },
+    {
+      "id": "say-es",
+      "group": "synthetic-speech",
+      "reference_text": "Hola, necesito cambiar la fecha de mi vuelo a Madrid.",
+      "photon_text": "Hola, necesito cambiar la fecha de mi vuelo en Madrid.",
+      "mlx_text": "Hola, necesito cambiar la fecha de mi vuelo en Madrid.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 43,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 10,
+        "wer": 0.1,
+        "character_errors": 2,
+        "reference_characters": 42,
+        "cer": 0.047619047619047616
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 10,
+        "wer": 0.1,
+        "character_errors": 2,
+        "reference_characters": 42,
+        "cer": 0.047619047619047616
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.09954299998935312,
+      "mlx_seconds": 0.06260504096280783,
+      "duration_seconds": 2.736125
+    },
+    {
+      "id": "say-it",
+      "group": "synthetic-speech",
+      "reference_text": "Buongiorno, vorrei prenotare una camera per tre notti.",
+      "photon_text": "Buongiorno, vorrei prenotare una camera per tre notti.",
+      "mlx_text": "Buongiorno, vorrei prenotare una camera per tre notti.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 45,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 45,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 45,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.10074141703080386,
+      "mlx_seconds": 0.07551416603382677,
+      "duration_seconds": 3.248125
+    },
+    {
+      "id": "say-pt",
+      "group": "synthetic-speech",
+      "reference_text": "Bom dia, gostaria de agendar uma reunião para quinta-feira.",
+      "photon_text": "Bom dia, gostaria de agendar uma reunião para quinta-feira.",
+      "mlx_text": "Bom dia, gostaria de agendar uma reunião para quinta-feira.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 48,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 48,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 48,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.09585250000236556,
+      "mlx_seconds": 0.08305991598172113,
+      "duration_seconds": 3.9850625
+    },
+    {
+      "id": "ls-1089-134686-0000",
+      "group": "public-english",
+      "reference_text": "HE HOPED THERE WOULD BE STEW FOR DINNER TURNIPS AND CARROTS AND BRUISED POTATOES AND FAT MUTTON PIECES TO BE LADLED OUT IN THICK PEPPERED FLOUR FATTENED SAUCE",
+      "photon_text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce",
+      "mlx_text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 28,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 131,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 28,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 131,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 28,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 131,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.3617384590324946,
+      "mlx_seconds": 0.23367204196983948,
+      "duration_seconds": 10.435
+    },
+    {
+      "id": "ls-1089-134686-0001",
+      "group": "public-english",
+      "reference_text": "STUFF IT INTO YOU HIS BELLY COUNSELLED HIM",
+      "photon_text": "Stuff it into you his belly counselled him.",
+      "mlx_text": "Stuff it into you his belly counselled him.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 35,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 35,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 35,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.1772979170200415,
+      "mlx_seconds": 0.08392162498785183,
+      "duration_seconds": 3.275
+    },
+    {
+      "id": "ls-1089-134686-0002",
+      "group": "public-english",
+      "reference_text": "AFTER EARLY NIGHTFALL THE YELLOW LAMPS WOULD LIGHT UP HERE AND THERE THE SQUALID QUARTER OF THE BROTHELS",
+      "photon_text": "After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels.",
+      "mlx_text": "After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 18,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 87,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 18,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 87,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 18,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 87,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.20838287501828745,
+      "mlx_seconds": 0.12839808297576383,
+      "duration_seconds": 6.625
+    },
+    {
+      "id": "ls-1089-134686-0003",
+      "group": "public-english",
+      "reference_text": "HELLO BERTIE ANY GOOD IN YOUR MIND",
+      "photon_text": "Hello, Bertie. Any good in your mind?",
+      "mlx_text": "Hello, Bertie. Any good in your mind?",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 7,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 28,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 7,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 28,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 7,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 28,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.19911408302141353,
+      "mlx_seconds": 0.0961244169739075,
+      "duration_seconds": 2.68
+    },
+    {
+      "id": "ls-1089-134686-0004",
+      "group": "public-english",
+      "reference_text": "NUMBER TEN FRESH NELLY IS WAITING ON YOU GOOD NIGHT HUSBAND",
+      "photon_text": "Number ten Fresh Nelly is waiting on you. Good night, husband,",
+      "mlx_text": "Number ten Fresh Nelly is waiting on you. Good night, husband,",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 11,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 49,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 11,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 49,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 11,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 49,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.1714866659604013,
+      "mlx_seconds": 0.13874741701874882,
+      "duration_seconds": 5.2150625
+    },
+    {
+      "id": "ls-1089-134686-0005",
+      "group": "public-english",
+      "reference_text": "THE MUSIC CAME NEARER AND HE RECALLED THE WORDS THE WORDS OF SHELLEY'S FRAGMENT UPON THE MOON WANDERING COMPANIONLESS PALE FOR WEARINESS",
+      "photon_text": "The music came nearer, and he recalled the words the words of Shelley's fragment upon the moon, wandering companionless, pale for weariness.",
+      "mlx_text": "The music came nearer, and he recalled the words the words of Shelley's fragment upon the moon, wandering companionless, pale for weariness.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 23,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 114,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 23,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 114,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 23,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 114,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.25882895896211267,
+      "mlx_seconds": 0.16694450000068173,
+      "duration_seconds": 9.635
+    },
+    {
+      "id": "ls-1089-134686-0006",
+      "group": "public-english",
+      "reference_text": "THE DULL LIGHT FELL MORE FAINTLY UPON THE PAGE WHEREON ANOTHER EQUATION BEGAN TO UNFOLD ITSELF SLOWLY AND TO SPREAD ABROAD ITS WIDENING TAIL",
+      "photon_text": "The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail.",
+      "mlx_text": "The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 24,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 117,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 24,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 117,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 24,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 117,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.2379671250237152,
+      "mlx_seconds": 0.20422875002259389,
+      "duration_seconds": 10.555
+    },
+    {
+      "id": "ls-1089-134686-0007",
+      "group": "public-english",
+      "reference_text": "A COLD LUCID INDIFFERENCE REIGNED IN HIS SOUL",
+      "photon_text": "A cold, lucid indifference reigned in his soul.",
+      "mlx_text": "A cold, lucid indifference reigned in his soul.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 38,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 38,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 38,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.10683962499024346,
+      "mlx_seconds": 0.10337333398638293,
+      "duration_seconds": 4.275
+    },
+    {
+      "id": "ls-1089-134686-0008",
+      "group": "public-english",
+      "reference_text": "THE CHAOS IN WHICH HIS ARDOUR EXTINGUISHED ITSELF WAS A COLD INDIFFERENT KNOWLEDGE OF HIMSELF",
+      "photon_text": "The chaos in which his ardour extinguished itself was a cold, indifferent knowledge of himself,",
+      "mlx_text": "The chaos in which his ardour extinguished itself was a cold, indifferent knowledge of himself,",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 15,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 79,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 15,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 79,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 15,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 79,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.17146533401682973,
+      "mlx_seconds": 0.15938504197401926,
+      "duration_seconds": 6.73
+    },
+    {
+      "id": "ls-1089-134686-0009",
+      "group": "public-english",
+      "reference_text": "AT MOST BY AN ALMS GIVEN TO A BEGGAR WHOSE BLESSING HE FLED FROM HE MIGHT HOPE WEARILY TO WIN FOR HIMSELF SOME MEASURE OF ACTUAL GRACE",
+      "photon_text": "At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace.",
+      "mlx_text": "At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 27,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 108,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 27,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 108,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 27,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 108,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.24065866699675098,
+      "mlx_seconds": 0.29640583298169076,
+      "duration_seconds": 10.575
+    },
+    {
+      "id": "ls-1089-134686-0010",
+      "group": "public-english",
+      "reference_text": "WELL NOW ENNIS I DECLARE YOU HAVE A HEAD AND SO HAS MY STICK",
+      "photon_text": "Well now, Ennis, I declare you have a head, and so has my stick,",
+      "mlx_text": "Well now, Ennis, I declare you have a head, and so has my stick,",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 14,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 47,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 14,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 47,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 14,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 47,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.115929874998983,
+      "mlx_seconds": 0.20697208301862702,
+      "duration_seconds": 4.405
+    },
+    {
+      "id": "ls-1089-134686-0011",
+      "group": "public-english",
+      "reference_text": "ON SATURDAY MORNINGS WHEN THE SODALITY MET IN THE CHAPEL TO RECITE THE LITTLE OFFICE HIS PLACE WAS A CUSHIONED KNEELING DESK AT THE RIGHT OF THE ALTAR FROM WHICH HE LED HIS WING OF BOYS THROUGH THE RESPONSES",
+      "photon_text": "On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar, from which he led his wing of boys through the responses.",
+      "mlx_text": "On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar, from which he led his wing of boys through the responses.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 39,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 169,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 39,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 169,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 39,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 169,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.26046224997844547,
+      "mlx_seconds": 0.27744579198770225,
+      "duration_seconds": 12.445
+    },
+    {
+      "id": "ls-1089-134686-0012",
+      "group": "public-english",
+      "reference_text": "HER EYES SEEMED TO REGARD HIM WITH MILD PITY HER HOLINESS A STRANGE LIGHT GLOWING FAINTLY UPON HER FRAIL FLESH DID NOT HUMILIATE THE SINNER WHO APPROACHED HER",
+      "photon_text": "Her eyes seemed to regard him with mild pity her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+      "mlx_text": "Her eyes seemed to regard him with mild pity her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 28,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 131,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 28,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 131,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 28,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 131,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.2502686249790713,
+      "mlx_seconds": 0.38611066597513855,
+      "duration_seconds": 11.64
+    },
+    {
+      "id": "ls-1089-134686-0013",
+      "group": "public-english",
+      "reference_text": "IF EVER HE WAS IMPELLED TO CAST SIN FROM HIM AND TO REPENT THE IMPULSE THAT MOVED HIM WAS THE WISH TO BE HER KNIGHT",
+      "photon_text": "If ever he was impelled to cast sin from him and to repent, the impulse that moved him was the wish to be her knight.",
+      "mlx_text": "If ever he was impelled to cast sin from him and to repent, the impulse that moved him was the wish to be her knight.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 25,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 91,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 25,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 91,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 25,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 91,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.16926766705000773,
+      "mlx_seconds": 0.15517074998933822,
+      "duration_seconds": 7.915
+    },
+    {
+      "id": "ls-1089-134686-0014",
+      "group": "public-english",
+      "reference_text": "HE TRIED TO THINK HOW IT COULD BE",
+      "photon_text": "He tried to think how it could be",
+      "mlx_text": "He tried to think how it could be",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 26,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 26,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 8,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 26,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.10217833396745846,
+      "mlx_seconds": 0.08465825003804639,
+      "duration_seconds": 2.225
+    },
+    {
+      "id": "ls-1089-134686-0015",
+      "group": "public-english",
+      "reference_text": "BUT THE DUSK DEEPENING IN THE SCHOOLROOM COVERED OVER HIS THOUGHTS THE BELL RANG",
+      "photon_text": "but the dusk, deepening in the school room, covered over his thoughts. The bell rang,",
+      "mlx_text": "but the dusk, deepening in the school room, covered over his thoughts. The bell rang,",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 15,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 67,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 2,
+        "reference_words": 14,
+        "wer": 0.14285714285714285,
+        "character_errors": 0,
+        "reference_characters": 67,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 2,
+        "reference_words": 14,
+        "wer": 0.14285714285714285,
+        "character_errors": 0,
+        "reference_characters": 67,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.15283316699787974,
+      "mlx_seconds": 0.16306400002213195,
+      "duration_seconds": 5.815
+    },
+    {
+      "id": "ls-1089-134686-0016",
+      "group": "public-english",
+      "reference_text": "THEN YOU CAN ASK HIM QUESTIONS ON THE CATECHISM DEDALUS",
+      "photon_text": "Then you can ask him questions on the catechism, Dedalus.",
+      "mlx_text": "Then you can ask him questions on the catechism, Dedalus.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 46,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 46,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 10,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 46,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.1052893329760991,
+      "mlx_seconds": 0.12146216601831838,
+      "duration_seconds": 3.54
+    },
+    {
+      "id": "ls-1089-134686-0017",
+      "group": "public-english",
+      "reference_text": "STEPHEN LEANING BACK AND DRAWING IDLY ON HIS SCRIBBLER LISTENED TO THE TALK ABOUT HIM WHICH HERON CHECKED FROM TIME TO TIME BY SAYING",
+      "photon_text": "Stephen, leaning back and drawing idly on his scribler, listened to the talk about him, which Heron checked from time to time by saying,",
+      "mlx_text": "Stephen, leaning back and drawing idly on his scribler, listened to the talk about him, which Heron checked from time to time by saying,",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 24,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 109,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 24,
+        "wer": 0.041666666666666664,
+        "character_errors": 1,
+        "reference_characters": 110,
+        "cer": 0.00909090909090909
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 24,
+        "wer": 0.041666666666666664,
+        "character_errors": 1,
+        "reference_characters": 110,
+        "cer": 0.00909090909090909
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.19539850001456216,
+      "mlx_seconds": 0.2024825420230627,
+      "duration_seconds": 8.87
+    },
+    {
+      "id": "ls-1089-134686-0018",
+      "group": "public-english",
+      "reference_text": "IT WAS STRANGE TOO THAT HE FOUND AN ARID PLEASURE IN FOLLOWING UP TO THE END THE RIGID LINES OF THE DOCTRINES OF THE CHURCH AND PENETRATING INTO OBSCURE SILENCES ONLY TO HEAR AND FEEL THE MORE DEEPLY HIS OWN CONDEMNATION",
+      "photon_text": "It was strange, too, that he found an errid pleasure in following up to the end the rigid lines of the doctrines of the church and penetrating into obscure silences only to hear and feel the more deeply his own condemnation.",
+      "mlx_text": "It was strange, too, that he found an errid pleasure in following up to the end the rigid lines of the doctrines of the church and penetrating into obscure silences only to hear and feel the more deeply his own condemnation.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 41,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 181,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 41,
+        "wer": 0.024390243902439025,
+        "character_errors": 2,
+        "reference_characters": 180,
+        "cer": 0.011111111111111112
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 41,
+        "wer": 0.024390243902439025,
+        "character_errors": 2,
+        "reference_characters": 180,
+        "cer": 0.011111111111111112
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.44366629200521857,
+      "mlx_seconds": 0.29315883305389434,
+      "duration_seconds": 15.72
+    },
+    {
+      "id": "ls-1089-134686-0019",
+      "group": "public-english",
+      "reference_text": "THE SENTENCE OF SAINT JAMES WHICH SAYS THAT HE WHO OFFENDS AGAINST ONE COMMANDMENT BECOMES GUILTY OF ALL HAD SEEMED TO HIM FIRST A SWOLLEN PHRASE UNTIL HE HAD BEGUN TO GROPE IN THE DARKNESS OF HIS OWN STATE",
+      "photon_text": "The sentence of Saint James, which says that he who offends against one commandment becomes guilty of all, had seemed to him first a swollen phrase until he had begun to grope in the darkness of his own state.",
+      "mlx_text": "The sentence of Saint James, which says that he who offends against one commandment becomes guilty of all, had seemed to him first a swollen phrase until he had begun to grope in the darkness of his own state.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 39,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 168,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 39,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 168,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 39,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 168,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.3686169169959612,
+      "mlx_seconds": 0.25292837497545406,
+      "duration_seconds": 13.895
+    },
+    {
+      "id": "long-public-english",
+      "group": "public-english-concatenated",
+      "reference_text": "HE HOPED THERE WOULD BE STEW FOR DINNER TURNIPS AND CARROTS AND BRUISED POTATOES AND FAT MUTTON PIECES TO BE LADLED OUT IN THICK PEPPERED FLOUR FATTENED SAUCE STUFF IT INTO YOU HIS BELLY COUNSELLED HIM AFTER EARLY NIGHTFALL THE YELLOW LAMPS WOULD LIGHT UP HERE AND THERE THE SQUALID QUARTER OF THE BROTHELS HELLO BERTIE ANY GOOD IN YOUR MIND NUMBER TEN FRESH NELLY IS WAITING ON YOU GOOD NIGHT HUSBAND THE MUSIC CAME NEARER AND HE RECALLED THE WORDS THE WORDS OF SHELLEY'S FRAGMENT UPON THE MOON WANDERING COMPANIONLESS PALE FOR WEARINESS THE DULL LIGHT FELL MORE FAINTLY UPON THE PAGE WHEREON ANOTHER EQUATION BEGAN TO UNFOLD ITSELF SLOWLY AND TO SPREAD ABROAD ITS WIDENING TAIL A COLD LUCID INDIFFERENCE REIGNED IN HIS SOUL THE CHAOS IN WHICH HIS ARDOUR EXTINGUISHED ITSELF WAS A COLD INDIFFERENT KNOWLEDGE OF HIMSELF AT MOST BY AN ALMS GIVEN TO A BEGGAR WHOSE BLESSING HE FLED FROM HE MIGHT HOPE WEARILY TO WIN FOR HIMSELF SOME MEASURE OF ACTUAL GRACE WELL NOW ENNIS I DECLARE YOU HAVE A HEAD AND SO HAS MY STICK ON SATURDAY MORNINGS WHEN THE SODALITY MET IN THE CHAPEL TO RECITE THE LITTLE OFFICE HIS PLACE WAS A CUSHIONED KNEELING DESK AT THE RIGHT OF THE ALTAR FROM WHICH HE LED HIS WING OF BOYS THROUGH THE RESPONSES HER EYES SEEMED TO REGARD HIM WITH MILD PITY HER HOLINESS A STRANGE LIGHT GLOWING FAINTLY UPON HER FRAIL FLESH DID NOT HUMILIATE THE SINNER WHO APPROACHED HER",
+      "photon_text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+      "mlx_text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 250,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 1132,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 250,
+        "wer": 0.004,
+        "character_errors": 1,
+        "reference_characters": 1133,
+        "cer": 0.00088261253309797
+      },
+      "mlx_accuracy": {
+        "raw_exact": false,
+        "normalized_exact": false,
+        "word_errors": 1,
+        "reference_words": 250,
+        "wer": 0.004,
+        "character_errors": 1,
+        "reference_characters": 1133,
+        "cer": 0.00088261253309797
+      },
+      "windows_equal": true,
+      "photon_seconds": 2.422043834987562,
+      "mlx_seconds": 1.524879582982976,
+      "duration_seconds": 101.7400625
+    },
+    {
+      "id": "quiet-pcm16",
+      "group": "synthetic-quiet",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.394460582989268,
+      "mlx_seconds": 0.03661333303898573,
+      "duration_seconds": 1.01
+    },
+    {
+      "id": "quiet-low",
+      "group": "synthetic-quiet",
+      "reference_text": "",
+      "photon_text": "",
+      "mlx_text": "",
+      "parity": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "photon_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "mlx_accuracy": {
+        "raw_exact": true,
+        "normalized_exact": true,
+        "word_errors": 0,
+        "reference_words": 0,
+        "wer": 0.0,
+        "character_errors": 0,
+        "reference_characters": 0,
+        "cer": 0.0
+      },
+      "windows_equal": true,
+      "photon_seconds": 0.041746083996258676,
+      "mlx_seconds": 0.06013054202776402,
+      "duration_seconds": 1.01
+    }
+  ],
+  "limits": [
+    "Synthetic European-language speech is smoke coverage only.",
+    "Public speech coverage is English read speech, not conversational/noisy dictation.",
+    "Long speech is concatenated or repeated, not a natural meeting.",
+    "Byte reproduction requires retaining WAVs; say versions can change generated audio.",
+    "No claimed coverage of all 25 Redux languages or code-switching.",
+    "Latency here is a single corpus pass; use measure.py for repeated cold/warm measurements.",
+    "Raw exact is case/punctuation-sensitive. WER uses Unicode normalization and keeps accents; CER omits spaces.",
+    "These standalone processes mirror app windowing; installed app integration is unchanged and untested."
+  ]
+}

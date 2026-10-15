@@ -1,0 +1,34 @@
+{
+  "engine": "mlx",
+  "source": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/converted",
+  "wav": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus/long-public-english.wav",
+  "wav_sha256": "22f28741b937af09e1e55a9d592703ddabc1a92422e90f7b9588fc6dd73adce3",
+  "audio_seconds": 101.7400625,
+  "window_samples": 448000,
+  "overlap_samples": 32000,
+  "python": "3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "versions": {
+    "mlx": "0.31.2",
+    "numpy": "2.4.4",
+    "tokenizers": "0.22.2"
+  },
+  "load_including_imports_seconds": 0.2904692920274101,
+  "first_call_seconds": 1.3460749170044437,
+  "cold_cached_weights_seconds": 1.6365442090318538,
+  "warm_seconds": [
+    1.70742179104127,
+    1.6004172919783741,
+    1.5728297919849865
+  ],
+  "warm_median_seconds": 1.6004172919783741,
+  "warm_min_seconds": 1.5728297919849865,
+  "warm_max_seconds": 1.70742179104127,
+  "peak_active_bytes": 403415648,
+  "peak_active_method": "MLX allocator high-water",
+  "peak_driver_or_cache_bytes": 348665006,
+  "peak_driver_or_cache_label": "MLX cache bytes",
+  "rss_high_water_bytes": 384565248,
+  "first_text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+  "repeat_transcripts_identical": true
+}

@@ -1,0 +1,216 @@
+{
+  "corpus_sha256": "ef3160fb5c3fed10a847bac2a8eb394d193ab5c4c45b7a6d23fd0388d5b4757d",
+  "reference_manifest_sha256": "8ffef1c9652cea468d9733e2a4c8d5082980c8c95f5dde4efcf407481e4e39b6",
+  "implementation_sha256": "a151ad286f1022533017f0f881bdbfc70686c6d82ab26c6055150214e31ae279",
+  "cases": [
+    {
+      "id": "quiet-pcm16",
+      "reference_npz_sha256": "309012dc263dd13b2ec507f5aea457a5d98673ce8110303b66a6731a1deb4d81",
+      "log_mel": {
+        "compatible": true,
+        "shape": [
+          1,
+          102,
+          128
+        ],
+        "max_abs": 1.9073486328125e-06,
+        "mean_abs": 6.068570941102271e-07,
+        "max_relative": 1.1540260043603719e-07,
+        "mean_relative": 3.649967558321748e-08,
+        "cosine": 0.9999999999999984,
+        "normalized_l2": 6.470862325433114e-08
+      },
+      "mean": {
+        "compatible": true,
+        "shape": [
+          1,
+          1,
+          128
+        ],
+        "max_abs": 3.814697265625e-06,
+        "mean_abs": 8.046627044677734e-07,
+        "max_relative": 2.2931038456154078e-07,
+        "mean_relative": 4.8396331074141073e-08,
+        "cosine": 0.9999999999999978,
+        "normalized_l2": 7.587941007720368e-08
+      },
+      "std": {
+        "compatible": true,
+        "shape": [
+          1,
+          1,
+          128
+        ],
+        "max_abs": 1.909211277961731e-07,
+        "mean_abs": 7.171727389732041e-08,
+        "max_relative": 0.01557658281987322,
+        "mean_relative": 0.00037790724444615117,
+        "cosine": 0.9999999999535044,
+        "normalized_l2": 9.645985445779889e-06
+      },
+      "feature_variants": {
+        "candidate_features": {
+          "compatible": true,
+          "shape": [
+            1,
+            102,
+            128
+          ],
+          "max_abs": 0.20036828517913818,
+          "mean_abs": 0.00377594380499351,
+          "max_relative": 19496779.143810272,
+          "mean_relative": 9295.39585994075,
+          "cosine": 0.9998175801106866,
+          "normalized_l2": 0.01910020653367736
+        },
+        "reference_log_numpy64_mean": {
+          "compatible": true,
+          "shape": [
+            1,
+            102,
+            128
+          ],
+          "max_abs": 0.09716629981994629,
+          "mean_abs": 0.0021419907262569204,
+          "max_relative": 9716622.531414032,
+          "mean_relative": 5491.203336901328,
+          "cosine": 0.9999152252922643,
+          "normalized_l2": 0.013020854041175511
+        },
+        "reference_log_numpy32_mean": {
+          "compatible": true,
+          "shape": [
+            1,
+            102,
+            128
+          ],
+          "max_abs": 0.5829973518848419,
+          "mean_abs": 0.01737296532487295,
+          "max_relative": 58299732.20825195,
+          "mean_relative": 56287.345012644706,
+          "cosine": 0.9962241031817987,
+          "normalized_l2": 0.08721319350243545
+        },
+        "reference_log_mlx_mean": {
+          "compatible": true,
+          "shape": [
+            1,
+            102,
+            128
+          ],
+          "max_abs": 0.19433248043060303,
+          "mean_abs": 0.0024889718003408895,
+          "max_relative": 19433245.062828064,
+          "mean_relative": 7953.032533194831,
+          "cosine": 0.9998276427664203,
+          "normalized_l2": 0.0185661664809873
+        }
+      }
+    },
+    {
+      "id": "quiet-low",
+      "reference_npz_sha256": "727bbb8bf90b36fc35366c03aadb51488f9ba3636119803d081a724f61b19d7b",
+      "log_mel": {
+        "compatible": true,
+        "shape": [
+          1,
+          102,
+          128
+        ],
+        "max_abs": 1.9073486328125e-06,
+        "mean_abs": 5.701155054802988e-07,
+        "max_relative": 1.2900113966056834e-07,
+        "mean_relative": 3.5185933832129293e-08,
+        "cosine": 0.999999999999999,
+        "normalized_l2": 6.025393245927946e-08
+      },
+      "mean": {
+        "compatible": true,
+        "shape": [
+          1,
+          1,
+          128
+        ],
+        "max_abs": 1.9073486328125e-06,
+        "mean_abs": 4.991888999938965e-07,
+        "max_relative": 1.1865958806849363e-07,
+        "mean_relative": 3.0863070804645585e-08,
+        "cosine": 0.9999999999999989,
+        "normalized_l2": 5.532857596877632e-08
+      },
+      "std": {
+        "compatible": true,
+        "shape": [
+          1,
+          1,
+          128
+        ],
+        "max_abs": 2.976739779114723e-07,
+        "mean_abs": 6.66641426505521e-08,
+        "max_relative": 0.00036136500720468834,
+        "mean_relative": 5.822090441838519e-06,
+        "cosine": 0.9999999999999435,
+        "normalized_l2": 3.461602346708764e-07
+      },
+      "feature_variants": {
+        "candidate_features": {
+          "compatible": true,
+          "shape": [
+            1,
+            102,
+            128
+          ],
+          "max_abs": 0.0035436153411865234,
+          "mean_abs": 4.310761357995783e-05,
+          "max_relative": 0.3330952001634929,
+          "mean_relative": 0.00022120470795878547,
+          "cosine": 0.9999999743522784,
+          "normalized_l2": 0.00022648497304715145
+        },
+        "reference_log_numpy64_mean": {
+          "compatible": true,
+          "shape": [
+            1,
+            102,
+            128
+          ],
+          "max_abs": 0.0022878646850585938,
+          "mean_abs": 2.49620047563716e-05,
+          "max_relative": 0.3333332880995657,
+          "mean_relative": 0.00012733955393142414,
+          "cosine": 0.9999999788906955,
+          "normalized_l2": 0.0002054716754092432
+        },
+        "reference_log_numpy32_mean": {
+          "compatible": true,
+          "shape": [
+            1,
+            102,
+            128
+          ],
+          "max_abs": 0.004575490951538086,
+          "mean_abs": 0.00012077506794323163,
+          "max_relative": 0.6666667119004344,
+          "mean_relative": 0.0005811501868385529,
+          "cosine": 0.9999998692983169,
+          "normalized_l2": 0.0005112762901620852
+        },
+        "reference_log_mlx_mean": {
+          "compatible": true,
+          "shape": [
+            1,
+            102,
+            128
+          ],
+          "max_abs": 0.0022878646850585938,
+          "mean_abs": 2.755296426647535e-05,
+          "max_relative": 0.3333332880995657,
+          "mean_relative": 0.00013620646979129754,
+          "cosine": 0.9999999781959112,
+          "normalized_l2": 0.00020882571148193722
+        }
+      }
+    }
+  ],
+  "limit": "Reduction variants use original log-mel and original std to isolate mean rounding. They are diagnostics, not alternative inference backends."
+}

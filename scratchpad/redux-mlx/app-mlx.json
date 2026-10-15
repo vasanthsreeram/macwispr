@@ -1,0 +1,787 @@
+{
+  "engine": "mlx",
+  "corpus_sha256": "0591aafdb801280d07c36e6bc191308f6a5131c42de4b1c27fe4e2f9be4d6cca",
+  "source": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/converted",
+  "cases": [
+    {
+      "id": "silence-319",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "81c59d01a8fe54de9eff1d6e2b916be58d958c7fe0528d056a34f342bfcce7e5",
+      "duration_seconds": 0.0199375,
+      "expected_error": true,
+      "error": "ValueError: At least 320 samples are required",
+      "rejection_observed": true
+    },
+    {
+      "id": "silence-320",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "6d5a57285af5ab10fd11ee5fb4f564281eac95b3131bcadad5812952a39558e1",
+      "duration_seconds": 0.02,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 320,
+          "text": "",
+          "seconds": 0.04619595897383988
+        }
+      ],
+      "seconds": 0.04619595897383988
+    },
+    {
+      "id": "silence-321",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "12bc7121cd94e3fd56dbad6912783dfa40e4ef1c48469964580589783336802a",
+      "duration_seconds": 0.0200625,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 321,
+          "text": "",
+          "seconds": 0.030077708011958748
+        }
+      ],
+      "seconds": 0.030077708011958748
+    },
+    {
+      "id": "silence-479",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "1dec7da1c78fbe72cac85847f7a193cc0a06a864189ff7dadf47a1541d9c0675",
+      "duration_seconds": 0.0299375,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 479,
+          "text": "",
+          "seconds": 0.019931457994971424
+        }
+      ],
+      "seconds": 0.019931457994971424
+    },
+    {
+      "id": "silence-480",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "d99efdd40c446d59ceb89f79a685571971eac4e2a5aff8c76af74ef3720ff04b",
+      "duration_seconds": 0.03,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 480,
+          "text": "",
+          "seconds": 0.018579999974463135
+        }
+      ],
+      "seconds": 0.018579999974463135
+    },
+    {
+      "id": "silence-481",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "35b82d6090e5fec7c58a6d147b3cce742bff5e86538e991de42d144ef834d6a5",
+      "duration_seconds": 0.0300625,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 481,
+          "text": "",
+          "seconds": 0.017551583994645625
+        }
+      ],
+      "seconds": 0.017551583994645625
+    },
+    {
+      "id": "silence-1279",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "5f2e53675ecfe780d89ae14da41320022388a61fd01f735c8a743cd42c51b2b3",
+      "duration_seconds": 0.0799375,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 1279,
+          "text": "",
+          "seconds": 0.016687708033714443
+        }
+      ],
+      "seconds": 0.016687708033714443
+    },
+    {
+      "id": "silence-1280",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "1d275dd01159164388d29add59b9dd7e360cc45c87927ccb79042666bc98cc68",
+      "duration_seconds": 0.08,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 1280,
+          "text": "",
+          "seconds": 0.025681792001705617
+        }
+      ],
+      "seconds": 0.025681792001705617
+    },
+    {
+      "id": "silence-1281",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "630a5a8d2b4b6dd0d782eee159f0e2baf4eb3a8bb39e637fc82a80bdc023a01a",
+      "duration_seconds": 0.0800625,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 1281,
+          "text": "",
+          "seconds": 0.016517459007445723
+        }
+      ],
+      "seconds": 0.016517459007445723
+    },
+    {
+      "id": "silence-16000",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "643f8a8dc8bd9c19225afffad2becfec5426180b3749cb208abdf1a6c8354efc",
+      "duration_seconds": 1.0,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 16000,
+          "text": "",
+          "seconds": 0.03239787503844127
+        }
+      ],
+      "seconds": 0.03239787503844127
+    },
+    {
+      "id": "edge-impulses-1280",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "f7c213589b5f31ed85cb275ba38eba3a55c87ca2f63d71d86b8ace4dff07b63a",
+      "duration_seconds": 0.08,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 1280,
+          "text": "",
+          "seconds": 0.017819166998378932
+        }
+      ],
+      "seconds": 0.017819166998378932
+    },
+    {
+      "id": "edge-impulses-1281",
+      "group": "synthetic-boundary",
+      "language": "und",
+      "reference_text": "",
+      "sha256": "0ab4b4f25eb1577657820a074c2441d2078d06a2b3a5779bfb989de62413c680",
+      "duration_seconds": 0.0800625,
+      "expected_error": false,
+      "text": "",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 1281,
+          "text": "",
+          "seconds": 0.017759124981239438
+        }
+      ],
+      "seconds": 0.017759124981239438
+    },
+    {
+      "id": "say-en-short",
+      "group": "synthetic-speech",
+      "language": "en",
+      "reference_text": "Please send the report.",
+      "sha256": "a0eb3f0ed3dc2907173803f0f548fee4fbce32abe154607572f9c8f3eeb5e957",
+      "duration_seconds": 1.1823125,
+      "expected_error": false,
+      "text": "Please send the report.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 18917,
+          "text": "Please send the report.",
+          "seconds": 0.044269208039622754
+        }
+      ],
+      "seconds": 0.044269208039622754
+    },
+    {
+      "id": "say-en-sentence",
+      "group": "synthetic-speech",
+      "language": "en",
+      "reference_text": "The meeting starts at nine tomorrow morning. Please send the final report before Friday.",
+      "sha256": "7992c72f3163f9932acb98c184f5816a7f50969faea5076f339860850e556c30",
+      "duration_seconds": 4.7605625,
+      "expected_error": false,
+      "text": "The meeting starts at 9 tomorrow morning. Please send the final report before Friday.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 76169,
+          "text": "The meeting starts at 9 tomorrow morning. Please send the final report before Friday.",
+          "seconds": 0.10143049998441711
+        }
+      ],
+      "seconds": 0.10143049998441711
+    },
+    {
+      "id": "say-fr",
+      "group": "synthetic-speech",
+      "language": "fr",
+      "reference_text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+      "sha256": "a5e81bfcd3d7b5ffeb716cec1b129eca72f30ed4545a5e6f941f1754b2f94d4f",
+      "duration_seconds": 4.223625,
+      "expected_error": false,
+      "text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 67578,
+          "text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+          "seconds": 0.14826358295977116
+        }
+      ],
+      "seconds": 0.14826358295977116
+    },
+    {
+      "id": "say-de",
+      "group": "synthetic-speech",
+      "language": "de",
+      "reference_text": "Guten Morgen, ich möchte einen Termin für nächste Woche vereinbaren.",
+      "sha256": "3db8a024ba68e1d19378a07e9164ae7aa16f1c11015e0c7abd7712ce85f7232b",
+      "duration_seconds": 3.9591875,
+      "expected_error": false,
+      "text": "Guten Morgen, ich möchte einen Termin für nächste Woche vereinbaren.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 63347,
+          "text": "Guten Morgen, ich möchte einen Termin für nächste Woche vereinbaren.",
+          "seconds": 0.11089358298340812
+        }
+      ],
+      "seconds": 0.11089358298340812
+    },
+    {
+      "id": "say-es",
+      "group": "synthetic-speech",
+      "language": "es",
+      "reference_text": "Hola, necesito cambiar la fecha de mi vuelo a Madrid.",
+      "sha256": "622c9595caf5fc9c1cb97bc10a71a922d575257e67063957b3afd80986f63e51",
+      "duration_seconds": 2.736125,
+      "expected_error": false,
+      "text": "Hola, necesito cambiar la fecha de mi vuelo en Madrid.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 43778,
+          "text": "Hola, necesito cambiar la fecha de mi vuelo en Madrid.",
+          "seconds": 0.09626775002107024
+        }
+      ],
+      "seconds": 0.09626775002107024
+    },
+    {
+      "id": "say-it",
+      "group": "synthetic-speech",
+      "language": "it",
+      "reference_text": "Buongiorno, vorrei prenotare una camera per tre notti.",
+      "sha256": "d04dcfae644eed7d1ff5fa495629765f519819e93695971ca73e91d69133798e",
+      "duration_seconds": 3.248125,
+      "expected_error": false,
+      "text": "Buongiorno, vorrei prenotare una camera per tre notti.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 51970,
+          "text": "Buongiorno, vorrei prenotare una camera per tre notti.",
+          "seconds": 0.11113224999280646
+        }
+      ],
+      "seconds": 0.11113224999280646
+    },
+    {
+      "id": "say-pt",
+      "group": "synthetic-speech",
+      "language": "pt",
+      "reference_text": "Bom dia, gostaria de agendar uma reunião para quinta-feira.",
+      "sha256": "8af38e6df29d63d0dd82885249bac328f8c0f91de66eaed79e1551c947737323",
+      "duration_seconds": 3.9850625,
+      "expected_error": false,
+      "text": "Bom dia, gostaria de agendar uma reunião para quinta-feira.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 63761,
+          "text": "Bom dia, gostaria de agendar uma reunião para quinta-feira.",
+          "seconds": 0.15645870799198747
+        }
+      ],
+      "seconds": 0.15645870799198747
+    },
+    {
+      "id": "ls-1089-134686-0000",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "HE HOPED THERE WOULD BE STEW FOR DINNER TURNIPS AND CARROTS AND BRUISED POTATOES AND FAT MUTTON PIECES TO BE LADLED OUT IN THICK PEPPERED FLOUR FATTENED SAUCE",
+      "sha256": "0b1785dba56f22af426ccb25d318f7e103558fd40e1c3ab064b455dba2afae12",
+      "duration_seconds": 10.435,
+      "expected_error": false,
+      "text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 166960,
+          "text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce",
+          "seconds": 0.21529474999988452
+        }
+      ],
+      "seconds": 0.21529474999988452
+    },
+    {
+      "id": "ls-1089-134686-0001",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "STUFF IT INTO YOU HIS BELLY COUNSELLED HIM",
+      "sha256": "6b0b24796a1017a65007d392b9f8d6e64e030cdafbf82d8ffa4235fe4b371443",
+      "duration_seconds": 3.275,
+      "expected_error": false,
+      "text": "Stuff it into you his belly counselled him.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 52400,
+          "text": "Stuff it into you his belly counselled him.",
+          "seconds": 0.0930479159578681
+        }
+      ],
+      "seconds": 0.0930479159578681
+    },
+    {
+      "id": "ls-1089-134686-0002",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "AFTER EARLY NIGHTFALL THE YELLOW LAMPS WOULD LIGHT UP HERE AND THERE THE SQUALID QUARTER OF THE BROTHELS",
+      "sha256": "6bc58a4efdf20daac252b6b1502632601a71efe0308f6757dc1eda34891a7e4f",
+      "duration_seconds": 6.625,
+      "expected_error": false,
+      "text": "After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 106000,
+          "text": "After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels.",
+          "seconds": 0.1841800840338692
+        }
+      ],
+      "seconds": 0.1841800840338692
+    },
+    {
+      "id": "ls-1089-134686-0003",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "HELLO BERTIE ANY GOOD IN YOUR MIND",
+      "sha256": "2db232f2d626af81adb8b224bdcc72d71ed94e9f7180194a6279e532a08c9115",
+      "duration_seconds": 2.68,
+      "expected_error": false,
+      "text": "Hello, Bertie. Any good in your mind?",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 42880,
+          "text": "Hello, Bertie. Any good in your mind?",
+          "seconds": 0.15056333399843425
+        }
+      ],
+      "seconds": 0.15056333399843425
+    },
+    {
+      "id": "ls-1089-134686-0004",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "NUMBER TEN FRESH NELLY IS WAITING ON YOU GOOD NIGHT HUSBAND",
+      "sha256": "62fa78c06e5a74d08d38ab3e899eb3115810a4f33769389a2c6b498f01d5deb1",
+      "duration_seconds": 5.2150625,
+      "expected_error": false,
+      "text": "Number ten Fresh Nelly is waiting on you. Good night, husband,",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 83441,
+          "text": "Number ten Fresh Nelly is waiting on you. Good night, husband,",
+          "seconds": 0.1032870410126634
+        }
+      ],
+      "seconds": 0.1032870410126634
+    },
+    {
+      "id": "ls-1089-134686-0005",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "THE MUSIC CAME NEARER AND HE RECALLED THE WORDS THE WORDS OF SHELLEY'S FRAGMENT UPON THE MOON WANDERING COMPANIONLESS PALE FOR WEARINESS",
+      "sha256": "5818821a0def2096ff87b9bad20cdcf64e9d5ee7e44e946186538789ca576d64",
+      "duration_seconds": 9.635,
+      "expected_error": false,
+      "text": "The music came nearer, and he recalled the words the words of Shelley's fragment upon the moon, wandering companionless, pale for weariness.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 154160,
+          "text": "The music came nearer, and he recalled the words the words of Shelley's fragment upon the moon, wandering companionless, pale for weariness.",
+          "seconds": 0.2705003340379335
+        }
+      ],
+      "seconds": 0.2705003340379335
+    },
+    {
+      "id": "ls-1089-134686-0006",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "THE DULL LIGHT FELL MORE FAINTLY UPON THE PAGE WHEREON ANOTHER EQUATION BEGAN TO UNFOLD ITSELF SLOWLY AND TO SPREAD ABROAD ITS WIDENING TAIL",
+      "sha256": "537fddd348bdce01783c3df6824fd94e6f143935583c7133e63ea391b51df48a",
+      "duration_seconds": 10.555,
+      "expected_error": false,
+      "text": "The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 168880,
+          "text": "The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail.",
+          "seconds": 0.21106733399210498
+        }
+      ],
+      "seconds": 0.21106733399210498
+    },
+    {
+      "id": "ls-1089-134686-0007",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "A COLD LUCID INDIFFERENCE REIGNED IN HIS SOUL",
+      "sha256": "2cff67acc90735509fb83be543636b224e12711f24dcea765077ae4bbe455a48",
+      "duration_seconds": 4.275,
+      "expected_error": false,
+      "text": "A cold, lucid indifference reigned in his soul.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 68400,
+          "text": "A cold, lucid indifference reigned in his soul.",
+          "seconds": 0.09600958396913484
+        }
+      ],
+      "seconds": 0.09600958396913484
+    },
+    {
+      "id": "ls-1089-134686-0008",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "THE CHAOS IN WHICH HIS ARDOUR EXTINGUISHED ITSELF WAS A COLD INDIFFERENT KNOWLEDGE OF HIMSELF",
+      "sha256": "c6d413fe63540a24110a8dd2db4502d41cf55112767dc2338cb4234cc8c09777",
+      "duration_seconds": 6.73,
+      "expected_error": false,
+      "text": "The chaos in which his ardour extinguished itself was a cold, indifferent knowledge of himself,",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 107680,
+          "text": "The chaos in which his ardour extinguished itself was a cold, indifferent knowledge of himself,",
+          "seconds": 0.22293641598662362
+        }
+      ],
+      "seconds": 0.22293641598662362
+    },
+    {
+      "id": "ls-1089-134686-0009",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "AT MOST BY AN ALMS GIVEN TO A BEGGAR WHOSE BLESSING HE FLED FROM HE MIGHT HOPE WEARILY TO WIN FOR HIMSELF SOME MEASURE OF ACTUAL GRACE",
+      "sha256": "890fef6afaac390b3f56e48aeca76ab86bbdac5e6cd39c054e8432c8dc19b36b",
+      "duration_seconds": 10.575,
+      "expected_error": false,
+      "text": "At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 169200,
+          "text": "At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace.",
+          "seconds": 0.27930929203284904
+        }
+      ],
+      "seconds": 0.27930929203284904
+    },
+    {
+      "id": "ls-1089-134686-0010",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "WELL NOW ENNIS I DECLARE YOU HAVE A HEAD AND SO HAS MY STICK",
+      "sha256": "a2f7cf27e284947bd4eb5778b953898827fd453707131f95b2215f0023285eb0",
+      "duration_seconds": 4.405,
+      "expected_error": false,
+      "text": "Well now, Ennis, I declare you have a head, and so has my stick,",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 70480,
+          "text": "Well now, Ennis, I declare you have a head, and so has my stick,",
+          "seconds": 0.10814299999037758
+        }
+      ],
+      "seconds": 0.10814299999037758
+    },
+    {
+      "id": "ls-1089-134686-0011",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "ON SATURDAY MORNINGS WHEN THE SODALITY MET IN THE CHAPEL TO RECITE THE LITTLE OFFICE HIS PLACE WAS A CUSHIONED KNEELING DESK AT THE RIGHT OF THE ALTAR FROM WHICH HE LED HIS WING OF BOYS THROUGH THE RESPONSES",
+      "sha256": "097baaee33039db64dd47e7f1bf9880530be8e4f693d70dc022059c7fef2cc69",
+      "duration_seconds": 12.445,
+      "expected_error": false,
+      "text": "On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar, from which he led his wing of boys through the responses.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 199120,
+          "text": "On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar, from which he led his wing of boys through the responses.",
+          "seconds": 0.25115733296843246
+        }
+      ],
+      "seconds": 0.25115733296843246
+    },
+    {
+      "id": "ls-1089-134686-0012",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "HER EYES SEEMED TO REGARD HIM WITH MILD PITY HER HOLINESS A STRANGE LIGHT GLOWING FAINTLY UPON HER FRAIL FLESH DID NOT HUMILIATE THE SINNER WHO APPROACHED HER",
+      "sha256": "cf0bee8a3f0e173986ebc53c1b4e911e43ebbb89d2fab5aeaa3dd7e331b97d21",
+      "duration_seconds": 11.64,
+      "expected_error": false,
+      "text": "Her eyes seemed to regard him with mild pity her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 186240,
+          "text": "Her eyes seemed to regard him with mild pity her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+          "seconds": 0.23401720798574388
+        }
+      ],
+      "seconds": 0.23401720798574388
+    },
+    {
+      "id": "ls-1089-134686-0013",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "IF EVER HE WAS IMPELLED TO CAST SIN FROM HIM AND TO REPENT THE IMPULSE THAT MOVED HIM WAS THE WISH TO BE HER KNIGHT",
+      "sha256": "5ca0d0141fec49d2a047f86a682eee7386d566385daf8f530756c1cbba3167ea",
+      "duration_seconds": 7.915,
+      "expected_error": false,
+      "text": "If ever he was impelled to cast sin from him and to repent, the impulse that moved him was the wish to be her knight.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 126640,
+          "text": "If ever he was impelled to cast sin from him and to repent, the impulse that moved him was the wish to be her knight.",
+          "seconds": 0.14513470797101036
+        }
+      ],
+      "seconds": 0.14513470797101036
+    },
+    {
+      "id": "ls-1089-134686-0014",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "HE TRIED TO THINK HOW IT COULD BE",
+      "sha256": "fee8e0460ca707f108782be0d93c555bf34fb6b1cb297e5fceed70192cc65f9b",
+      "duration_seconds": 2.225,
+      "expected_error": false,
+      "text": "He tried to think how it could be",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 35600,
+          "text": "He tried to think how it could be",
+          "seconds": 0.06605241697980091
+        }
+      ],
+      "seconds": 0.06605241697980091
+    },
+    {
+      "id": "ls-1089-134686-0015",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "BUT THE DUSK DEEPENING IN THE SCHOOLROOM COVERED OVER HIS THOUGHTS THE BELL RANG",
+      "sha256": "6bbec6a76806a1906e5372b403dce881f728d2c43711ae84d41e3bc254a4f022",
+      "duration_seconds": 5.815,
+      "expected_error": false,
+      "text": "but the dusk, deepening in the school room, covered over his thoughts. The bell rang,",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 93040,
+          "text": "but the dusk, deepening in the school room, covered over his thoughts. The bell rang,",
+          "seconds": 0.215547833009623
+        }
+      ],
+      "seconds": 0.215547833009623
+    },
+    {
+      "id": "ls-1089-134686-0016",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "THEN YOU CAN ASK HIM QUESTIONS ON THE CATECHISM DEDALUS",
+      "sha256": "54fa9c1671887053aa4398e0fb92d16886c27b155e50c0f71146a37c9f38c37d",
+      "duration_seconds": 3.54,
+      "expected_error": false,
+      "text": "Then you can ask him questions on the catechism, Dedalus.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 56640,
+          "text": "Then you can ask him questions on the catechism, Dedalus.",
+          "seconds": 0.10803662502439693
+        }
+      ],
+      "seconds": 0.10803662502439693
+    },
+    {
+      "id": "ls-1089-134686-0017",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "STEPHEN LEANING BACK AND DRAWING IDLY ON HIS SCRIBBLER LISTENED TO THE TALK ABOUT HIM WHICH HERON CHECKED FROM TIME TO TIME BY SAYING",
+      "sha256": "9a4c744cc9da355f44b77dfb20c535d20f87391f94d5798d082f25d539ddb7a7",
+      "duration_seconds": 8.87,
+      "expected_error": false,
+      "text": "Stephen, leaning back and drawing idly on his scribler, listened to the talk about him, which Heron checked from time to time by saying,",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 141920,
+          "text": "Stephen, leaning back and drawing idly on his scribler, listened to the talk about him, which Heron checked from time to time by saying,",
+          "seconds": 0.17616637505125254
+        }
+      ],
+      "seconds": 0.17616637505125254
+    },
+    {
+      "id": "ls-1089-134686-0018",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "IT WAS STRANGE TOO THAT HE FOUND AN ARID PLEASURE IN FOLLOWING UP TO THE END THE RIGID LINES OF THE DOCTRINES OF THE CHURCH AND PENETRATING INTO OBSCURE SILENCES ONLY TO HEAR AND FEEL THE MORE DEEPLY HIS OWN CONDEMNATION",
+      "sha256": "3b72002d222e2557d9510b29fd60d38079e40386dd71f340dc79219eeb739514",
+      "duration_seconds": 15.72,
+      "expected_error": false,
+      "text": "It was strange, too, that he found an errid pleasure in following up to the end the rigid lines of the doctrines of the church and penetrating into obscure silences only to hear and feel the more deeply his own condemnation.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 251520,
+          "text": "It was strange, too, that he found an errid pleasure in following up to the end the rigid lines of the doctrines of the church and penetrating into obscure silences only to hear and feel the more deeply his own condemnation.",
+          "seconds": 0.3231730840052478
+        }
+      ],
+      "seconds": 0.3231730840052478
+    },
+    {
+      "id": "ls-1089-134686-0019",
+      "group": "public-english",
+      "language": "en",
+      "reference_text": "THE SENTENCE OF SAINT JAMES WHICH SAYS THAT HE WHO OFFENDS AGAINST ONE COMMANDMENT BECOMES GUILTY OF ALL HAD SEEMED TO HIM FIRST A SWOLLEN PHRASE UNTIL HE HAD BEGUN TO GROPE IN THE DARKNESS OF HIS OWN STATE",
+      "sha256": "10f6cd89ea75e46c64bf083a132d22e9275a850d15b098225ddbcf9de91d41b5",
+      "duration_seconds": 13.895,
+      "expected_error": false,
+      "text": "The sentence of Saint James, which says that he who offends against one commandment becomes guilty of all, had seemed to him first a swollen phrase until he had begun to grope in the darkness of his own state.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 222320,
+          "text": "The sentence of Saint James, which says that he who offends against one commandment becomes guilty of all, had seemed to him first a swollen phrase until he had begun to grope in the darkness of his own state.",
+          "seconds": 0.2808332499698736
+        }
+      ],
+      "seconds": 0.2808332499698736
+    },
+    {
+      "id": "long-public-english",
+      "group": "public-english-concatenated",
+      "language": "en",
+      "reference_text": "HE HOPED THERE WOULD BE STEW FOR DINNER TURNIPS AND CARROTS AND BRUISED POTATOES AND FAT MUTTON PIECES TO BE LADLED OUT IN THICK PEPPERED FLOUR FATTENED SAUCE STUFF IT INTO YOU HIS BELLY COUNSELLED HIM AFTER EARLY NIGHTFALL THE YELLOW LAMPS WOULD LIGHT UP HERE AND THERE THE SQUALID QUARTER OF THE BROTHELS HELLO BERTIE ANY GOOD IN YOUR MIND NUMBER TEN FRESH NELLY IS WAITING ON YOU GOOD NIGHT HUSBAND THE MUSIC CAME NEARER AND HE RECALLED THE WORDS THE WORDS OF SHELLEY'S FRAGMENT UPON THE MOON WANDERING COMPANIONLESS PALE FOR WEARINESS THE DULL LIGHT FELL MORE FAINTLY UPON THE PAGE WHEREON ANOTHER EQUATION BEGAN TO UNFOLD ITSELF SLOWLY AND TO SPREAD ABROAD ITS WIDENING TAIL A COLD LUCID INDIFFERENCE REIGNED IN HIS SOUL THE CHAOS IN WHICH HIS ARDOUR EXTINGUISHED ITSELF WAS A COLD INDIFFERENT KNOWLEDGE OF HIMSELF AT MOST BY AN ALMS GIVEN TO A BEGGAR WHOSE BLESSING HE FLED FROM HE MIGHT HOPE WEARILY TO WIN FOR HIMSELF SOME MEASURE OF ACTUAL GRACE WELL NOW ENNIS I DECLARE YOU HAVE A HEAD AND SO HAS MY STICK ON SATURDAY MORNINGS WHEN THE SODALITY MET IN THE CHAPEL TO RECITE THE LITTLE OFFICE HIS PLACE WAS A CUSHIONED KNEELING DESK AT THE RIGHT OF THE ALTAR FROM WHICH HE LED HIS WING OF BOYS THROUGH THE RESPONSES HER EYES SEEMED TO REGARD HIM WITH MILD PITY HER HOLINESS A STRANGE LIGHT GLOWING FAINTLY UPON HER FRAIL FLESH DID NOT HUMILIATE THE SINNER WHO APPROACHED HER",
+      "sha256": "22f28741b937af09e1e55a9d592703ddabc1a92422e90f7b9588fc6dd73adce3",
+      "duration_seconds": 101.7400625,
+      "expected_error": false,
+      "text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+      "windows": [
+        {
+          "start_sample": 0,
+          "end_sample": 448000,
+          "text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you",
+          "seconds": 0.40041870798449963
+        },
+        {
+          "start_sample": 416000,
+          "end_sample": 864000,
+          "text": "Nelly is waiting on you. Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul.",
+          "seconds": 0.41955695900833234
+        },
+        {
+          "start_sample": 832000,
+          "end_sample": 1280000,
+          "text": "indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality",
+          "seconds": 0.4125531250028871
+        },
+        {
+          "start_sample": 1248000,
+          "end_sample": 1627841,
+          "text": "Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+          "seconds": 0.3795022090198472
+        }
+      ],
+      "seconds": 1.6120310010155663
+    }
+  ],
+  "window_samples": 448000,
+  "overlap_samples": 32000,
+  "limitations": [
+    "Synthetic European-language speech is smoke coverage only.",
+    "Public speech coverage is English read speech, not conversational/noisy dictation.",
+    "Long speech is concatenated or repeated, not a natural meeting.",
+    "Byte reproduction requires retaining WAVs; say versions can change generated audio.",
+    "No claimed coverage of all 25 Redux languages or code-switching."
+  ],
+  "reference_telemetry_disabled_in_benchmark": false
+}

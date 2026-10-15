@@ -1,0 +1,58 @@
+{
+  "name": "long",
+  "returncode": 0,
+  "wall_seconds": 8.0638504170347,
+  "binary_sha256": "4a33272bf436bb8622944372ab81f73df3045569176432c1a2e6cbc35860b2e0",
+  "code_directory": "/Users/vas/Documents/macwispr/dist/redux-mlx-local.ysj2k8/MacWispr.app/Contents/Resources/ReduxMLX",
+  "events": [
+    {
+      "app_peak_rss_bytes": 81707008,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 1480704,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3873,
+        "process_peak_rss_bytes": 334987264,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "event": "loaded",
+      "model": "Parakeet-Redux",
+      "runtime": "redux-mlx",
+      "seconds": 1.5123590230941772
+    },
+    {
+      "app_peak_rss_bytes": 102334464,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 366883663,
+        "peak_gpu_bytes": 402956545,
+        "pid": 3873,
+        "process_peak_rss_bytes": 390496256,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/long-public-english.wav",
+      "runtime": "redux-mlx",
+      "seconds": 3.0649439096450806,
+      "text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her."
+    },
+    {
+      "app_peak_rss_bytes": 115376128,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 369357647,
+        "peak_gpu_bytes": 402956545,
+        "pid": 3873,
+        "process_peak_rss_bytes": 397901824,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/long-public-english.wav",
+      "runtime": "redux-mlx",
+      "seconds": 2.8921918869018555,
+      "text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her."
+    }
+  ],
+  "stderr": "2026-10-15 21:10:26.289 MacWispr[3868:32562477] MacWispr: menu bar status item installed\n2026-10-15 21:10:26.452 MacWispr[3868:32562477] MacWispr: Sparkle not started (no SUFeedURL in Info.plist — expected for bare SPM builds)\nsetup 10% Starting experimental Redux MLX\nsetup 50% Loading verified local Redux MLX weights\nsetup 100% Experimental Redux MLX is ready\nsetup 100% Ready · Python MLX (Experimental)\n"
+}

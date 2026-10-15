@@ -1,0 +1,24 @@
+test_extra_runtime_or_hidden_directory_is_rejected (test_prepare.PreparationTests.test_extra_runtime_or_hidden_directory_is_rejected) ... ok
+test_manual_commands_are_print_only_and_use_exact_upload_allowlist (test_prepare.PreparationTests.test_manual_commands_are_print_only_and_use_exact_upload_allowlist) ... ok
+test_manual_plan_requires_repo_id_and_explicit_visibility (test_prepare.PreparationTests.test_manual_plan_requires_repo_id_and_explicit_visibility) ... ok
+test_modified_manifest_does_not_authenticate_modified_payload (test_prepare.PreparationTests.test_modified_manifest_does_not_authenticate_modified_payload) ... ok
+test_preflight_input_mismatch_creates_no_output (test_prepare.PreparationTests.test_preflight_input_mismatch_creates_no_output) ... ok
+test_public_summary_retains_failures_and_omits_private_reports (test_prepare.PreparationTests.test_public_summary_retains_failures_and_omits_private_reports) ... ok
+test_real_release_has_literal_weight_only_allowlist_and_bytes (test_prepare.PreparationTests.test_real_release_has_literal_weight_only_allowlist_and_bytes) ... ok
+test_refuses_empty_unknown_and_partial_directories (test_prepare.PreparationTests.test_refuses_empty_unknown_and_partial_directories) ... ok
+test_rerun_verifies_known_release_without_any_writes_or_inputs (test_prepare.PreparationTests.test_rerun_verifies_known_release_without_any_writes_or_inputs) ... ok
+test_standard_library_verify_needs_no_runtime_original_weights_or_credentials (test_prepare.PreparationTests.test_standard_library_verify_needs_no_runtime_original_weights_or_credentials) ... ok
+test_symlink_file_and_output_are_rejected (test_prepare.PreparationTests.test_symlink_file_and_output_are_rejected) ... ok
+test_changed_tensor_cannot_be_blessed_by_new_container_hash (test_prepare.TensorAuthenticationTests.test_changed_tensor_cannot_be_blessed_by_new_container_hash) ... ok
+test_duplicate_json_keys_are_rejected (test_prepare.TensorAuthenticationTests.test_duplicate_json_keys_are_rejected) ... ok
+test_invalid_header_size_is_rejected (test_prepare.TensorAuthenticationTests.test_invalid_header_size_is_rejected) ... ok
+test_out_of_bounds_range_is_rejected (test_prepare.TensorAuthenticationTests.test_out_of_bounds_range_is_rejected) ... ok
+test_overlapping_ranges_are_rejected (test_prepare.TensorAuthenticationTests.test_overlapping_ranges_are_rejected) ... ok
+test_saved_tensor_authentication_without_source_weights (test_prepare.TensorAuthenticationTests.test_saved_tensor_authentication_without_source_weights) ... ok
+test_shape_dtype_and_keys_are_independently_authenticated (test_prepare.TensorAuthenticationTests.test_shape_dtype_and_keys_are_independently_authenticated) ... ok
+test_trailing_bytes_are_rejected (test_prepare.TensorAuthenticationTests.test_trailing_bytes_are_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 2.919s
+
+OK

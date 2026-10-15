@@ -1,0 +1,12 @@
+{
+  "license": {
+    "bytes": 18657,
+    "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
+    "url": "https://creativecommons.org/licenses/by/4.0/legalcode.txt"
+  },
+  "model_card": {
+    "bytes": 8832,
+    "sha256": "930055e6bac7d75114e719850ffaffc8d327e73b4295518c38c81399acd63e46",
+    "url": "https://huggingface.co/moondream/parakeet-redux/raw/2bf128600aac4b16946f7ed8372e56117fe5e23b/README.md"
+  }
+}

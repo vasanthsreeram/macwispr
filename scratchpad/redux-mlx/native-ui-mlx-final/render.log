@@ -1,0 +1,6 @@
+rendered UI to /Users/vas/Documents/macwispr/scratchpad/redux-mlx/native-ui-mlx-final
+2026-10-15 21:49:54.257 MacWispr[51289:32828301] MacWispr: menu bar status item installed
+2026-10-15 21:49:54.354 MacWispr[51289:32828301] MacWispr: Sparkle not started (no SUFeedURL in Info.plist — expected for bare SPM builds)
+2026-10-15 21:49:54.411 MacWispr[51289:32828301] MacWispr hotkey: CGEvent.tapCreate failed — grant Accessibility
+2026-10-15 21:49:54.412 MacWispr[51289:32828301] MacWispr hotkey: chord=⌥ Space tap=NO carbon=yes monitors=yes ax=NO
+2026-10-15 21:49:57.445 MacWispr[51289:32828301] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.

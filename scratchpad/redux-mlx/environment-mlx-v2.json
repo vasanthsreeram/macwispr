@@ -1,0 +1,60 @@
+{
+  "engine": "mlx",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "python": "3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "packages": {
+    "mlx": {
+      "path": "/opt/homebrew/Cellar/mlx/0.31.2/lib/python3.14/site-packages/mlx",
+      "logical_bytes": 1504137,
+      "version": "0.31.2"
+    },
+    "numpy": {
+      "path": "/opt/homebrew/lib/python3.14/site-packages/numpy",
+      "logical_bytes": 31354980,
+      "version": "2.4.4"
+    },
+    "tokenizers": {
+      "path": "/opt/homebrew/lib/python3.14/site-packages/tokenizers",
+      "logical_bytes": 8584200,
+      "version": "0.22.2"
+    },
+    "safetensors": {
+      "path": "/opt/homebrew/lib/python3.14/site-packages/safetensors",
+      "logical_bytes": 1125444,
+      "version": "0.7.0"
+    }
+  },
+  "binaries": {
+    "/opt/homebrew/Cellar/mlx/0.31.2/lib/python3.14/site-packages/mlx/core.cpython-314-darwin.so": {
+      "path": "/opt/homebrew/Cellar/mlx/0.31.2/lib/python3.14/site-packages/mlx/core.cpython-314-darwin.so",
+      "bytes": 1190032,
+      "sha256": "b79bde3377103d46cc04e679acaff5dc9b68e4a64dfd6d142334a43b0d93647b"
+    },
+    "/opt/homebrew/Cellar/mlx/0.31.2/lib/libmlx.dylib": {
+      "path": "/opt/homebrew/Cellar/mlx/0.31.2/lib/libmlx.dylib",
+      "bytes": 15541536,
+      "sha256": "12689b6551497e3e3a2e3c1425e350e1b678a48d58e30acc06d7fadc0ead25fb"
+    },
+    "/opt/homebrew/Cellar/mlx/0.31.2/lib/mlx.metallib": {
+      "path": "/opt/homebrew/Cellar/mlx/0.31.2/lib/mlx.metallib",
+      "bytes": 157748008,
+      "sha256": "8c8bfcece8c0610745b68879771e5aa1b92b29fa5e17172e5508e4f5153d8d15"
+    },
+    "/opt/homebrew/Cellar/mlx/0.31.2/lib/libjaccl.dylib": {
+      "path": "/opt/homebrew/Cellar/mlx/0.31.2/lib/libjaccl.dylib",
+      "bytes": 622496,
+      "sha256": "8c999fd5c1424ea8bbe795ba66895d54aa9c49effec32b581f6674e1cd87d763"
+    }
+  },
+  "runtime_disk_parts": {
+    "python_framework": 77771953,
+    "python_packages": 42568761,
+    "external_mlx_binaries": 173912040
+  },
+  "runtime_logical_bytes_sum": 294252754,
+  "limits": [
+    "Logical file-byte counts; filesystem allocation and hardlinks can change du results.",
+    "MLX footprint uses this Homebrew installation; it is not a built standalone installer.",
+    "Model weights and OS frameworks are excluded. Python remains in both prototypes."
+  ]
+}

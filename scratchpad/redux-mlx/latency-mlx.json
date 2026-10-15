@@ -1,0 +1,32 @@
+{
+  "engine": "mlx",
+  "source": "/Users/vas/.cache/huggingface/hub/models--moondream--parakeet-redux/snapshots/2bf128600aac4b16946f7ed8372e56117fe5e23b",
+  "wav": "bench/data/asr_gate/tts/tts-fr-0.wav",
+  "python": "3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "versions": {
+    "mlx": "0.31.2",
+    "numpy": "2.4.4",
+    "tokenizers": "0.22.2"
+  },
+  "load_including_imports_seconds": 1.5466728340252303,
+  "first_call_seconds": 0.1295279169571586,
+  "cold_cached_weights_seconds": 1.6762007509823889,
+  "warm_seconds": [
+    0.10113258298952132,
+    0.05922429100610316,
+    0.05863970803329721,
+    0.09991166699910536,
+    0.10482720797881484
+  ],
+  "warm_median_seconds": 0.09991166699910536,
+  "warm_min_seconds": 0.05863970803329721,
+  "warm_max_seconds": 0.10482720797881484,
+  "peak_active_bytes": 256226886,
+  "peak_active_method": "MLX allocator high-water",
+  "peak_driver_or_cache_bytes": 38647948,
+  "peak_driver_or_cache_label": "MLX cache bytes",
+  "rss_high_water_bytes": 393887744,
+  "first_text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+  "repeat_transcripts_identical": true
+}

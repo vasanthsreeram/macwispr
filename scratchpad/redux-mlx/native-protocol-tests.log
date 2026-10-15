@@ -1,0 +1,12 @@
+test_persistent_saved_weights_protocol_and_recovery (test_app_server.RealServerTests.test_persistent_saved_weights_protocol_and_recovery) ... ok
+test_cli_usage_and_errors_remain_json_only (test_app_server.ValidationTests.test_cli_usage_and_errors_remain_json_only) ... ok
+test_conversion_manifest_is_required_and_original_export_is_rejected (test_app_server.ValidationTests.test_conversion_manifest_is_required_and_original_export_is_rejected) ... ok
+test_invalid_formats_lengths_and_truncation_do_not_expose_audio_path (test_app_server.ValidationTests.test_invalid_formats_lengths_and_truncation_do_not_expose_audio_path) ... ok
+test_missing_weights_startup_is_json_and_exits (test_app_server.ValidationTests.test_missing_weights_startup_is_json_and_exits) ... ok
+test_valid_pcm_boundaries_and_scaling (test_app_server.ValidationTests.test_valid_pcm_boundaries_and_scaling) ... ok
+test_wrong_dependency_version_has_actionable_error (test_app_server.ValidationTests.test_wrong_dependency_version_has_actionable_error) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 1.837s
+
+OK

@@ -1,0 +1,10 @@
+{
+  "action": "verified existing known release; no writes",
+  "authenticated_tensors": 993,
+  "files": 11,
+  "manifest_sha256": "9044fc7a75cce26108510caa07810d60897a9ca2ba346240bef9cc4cda300bbc",
+  "network_or_credentials_used": false,
+  "original_weights_required": false,
+  "total_bytes": 209343750,
+  "verified": true
+}

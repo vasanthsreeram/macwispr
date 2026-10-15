@@ -1,0 +1,113 @@
+test_all_base3_bytes_little_endian (test_convert_features.ConversionTests.test_all_base3_bytes_little_endian) ... ok
+test_cli_roundtrip_and_footprint (test_convert_features.ConversionTests.test_cli_roundtrip_and_footprint) ... ok
+test_decode_rejects_invalid_packing_and_scales (test_convert_features.ConversionTests.test_decode_rejects_invalid_packing_and_scales) ... ok
+test_group_boundary_and_signed_scales_are_exact (test_convert_features.ConversionTests.test_group_boundary_and_signed_scales_are_exact) ... ok
+test_load_preserves_names_layouts_and_nonquantized_dtypes (test_convert_features.ConversionTests.test_load_preserves_names_layouts_and_nonquantized_dtypes) ... ok
+test_manifest_validation (test_convert_features.ConversionTests.test_manifest_validation) ... ok
+test_partial_byte_padding_is_removed (test_convert_features.ConversionTests.test_partial_byte_padding_is_removed) ... ok
+test_tensor_and_manifest_disagreements (test_convert_features.ConversionTests.test_tensor_and_manifest_disagreements) ... ok
+test_invalid_audio (test_convert_features.FeatureTests.test_invalid_audio) ... ok
+test_public_runtime_does_not_import_torch_or_kestrel (test_convert_features.FeatureTests.test_public_runtime_does_not_import_torch_or_kestrel) ... ok
+test_shape_mask_silence_and_mlx_input (test_convert_features.FeatureTests.test_shape_mask_silence_and_mlx_input) ... ok
+Unavailable optional fixture (macOS permission): /Users/vas/Documents/macwispr/bench/clips/sample_10s_16k.wav
+Unavailable optional fixture (macOS permission): /Users/vas/Documents/macwispr/bench/clips/speech_12s_16k.wav
+test_feature_stages_against_photon (test_convert_features.PhotonParityTests.test_feature_stages_against_photon) ... 
+  test_feature_stages_against_photon (test_convert_features.PhotonParityTests.test_feature_stages_against_photon) (waveform='quiet') ... FAIL
+test_full_conversion_against_every_photon_tensor (test_convert_features.PhotonParityTests.test_full_conversion_against_every_photon_tensor) ... ok
+test_pinned_snapshot_and_exact_photon_weight_decode (test_convert_features.PhotonParityTests.test_pinned_snapshot_and_exact_photon_weight_decode) ... ok
+test_case_ids_must_be_nonempty_strings (test_end_to_end.ScoreTests.test_case_ids_must_be_nonempty_strings) ... ok
+test_case_metadata_must_match_and_be_present (test_end_to_end.ScoreTests.test_case_metadata_must_match_and_be_present) ... ok
+test_case_order_does_not_affect_matching (test_end_to_end.ScoreTests.test_case_order_does_not_affect_matching) ... ok
+test_case_sets_must_match (test_end_to_end.ScoreTests.test_case_sets_must_match) ... ok
+test_duplicate_case_ids_are_rejected_in_either_report (test_end_to_end.ScoreTests.test_duplicate_case_ids_are_rejected_in_either_report) ... ok
+test_empty_reports_are_rejected (test_end_to_end.ScoreTests.test_empty_reports_are_rejected) ... ok
+test_engine_roles_are_required (test_end_to_end.ScoreTests.test_engine_roles_are_required) ... ok
+test_expected_rejection_scoring_is_preserved (test_end_to_end.ScoreTests.test_expected_rejection_scoring_is_preserved) ... ok
+test_matching_reports_preserve_exact_transcripts (test_end_to_end.ScoreTests.test_matching_reports_preserve_exact_transcripts) ... ok
+test_normalized_match_does_not_replace_raw_exact_match (test_end_to_end.ScoreTests.test_normalized_match_does_not_replace_raw_exact_match) ... ok
+test_rejection_only_reports_are_rejected (test_end_to_end.ScoreTests.test_rejection_only_reports_are_rejected) ... ok
+test_report_settings_must_match_and_be_present (test_end_to_end.ScoreTests.test_report_settings_must_match_and_be_present) ... ok
+test_reports_need_a_successful_transcription_pair (test_end_to_end.ScoreTests.test_reports_need_a_successful_transcription_pair) ... ok
+test_runtime_errors_still_fail_a_report_with_successes (test_end_to_end.ScoreTests.test_runtime_errors_still_fail_a_report_with_successes) ... ok
+test_silent_transcription_counts_as_success (test_end_to_end.ScoreTests.test_silent_transcription_counts_as_success) ... ok
+test_window_boundary_differences_still_fail_parity (test_end_to_end.ScoreTests.test_window_boundary_differences_still_fail_parity) ... ok
+test_aligned_path_validation (test_model.PortTests.test_aligned_path_validation) ... ok
+test_all_packed_weights_preserve_original_values (test_model.PortTests.test_all_packed_weights_preserve_original_values) ... ok
+test_blank_zero_duration_advances (test_model.PortTests.test_blank_zero_duration_advances) ... ok
+test_exact_ternary_affine_mapping (test_model.PortTests.test_exact_ternary_affine_mapping) ... ok
+test_nonblank_zero_duration_budget_is_reported (test_model.PortTests.test_nonblank_zero_duration_budget_is_reported) ... ok
+test_packed_linear_matches_dense (test_model.PortTests.test_packed_linear_matches_dense) ... ok
+test_relative_shift_matches_position_index (test_model.PortTests.test_relative_shift_matches_position_index) ... ok
+test_stitch_matches_app_examples (test_model.PortTests.test_stitch_matches_app_examples) ... ok
+test_window_boundaries (test_model.PortTests.test_window_boundaries) ... ok
+test_altered_bias_with_rewritten_manifest (test_packed.ConvertedTests.test_altered_bias_with_rewritten_manifest) ... ok
+test_altered_counter_with_rewritten_manifest (test_packed.ConvertedTests.test_altered_counter_with_rewritten_manifest) ... ok
+test_altered_dense_tensor_with_rewritten_manifest (test_packed.ConvertedTests.test_altered_dense_tensor_with_rewritten_manifest) ... ok
+test_changed_finite_scales_with_rewritten_manifest (test_packed.ConvertedTests.test_changed_finite_scales_with_rewritten_manifest) ... ok
+test_changed_valid_codes_with_rewritten_manifest (test_packed.ConvertedTests.test_changed_valid_codes_with_rewritten_manifest) ... ok
+test_code_three_at_every_bit_position (test_packed.ConvertedTests.test_code_three_at_every_bit_position) ... ok
+test_equivalent_safetensors_serialization (test_packed.ConvertedTests.test_equivalent_safetensors_serialization) ... ok
+test_file_tampering_without_rewritten_manifest (test_packed.ConvertedTests.test_file_tampering_without_rewritten_manifest) ... ok
+test_metadata_tampering_with_rewritten_manifest (test_packed.ConvertedTests.test_metadata_tampering_with_rewritten_manifest) ... ok
+test_missing_and_extra_tensor_keys (test_packed.ConvertedTests.test_missing_and_extra_tensor_keys) ... ok
+test_missing_trusted_reference_fails_closed (test_packed.ConvertedTests.test_missing_trusted_reference_fails_closed) ... ok
+test_nonfinite_scales (test_packed.ConvertedTests.test_nonfinite_scales) ... ok
+test_nonquantized_shape_and_dtype (test_packed.ConvertedTests.test_nonquantized_shape_and_dtype) ... ok
+test_packed_and_scale_dtypes (test_packed.ConvertedTests.test_packed_and_scale_dtypes) ... ok
+test_packed_and_scale_shapes (test_packed.ConvertedTests.test_packed_and_scale_shapes) ... ok
+test_signed_zero_change_with_rewritten_manifest (test_packed.ConvertedTests.test_signed_zero_change_with_rewritten_manifest) ... ok
+test_tensor_reference_is_not_read_from_artifact (test_packed.ConvertedTests.test_tensor_reference_is_not_read_from_artifact) ... ok
+test_tensor_reference_must_match_pinned_source (test_packed.ConvertedTests.test_tensor_reference_must_match_pinned_source) ... ok
+test_valid_artifact_needs_no_original_weights (test_packed.ConvertedTests.test_valid_artifact_needs_no_original_weights) ... ok
+test_wrong_format_and_source (test_packed.ConvertedTests.test_wrong_format_and_source) ... ok
+test_digest_uses_little_endian_logical_c_order (test_packed.DigestTests.test_digest_uses_little_endian_logical_c_order) ... ok
+test_actual_converted_artifact (test_packed.RealArtifactTests.test_actual_converted_artifact) ... ok
+test_trusted_pins_match_authoritative_conversion (test_packed.RealArtifactTests.test_trusted_pins_match_authoritative_conversion) ... ok
+
+======================================================================
+FAIL: test_feature_stages_against_photon (test_convert_features.PhotonParityTests.test_feature_stages_against_photon) (waveform='quiet')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/vas/Documents/macwispr/bench/redux_mlx/test_convert_features.py", line 371, in test_feature_stages_against_photon
+    np.testing.assert_allclose(np.asarray(result), reference["features"], atol=3e-4, rtol=3e-5,
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                               err_msg=f"{name} features")
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.14/site-packages/numpy/testing/_private/utils.py", line 1768, in assert_allclose
+    assert_array_compare(compare, actual, desired, err_msg=str(err_msg),
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         verbose=verbose, header=header, equal_nan=equal_nan,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         strict=strict)
+                         ^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.14/site-packages/numpy/testing/_private/utils.py", line 983, in assert_array_compare
+    raise AssertionError(msg)
+AssertionError: 
+Not equal to tolerance rtol=3e-05, atol=0.0003
+quiet features
+Mismatched elements: 9474 / 13056 (72.6%)
+First 5 mismatches are at indices:
+ [0, 0, 7]: 0.17079980671405792 (ACTUAL), -0.15811413526535034 (DESIRED)
+ [0, 0, 8]: 0.1749950498342514 (ACTUAL), 0.0 (DESIRED)
+ [0, 0, 9]: 0.17485439777374268 (ACTUAL), 0.0 (DESIRED)
+ [0, 0, 10]: 0.17410168051719666 (ACTUAL), 0.0 (DESIRED)
+ [0, 0, 11]: 0.0 (ACTUAL), -0.17215955257415771 (DESIRED)
+Max absolute difference among violations: 0.3542853
+Max relative difference among violations: 2.2406933
+ ACTUAL: array([[[ 0.      ,  0.      ,  0.      , ..., -0.717211, -0.113523,
+         -1.294925],
+        [ 0.      ,  0.      ,  0.      , ..., -0.494976,  0.351922,...
+ DESIRED: array([[[ 0.      ,  0.      ,  0.      , ..., -0.727648, -0.124808,
+         -1.294526],
+        [ 0.      ,  0.      ,  0.      , ..., -0.495205,  0.340386,...
+
+----------------------------------------------------------------------
+Ran 62 tests in 30.754s
+
+FAILED (failures=1)
+Unavailable optional fixture (macOS permission): /Users/vas/Documents/macwispr/bench/clips/sample_10s_16k.wav
+Unavailable optional fixture (macOS permission): /Users/vas/Documents/macwispr/bench/clips/speech_12s_16k.wav
+
+Feature parity maximum absolute errors {"batch": 3.68952751159668e-05, "impulses": 3.814697265625e-06, "noise": 5.936622619628906e-05, "silence": 0.0, "tones": 0.00017239153385162354}
+
+Full conversion verified {"tensor_count": 729, "tensor_bytes": 2463233242, "source_weight_file_bytes": 177774490, "output_weight_file_bytes": 2463316188, "output_sha256": "dffe5dc7e4420849d3f561adbb654c7bd4c469f4d9f243780ef32e10d7959279"}

@@ -1,0 +1,14 @@
+{
+  "name": "invalid-runtime",
+  "returncode": 2,
+  "wall_seconds": 1.3645941659924574,
+  "binary_sha256": "4a33272bf436bb8622944372ab81f73df3045569176432c1a2e6cbc35860b2e0",
+  "code_directory": "/Users/vas/Documents/macwispr/dist/redux-mlx-local.ysj2k8/MacWispr.app/Contents/Resources/ReduxMLX",
+  "events": [
+    {
+      "error": "MACWISPR_REDUX_RUNTIME must be photon or mlx.",
+      "event": "load_failed"
+    }
+  ],
+  "stderr": "2026-10-15 21:10:51.669 MacWispr[4392:32566013] MacWispr: menu bar status item installed\n2026-10-15 21:10:52.051 MacWispr[4392:32566013] MacWispr: Sparkle not started (no SUFeedURL in Info.plist — expected for bare SPM builds)\n"
+}

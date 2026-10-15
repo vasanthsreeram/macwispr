@@ -1,0 +1,42 @@
+{
+  "existing_core_pins_unchanged": [
+    "convert.py",
+    "corpus.py",
+    "diagnose_features.py",
+    "end_to_end.py",
+    "environment.py",
+    "evaluate.py",
+    "features.py",
+    "measure.py",
+    "model.py",
+    "offline.py",
+    "packed.py",
+    "packed_tensors.json",
+    "reference.json",
+    "reference.py",
+    "requirements-mlx.txt",
+    "requirements-reference.txt",
+    "test_convert_features.py",
+    "test_end_to_end.py",
+    "test_model.py",
+    "test_packed.py",
+    "transcribe.py"
+  ],
+  "existing_handoff_file_pins_unchanged": 12,
+  "no_remote_operations_performed": true,
+  "official_license_all_sections_present": true,
+  "prepare_imports": [
+    "__future__",
+    "argparse",
+    "hashlib",
+    "json",
+    "math",
+    "pathlib",
+    "re",
+    "shlex",
+    "shutil",
+    "struct",
+    "sys"
+  ],
+  "public_metadata_user_path_scan": "passed"
+}

@@ -1,0 +1,52 @@
+{
+  "file_count": 11,
+  "files": {
+    "LICENSE": {
+      "bytes": 18657,
+      "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411"
+    },
+    "README.md": {
+      "bytes": 8189,
+      "sha256": "003451680f1d29745136f83e4377751fde68489a3491936ced5896c08eb012a3"
+    },
+    "config.json": {
+      "bytes": 12988,
+      "sha256": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e"
+    },
+    "conversion.json": {
+      "bytes": 869,
+      "sha256": "9c6f6dd5bf691871eddec535c13cdc2e5536a7c86a174a668e93d5418357f0ac"
+    },
+    "model.safetensors": {
+      "bytes": 207858007,
+      "sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+    },
+    "packed_tensors.json": {
+      "bytes": 219801,
+      "sha256": "cd74909c621e6c5b1349bd604a8a2d51cfbcfc2d07fa71189f5240a6e11c6f73"
+    },
+    "parity-summary.json": {
+      "bytes": 2733,
+      "sha256": "c8c36abc7c997838dbfee869b601bac5f29c59ce16adb654815d0d8bfc7d0c5f"
+    },
+    "release-manifest.json": {
+      "bytes": 1761,
+      "sha256": "9044fc7a75cce26108510caa07810d60897a9ca2ba346240bef9cc4cda300bbc"
+    },
+    "source-model.json": {
+      "bytes": 2815,
+      "sha256": "8a38d4d6bb0339174bb1a45e7d76a5c2b8cdb8b0e099b7fdccfe35a6ae26c31c"
+    },
+    "ternary.json": {
+      "bytes": 57970,
+      "sha256": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d"
+    },
+    "tokenizer.json": {
+      "bytes": 1159960,
+      "sha256": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91"
+    }
+  },
+  "model_tensor_count": 993,
+  "publication_performed": false,
+  "total_bytes": 209343750
+}

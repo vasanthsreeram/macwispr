@@ -1,0 +1,686 @@
+{
+  "name": "corpus",
+  "returncode": 1,
+  "wall_seconds": 16.936741333047394,
+  "binary_sha256": "4a33272bf436bb8622944372ab81f73df3045569176432c1a2e6cbc35860b2e0",
+  "code_directory": "/Users/vas/Documents/macwispr/dist/redux-mlx-local.ysj2k8/MacWispr.app/Contents/Resources/ReduxMLX",
+  "events": [
+    {
+      "app_peak_rss_bytes": 81543168,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 1480704,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3989,
+        "process_peak_rss_bytes": 334872576,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "event": "loaded",
+      "model": "Parakeet-Redux",
+      "runtime": "redux-mlx",
+      "seconds": 1.4833379983901978
+    },
+    {
+      "error": "Redux MLX: Each request needs 320 to 448000 samples at 16 kHz. Chunk longer audio in the caller. Select Photon manually to use the reference runtime.",
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-319.wav"
+    },
+    {
+      "app_peak_rss_bytes": 81903616,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 2147591,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3989,
+        "process_peak_rss_bytes": 339083264,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-320.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.0843280553817749,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 81903616,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 2198792,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3989,
+        "process_peak_rss_bytes": 339279872,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-321.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.04667103290557861,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 81920000,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 2198792,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3989,
+        "process_peak_rss_bytes": 339296256,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-479.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.04432499408721924,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 81920000,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 2198796,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3989,
+        "process_peak_rss_bytes": 339312640,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-480.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.04508697986602783,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 81920000,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 2198796,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3989,
+        "process_peak_rss_bytes": 339312640,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-481.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.03913307189941406,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 81952768,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 2362668,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3989,
+        "process_peak_rss_bytes": 339394560,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-1279.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.04210209846496582,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 81952768,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 2707276,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3989,
+        "process_peak_rss_bytes": 340049920,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-1280.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.05293405055999756,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 81952768,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 2895692,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3989,
+        "process_peak_rss_bytes": 340049920,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-1281.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.09522199630737305,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 82362368,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 12087691,
+        "peak_gpu_bytes": 229812853,
+        "pid": 3989,
+        "process_peak_rss_bytes": 340279296,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/silence-16000.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.12141096591949463,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 82362368,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 12104075,
+        "peak_gpu_bytes": 229812853,
+        "pid": 3989,
+        "process_peak_rss_bytes": 340328448,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/edge-impulses-1280.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.04964900016784668,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 82378752,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 12104075,
+        "peak_gpu_bytes": 229812853,
+        "pid": 3989,
+        "process_peak_rss_bytes": 340344832,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/edge-impulses-1281.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.059554100036621094,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 82526208,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 19526492,
+        "peak_gpu_bytes": 230697852,
+        "pid": 3989,
+        "process_peak_rss_bytes": 340459520,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-en-short.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.13480901718139648,
+      "text": "Please send the report."
+    },
+    {
+      "app_peak_rss_bytes": 83345408,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 58506419,
+        "peak_gpu_bytes": 260568493,
+        "pid": 3989,
+        "process_peak_rss_bytes": 345915392,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-en-sentence.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.26540207862854004,
+      "text": "The meeting starts at 9 tomorrow morning. Please send the final report before Friday."
+    },
+    {
+      "app_peak_rss_bytes": 84148224,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 92535987,
+        "peak_gpu_bytes": 260568493,
+        "pid": 3989,
+        "process_peak_rss_bytes": 351551488,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-fr.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.25231707096099854,
+      "text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir."
+    },
+    {
+      "app_peak_rss_bytes": 84492288,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 121814195,
+        "peak_gpu_bytes": 260568493,
+        "pid": 3989,
+        "process_peak_rss_bytes": 352927744,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-de.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.2704000473022461,
+      "text": "Guten Morgen, ich möchte einen Termin für nächste Woche vereinbaren."
+    },
+    {
+      "app_peak_rss_bytes": 84492288,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 147782835,
+        "peak_gpu_bytes": 260568493,
+        "pid": 3989,
+        "process_peak_rss_bytes": 353173504,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-es.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.23910796642303467,
+      "text": "Hola, necesito cambiar la fecha de mi vuelo en Madrid."
+    },
+    {
+      "app_peak_rss_bytes": 84492288,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 185957557,
+        "peak_gpu_bytes": 260568493,
+        "pid": 3989,
+        "process_peak_rss_bytes": 353828864,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-it.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.2253410816192627,
+      "text": "Buongiorno, vorrei prenotare una camera per tre notti."
+    },
+    {
+      "app_peak_rss_bytes": 84672512,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 195787957,
+        "peak_gpu_bytes": 260568493,
+        "pid": 3989,
+        "process_peak_rss_bytes": 354058240,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-pt.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.2944720983505249,
+      "text": "Bom dia, gostaria de agendar uma reunião para quinta-feira."
+    },
+    {
+      "app_peak_rss_bytes": 85770240,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 267484341,
+        "peak_gpu_bytes": 289558664,
+        "pid": 3989,
+        "process_peak_rss_bytes": 357040128,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0000.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.44265997409820557,
+      "text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce"
+    },
+    {
+      "app_peak_rss_bytes": 85770240,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 272858293,
+        "peak_gpu_bytes": 289558664,
+        "pid": 3989,
+        "process_peak_rss_bytes": 357236736,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0001.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.30607402324676514,
+      "text": "Stuff it into you his belly counselled him."
+    },
+    {
+      "app_peak_rss_bytes": 86638592,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 315636917,
+        "peak_gpu_bytes": 289558664,
+        "pid": 3989,
+        "process_peak_rss_bytes": 357711872,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0002.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.4318859577178955,
+      "text": "After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels."
+    },
+    {
+      "app_peak_rss_bytes": 86638592,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 320502965,
+        "peak_gpu_bytes": 289558664,
+        "pid": 3989,
+        "process_peak_rss_bytes": 357859328,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0003.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.2822599411010742,
+      "text": "Hello, Bertie. Any good in your mind?"
+    },
+    {
+      "app_peak_rss_bytes": 86638592,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 329956533,
+        "peak_gpu_bytes": 289558664,
+        "pid": 3989,
+        "process_peak_rss_bytes": 358154240,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0004.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.3305480480194092,
+      "text": "Number ten Fresh Nelly is waiting on you. Good night, husband,"
+    },
+    {
+      "app_peak_rss_bytes": 86966272,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 398344797,
+        "peak_gpu_bytes": 291239943,
+        "pid": 3989,
+        "process_peak_rss_bytes": 368705536,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0005.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.4025580883026123,
+      "text": "The music came nearer, and he recalled the words the words of Shelley's fragment upon the moon, wandering companionless, pale for weariness."
+    },
+    {
+      "app_peak_rss_bytes": 87097344,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 437273181,
+        "peak_gpu_bytes": 291239943,
+        "pid": 3989,
+        "process_peak_rss_bytes": 369295360,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0006.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.5809379816055298,
+      "text": "The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail."
+    },
+    {
+      "app_peak_rss_bytes": 87113728,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 461062749,
+        "peak_gpu_bytes": 291239943,
+        "pid": 3989,
+        "process_peak_rss_bytes": 369541120,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0007.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.17154300212860107,
+      "text": "A cold, lucid indifference reigned in his soul."
+    },
+    {
+      "app_peak_rss_bytes": 87441408,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 498844253,
+        "peak_gpu_bytes": 291239943,
+        "pid": 3989,
+        "process_peak_rss_bytes": 370622464,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0008.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.48684704303741455,
+      "text": "The chaos in which his ardour extinguished itself was a cold, indifferent knowledge of himself,"
+    },
+    {
+      "app_peak_rss_bytes": 87932928,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 550732381,
+        "peak_gpu_bytes": 291393672,
+        "pid": 3989,
+        "process_peak_rss_bytes": 371195904,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0009.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.4255720376968384,
+      "text": "At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace."
+    },
+    {
+      "app_peak_rss_bytes": 87932928,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 579043933,
+        "peak_gpu_bytes": 291393672,
+        "pid": 3989,
+        "process_peak_rss_bytes": 371441664,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0010.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.31245899200439453,
+      "text": "Well now, Ennis, I declare you have a head, and so has my stick,"
+    },
+    {
+      "app_peak_rss_bytes": 88211456,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 660816477,
+        "peak_gpu_bytes": 305254536,
+        "pid": 3989,
+        "process_peak_rss_bytes": 372113408,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0011.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.4759230613708496,
+      "text": "On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar, from which he led his wing of boys through the responses."
+    },
+    {
+      "app_peak_rss_bytes": 88211456,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 731169373,
+        "peak_gpu_bytes": 305254536,
+        "pid": 3989,
+        "process_peak_rss_bytes": 372768768,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0012.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.4557158946990967,
+      "text": "Her eyes seemed to regard him with mild pity her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her."
+    },
+    {
+      "app_peak_rss_bytes": 88899584,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 755548765,
+        "peak_gpu_bytes": 305254536,
+        "pid": 3989,
+        "process_peak_rss_bytes": 373178368,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0013.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.3305230140686035,
+      "text": "If ever he was impelled to cast sin from him and to repent, the impulse that moved him was the wish to be her knight."
+    },
+    {
+      "app_peak_rss_bytes": 88899584,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 759218781,
+        "peak_gpu_bytes": 305254536,
+        "pid": 3989,
+        "process_peak_rss_bytes": 373293056,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0014.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.1199040412902832,
+      "text": "He tried to think how it could be"
+    },
+    {
+      "app_peak_rss_bytes": 88899584,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 768918109,
+        "peak_gpu_bytes": 305254536,
+        "pid": 3989,
+        "process_peak_rss_bytes": 373604352,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0015.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.34390807151794434,
+      "text": "but the dusk, deepening in the school room, covered over his thoughts. The bell rang,"
+    },
+    {
+      "app_peak_rss_bytes": 88899584,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 791986781,
+        "peak_gpu_bytes": 305254536,
+        "pid": 3989,
+        "process_peak_rss_bytes": 373833728,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0016.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.32788801193237305,
+      "text": "Then you can ask him questions on the catechism, Dedalus."
+    },
+    {
+      "app_peak_rss_bytes": 88965120,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 825246301,
+        "peak_gpu_bytes": 305254536,
+        "pid": 3989,
+        "process_peak_rss_bytes": 376143872,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0017.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.5125919580459595,
+      "text": "Stephen, leaning back and drawing idly on his scribler, listened to the talk about him, which Heron checked from time to time by saying,"
+    },
+    {
+      "app_peak_rss_bytes": 88965120,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 889209437,
+        "peak_gpu_bytes": 327800491,
+        "pid": 3989,
+        "process_peak_rss_bytes": 376143872,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0018.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.6264230012893677,
+      "text": "It was strange, too, that he found an errid pleasure in following up to the end the rigid lines of the doctrines of the church and penetrating into obscure silences only to hear and feel the more deeply his own condemnation."
+    },
+    {
+      "app_peak_rss_bytes": 88965120,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 958464605,
+        "peak_gpu_bytes": 327800491,
+        "pid": 3989,
+        "process_peak_rss_bytes": 376143872,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/ls-1089-134686-0019.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.4756690263748169,
+      "text": "The sentence of Saint James, which says that he who offends against one commandment becomes guilty of all, had seemed to him first a swollen phrase until he had begun to grope in the darkness of his own state."
+    },
+    {
+      "app_peak_rss_bytes": 100155392,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 1259455071,
+        "peak_gpu_bytes": 408983554,
+        "pid": 3989,
+        "process_peak_rss_bytes": 376143872,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/long-public-english.wav",
+      "runtime": "redux-mlx",
+      "seconds": 4.141484022140503,
+      "text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her."
+    },
+    {
+      "app_peak_rss_bytes": 100155392,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 1259455071,
+        "peak_gpu_bytes": 408983554,
+        "pid": 3989,
+        "process_peak_rss_bytes": 376143872,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/quiet-pcm16.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.09780597686767578,
+      "text": ""
+    },
+    {
+      "app_peak_rss_bytes": 100155392,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 1259455071,
+        "peak_gpu_bytes": 408983554,
+        "pid": 3989,
+        "process_peak_rss_bytes": 376143872,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/quiet-low.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.20999491214752197,
+      "text": ""
+    }
+  ],
+  "stderr": "2026-10-15 21:10:34.472 MacWispr[3983:32563605] MacWispr: menu bar status item installed\n2026-10-15 21:10:34.623 MacWispr[3983:32563605] MacWispr: Sparkle not started (no SUFeedURL in Info.plist — expected for bare SPM builds)\nsetup 10% Starting experimental Redux MLX\nsetup 50% Loading verified local Redux MLX weights\nsetup 100% Experimental Redux MLX is ready\nsetup 100% Ready · Python MLX (Experimental)\n"
+}

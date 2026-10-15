@@ -1,0 +1,58 @@
+{
+  "name": "short",
+  "returncode": 0,
+  "wall_seconds": 10.286315999983344,
+  "binary_sha256": "4a33272bf436bb8622944372ab81f73df3045569176432c1a2e6cbc35860b2e0",
+  "code_directory": "/Users/vas/Documents/macwispr/dist/redux-mlx-local.ysj2k8/MacWispr.app/Contents/Resources/ReduxMLX",
+  "events": [
+    {
+      "app_peak_rss_bytes": 81575936,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 1480704,
+        "peak_gpu_bytes": 221996482,
+        "pid": 3789,
+        "process_peak_rss_bytes": 335806464,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "event": "loaded",
+      "model": "Parakeet-Redux",
+      "runtime": "redux-mlx",
+      "seconds": 5.903005003929138
+    },
+    {
+      "app_peak_rss_bytes": 82657280,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 42465420,
+        "peak_gpu_bytes": 250681790,
+        "pid": 3789,
+        "process_peak_rss_bytes": 346685440,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-fr.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.4476180076599121,
+      "text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir."
+    },
+    {
+      "app_peak_rss_bytes": 83148800,
+      "backend_memory": {
+        "active_gpu_bytes": 220515778,
+        "backend": "redux-mlx",
+        "cache_gpu_bytes": 43350164,
+        "peak_gpu_bytes": 256226886,
+        "pid": 3789,
+        "process_peak_rss_bytes": 347471872,
+        "weights_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+      },
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-fr.wav",
+      "runtime": "redux-mlx",
+      "seconds": 0.23518598079681396,
+      "text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir."
+    }
+  ],
+  "stderr": "2026-10-15 21:10:19.016 MacWispr[3700:32560798] MacWispr: menu bar status item installed\n2026-10-15 21:10:19.182 MacWispr[3700:32560798] MacWispr: Sparkle not started (no SUFeedURL in Info.plist — expected for bare SPM builds)\nsetup 10% Starting experimental Redux MLX\nsetup 50% Loading verified local Redux MLX weights\nsetup 100% Experimental Redux MLX is ready\nsetup 100% Ready · Python MLX (Experimental)\n"
+}

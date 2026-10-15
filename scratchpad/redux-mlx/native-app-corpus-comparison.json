@@ -1,0 +1,216 @@
+{
+  "cases": 42,
+  "matches": 42,
+  "checks": [
+    {
+      "id": "silence-319",
+      "expected_rejection": true,
+      "matches_prior": true
+    },
+    {
+      "id": "silence-320",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "silence-321",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "silence-479",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "silence-480",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "silence-481",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "silence-1279",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "silence-1280",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "silence-1281",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "silence-16000",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "edge-impulses-1280",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "edge-impulses-1281",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "say-en-short",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "say-en-sentence",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "say-fr",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "say-de",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "say-es",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "say-it",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "say-pt",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0000",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0001",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0002",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0003",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0004",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0005",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0006",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0007",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0008",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0009",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0010",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0011",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0012",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0013",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0014",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0015",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0016",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0017",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0018",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "ls-1089-134686-0019",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "long-public-english",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "quiet-pcm16",
+      "expected_rejection": false,
+      "matches_prior": true
+    },
+    {
+      "id": "quiet-low",
+      "expected_rejection": false,
+      "matches_prior": true
+    }
+  ]
+}

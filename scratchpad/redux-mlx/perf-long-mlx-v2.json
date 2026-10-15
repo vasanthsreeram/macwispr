@@ -1,0 +1,62 @@
+{
+  "engine": "mlx",
+  "source": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/converted",
+  "wav": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/long-public-english.wav",
+  "source_sha256": {
+    "model.safetensors": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9",
+    "config.json": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e",
+    "tokenizer.json": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91",
+    "ternary.json": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d"
+  },
+  "wav_sha256": "22f28741b937af09e1e55a9d592703ddabc1a92422e90f7b9588fc6dd73adce3",
+  "audio_seconds": 101.7400625,
+  "window_samples": 448000,
+  "overlap_samples": 32000,
+  "python": "3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "versions": {
+    "mlx": "0.31.2",
+    "numpy": "2.4.4",
+    "tokenizers": "0.22.2"
+  },
+  "load_including_imports_seconds": 0.7326573330210522,
+  "first_call_seconds": 1.775090332957916,
+  "cold_cached_weights_seconds": 2.507747665978968,
+  "warm_seconds": [
+    1.8591453340486623,
+    1.7718328749760985,
+    2.053065666987095
+  ],
+  "warm_median_seconds": 1.8591453340486623,
+  "warm_min_seconds": 1.7718328749760985,
+  "warm_max_seconds": 2.053065666987095,
+  "memory_scope": "model load through all inference calls; imports excluded from GPU scope; RSS covers process",
+  "loaded_active_bytes": 220515778,
+  "pipeline_scope": "Photon rereads PCM WAV inside each timed call; MLX receives predecoded samples; preprocessing and window stitch included",
+  "cold_scope": "fresh process with cached weights; dependency imports, validation, load and first inference; excludes interpreter startup; OS caches unpurged",
+  "implementation_sha256": {
+    "convert.py": "7cf548ce6f98390a9abdb0ee34a435a99cc182c607878463dfeedcb0d33bafe7",
+    "corpus.py": "a352555883e8fdc52500fd99e037fe3a547e3cd0bbafab0edd72097f95411a1f",
+    "end_to_end.py": "a6caacaa09064cd92bc18547600c598639c53674f7bcf59bd702b0ca1efc8c82",
+    "environment.py": "b10360992fd4e745e92404767c6bd6473d156858120d79c2e33909e697764cda",
+    "evaluate.py": "a733e97e4335661e6ad02cc68fbb5128e58515e104d840b3040d8e8464e9dca7",
+    "features.py": "66e2031eba5aac0e8470ce9f12ee52d48d479d6631d3fb7985454a6145f9fe28",
+    "measure.py": "82f4a9ecb71ff7fb0300b9722886c9ebcb8cb9c5006c6bea43ff8c2d4e8ff522",
+    "model.py": "becbf682ecaa017bf5ac55c78b007355f934e3b00f228f68874f41a002688a32",
+    "offline.py": "46ee57fd8d023f2fd709cff21490a6f8fddbb820867ca4006b1d07a4795e2ef7",
+    "packed.py": "6de38ffb6c6b452e28f292789c97805e277f924610788ba36dc3d39cb0d9dd80",
+    "reference.py": "f9b4b1f4bb22d5c863ce79eda3bcfcffda669ec4ce635b5b5056f3c0564a7f51",
+    "test_convert_features.py": "a60794146223b5c6b75e126fecc761e0548a06a80ab4f44af9229195c6b977cf",
+    "test_end_to_end.py": "0d78c6f6715113aea5b1d31e89a1e729db89e00634aa3af4b864fb00425b0297",
+    "test_model.py": "ed94cb3e79dc79cfee463aa2903b60370c3dd8b046fc7eae5a8a36faecbad714",
+    "test_packed.py": "35db7f06ddb8f3ec5b8b30715866adf15d96948bf7fd2a2a92660bdae51e6ca6",
+    "transcribe.py": "b8d48cd17cbe79d2445796e90bae318fd1f0e0ba64322a7ac95b39cbe2dd05a9"
+  },
+  "peak_active_bytes": 403415648,
+  "peak_active_method": "MLX allocator high-water",
+  "peak_driver_or_cache_bytes": 332690606,
+  "peak_driver_or_cache_label": "MLX cache bytes",
+  "rss_high_water_bytes": 620789760,
+  "first_text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+  "repeat_transcripts_identical": true
+}

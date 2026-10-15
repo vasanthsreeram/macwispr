@@ -1,0 +1,154 @@
+Test Suite 'Selected tests' started at 2026-10-15 21:16:32.076.
+Test Suite 'MacWisprCoreTests.xctest' started at 2026-10-15 21:16:32.085.
+Test Suite 'AgentDataStoreTests' started at 2026-10-15 21:16:32.085.
+Test Case '-[MacWisprCoreTests.AgentDataStoreTests testHistoryFiltersAndSorts]' started.
+Test Case '-[MacWisprCoreTests.AgentDataStoreTests testHistoryFiltersAndSorts]' passed (0.004 seconds).
+Test Case '-[MacWisprCoreTests.AgentDataStoreTests testMeetingsListLatestAndSearch]' started.
+Test Case '-[MacWisprCoreTests.AgentDataStoreTests testMeetingsListLatestAndSearch]' passed (0.005 seconds).
+Test Case '-[MacWisprCoreTests.AgentDataStoreTests testSinceParser]' started.
+Test Case '-[MacWisprCoreTests.AgentDataStoreTests testSinceParser]' passed (0.002 seconds).
+Test Suite 'AgentDataStoreTests' passed at 2026-10-15 21:16:32.097.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.011 (0.011) seconds
+Test Suite 'AudioChunkPlannerTests' started at 2026-10-15 21:16:32.097.
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testEmptyIsNoWindows]' started.
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testEmptyIsNoWindows]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testHourLongQwenStaysWindowSized]' started.
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testHourLongQwenStaysWindowSized]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testMaxTokensIsPerWindowNotFullHour]' started.
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testMaxTokensIsPerWindowNotFullHour]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testOverlapNeverExceedsConfigured]' started.
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testOverlapNeverExceedsConfigured]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testParakeetWindowsStayUnderEncoder]' started.
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testParakeetWindowsStayUnderEncoder]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testShortClipIsSingleWindow]' started.
+Test Case '-[MacWisprCoreTests.AudioChunkPlannerTests testShortClipIsSingleWindow]' passed (0.000 seconds).
+Test Suite 'AudioChunkPlannerTests' passed at 2026-10-15 21:16:32.098.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'GrokErrorClassifierTests' started at 2026-10-15 21:16:32.098.
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testAuth]' started.
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testAuth]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testEmptySpeech]' started.
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testEmptySpeech]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testGenericServerDoesNotClaimQuota]' started.
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testGenericServerDoesNotClaimQuota]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testQuotaBodyEvenOnGeneric500]' started.
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testQuotaBodyEvenOnGeneric500]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testQuotaStatus429]' started.
+Test Case '-[MacWisprCoreTests.GrokErrorClassifierTests testQuotaStatus429]' passed (0.000 seconds).
+Test Suite 'GrokErrorClassifierTests' passed at 2026-10-15 21:16:32.099.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'InsertionDecisionTests' started at 2026-10-15 21:16:32.099.
+Test Case '-[MacWisprCoreTests.InsertionDecisionTests testAccessibilityResetTargetsOnlyThisApp]' started.
+Test Case '-[MacWisprCoreTests.InsertionDecisionTests testAccessibilityResetTargetsOnlyThisApp]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.InsertionDecisionTests testPastesWhenAllowed]' started.
+Test Case '-[MacWisprCoreTests.InsertionDecisionTests testPastesWhenAllowed]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.InsertionDecisionTests testSecureInputBlocksSyntheticPaste]' started.
+Test Case '-[MacWisprCoreTests.InsertionDecisionTests testSecureInputBlocksSyntheticPaste]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.InsertionDecisionTests testWithoutAccessibilityOnlyCopies]' started.
+Test Case '-[MacWisprCoreTests.InsertionDecisionTests testWithoutAccessibilityOnlyCopies]' passed (0.000 seconds).
+Test Suite 'InsertionDecisionTests' passed at 2026-10-15 21:16:32.100.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'MeetingMergeTests' started at 2026-10-15 21:16:32.100.
+Test Case '-[MacWisprCoreTests.MeetingMergeTests testDropsMicEchoOfSystemAudio]' started.
+Test Case '-[MacWisprCoreTests.MeetingMergeTests testDropsMicEchoOfSystemAudio]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.MeetingMergeTests testKeepsMicWhenNoSystemAudio]' started.
+Test Case '-[MacWisprCoreTests.MeetingMergeTests testKeepsMicWhenNoSystemAudio]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.MeetingMergeTests testSortsByTimeAndDropsEmpty]' started.
+Test Case '-[MacWisprCoreTests.MeetingMergeTests testSortsByTimeAndDropsEmpty]' passed (0.000 seconds).
+Test Suite 'MeetingMergeTests' passed at 2026-10-15 21:16:32.100.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'MeetingSegmenterTests' started at 2026-10-15 21:16:32.100.
+Test Case '-[MacWisprCoreTests.MeetingSegmenterTests testFindsSpeechAndSkipsSilence]' started.
+Test Case '-[MacWisprCoreTests.MeetingSegmenterTests testFindsSpeechAndSkipsSilence]' passed (0.002 seconds).
+Test Case '-[MacWisprCoreTests.MeetingSegmenterTests testLongSpeechIsCutBelowMaxLength]' started.
+Test Case '-[MacWisprCoreTests.MeetingSegmenterTests testLongSpeechIsCutBelowMaxLength]' passed (0.014 seconds).
+Test Case '-[MacWisprCoreTests.MeetingSegmenterTests testShortPausesMergeIntoOneRegion]' started.
+Test Case '-[MacWisprCoreTests.MeetingSegmenterTests testShortPausesMergeIntoOneRegion]' passed (0.001 seconds).
+Test Case '-[MacWisprCoreTests.MeetingSegmenterTests testSilenceGivesNoRegions]' started.
+Test Case '-[MacWisprCoreTests.MeetingSegmenterTests testSilenceGivesNoRegions]' passed (0.000 seconds).
+Test Suite 'MeetingSegmenterTests' passed at 2026-10-15 21:16:32.118.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.017 (0.018) seconds
+Test Suite 'MemoryPressurePolicyTests' started at 2026-10-15 21:16:32.118.
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testCriticalUnloadsBoth]' started.
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testCriticalUnloadsBoth]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testNeverUnloadsWhileRecording]' started.
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testNeverUnloadsWhileRecording]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testOOMStrings]' started.
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testOOMStrings]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testRefuseLargeWhenTight]' started.
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testRefuseLargeWhenTight]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testWarningUnloadsPolishFirst]' started.
+Test Case '-[MacWisprCoreTests.MemoryPressurePolicyTests testWarningUnloadsPolishFirst]' passed (0.000 seconds).
+Test Suite 'MemoryPressurePolicyTests' passed at 2026-10-15 21:16:32.119.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'ModelCatalogTests' started at 2026-10-15 21:16:32.119.
+Test Case '-[MacWisprCoreTests.ModelCatalogTests testOldSelectionsMigrateToRedux]' started.
+Test Case '-[MacWisprCoreTests.ModelCatalogTests testOldSelectionsMigrateToRedux]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.ModelCatalogTests testOnlyParakeetReduxIsOffered]' started.
+Test Case '-[MacWisprCoreTests.ModelCatalogTests testOnlyParakeetReduxIsOffered]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.ModelCatalogTests testSidebarPanes]' started.
+Test Case '-[MacWisprCoreTests.ModelCatalogTests testSidebarPanes]' passed (0.000 seconds).
+Test Suite 'ModelCatalogTests' passed at 2026-10-15 21:16:32.119.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'PCMCodecTests' started at 2026-10-15 21:16:32.119.
+Test Case '-[MacWisprCoreTests.PCMCodecTests testRoundTripPeaks]' started.
+Test Case '-[MacWisprCoreTests.PCMCodecTests testRoundTripPeaks]' passed (0.000 seconds).
+Test Suite 'PCMCodecTests' passed at 2026-10-15 21:16:32.119.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'PhotonSetupPlanTests' started at 2026-10-15 21:16:32.119.
+Test Case '-[MacWisprCoreTests.PhotonSetupPlanTests testFallsBackToPipWithoutUV]' started.
+Test Case '-[MacWisprCoreTests.PhotonSetupPlanTests testFallsBackToPipWithoutUV]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.PhotonSetupPlanTests testNoRuntimeWithoutUVOrPython]' started.
+Test Case '-[MacWisprCoreTests.PhotonSetupPlanTests testNoRuntimeWithoutUVOrPython]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.PhotonSetupPlanTests testPrefersBundledUVWithManagedPython]' started.
+Test Case '-[MacWisprCoreTests.PhotonSetupPlanTests testPrefersBundledUVWithManagedPython]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.PhotonSetupPlanTests testServerGoesOfflineOnlyOnceWeightsExist]' started.
+Test Case '-[MacWisprCoreTests.PhotonSetupPlanTests testServerGoesOfflineOnlyOnceWeightsExist]' passed (0.000 seconds).
+Test Suite 'PhotonSetupPlanTests' passed at 2026-10-15 21:16:32.121.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'ProcessMemoryTests' started at 2026-10-15 21:16:32.121.
+Test Case '-[MacWisprCoreTests.ProcessMemoryTests testAvailableBytesProbe]' started.
+Test Case '-[MacWisprCoreTests.ProcessMemoryTests testAvailableBytesProbe]' passed (0.000 seconds).
+Test Suite 'ProcessMemoryTests' passed at 2026-10-15 21:16:32.121.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'ReduxRuntimeConfigurationTests' started at 2026-10-15 21:16:32.121.
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testDiagnosticsDecodeAndEncodePythonWireKeys]' started.
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testDiagnosticsDecodeAndEncodePythonWireKeys]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testDiagnosticsRequireAllCountersAndAnIntegerPID]' started.
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testDiagnosticsRequireAllCountersAndAnIntegerPID]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testEmptyExplicitPathsAreNotReplacedWithDefaults]' started.
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testEmptyExplicitPathsAreNotReplacedWithDefaults]' passed (0.001 seconds).
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testEmptyPreferencesUsePhotonWithoutWritingDefaults]' started.
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testEmptyPreferencesUsePhotonWithoutWritingDefaults]' passed (0.001 seconds).
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testEnvironmentOverridesPreferencesWithoutPersistingOverrides]' started.
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testEnvironmentOverridesPreferencesWithoutPersistingOverrides]' passed (0.002 seconds).
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testExplicitStoreAndLoadRoundTrip]' started.
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testExplicitStoreAndLoadRoundTrip]' passed (0.002 seconds).
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testPartialEnvironmentPreservesOtherPreferences]' started.
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testPartialEnvironmentPreservesOtherPreferences]' passed (0.001 seconds).
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testUnknownSavedRuntimeFallsBackWithoutChangingPreferences]' started.
+Test Case '-[MacWisprCoreTests.ReduxRuntimeConfigurationTests testUnknownSavedRuntimeFallsBackWithoutChangingPreferences]' passed (0.002 seconds).
+Test Suite 'ReduxRuntimeConfigurationTests' passed at 2026-10-15 21:16:32.130.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.009 (0.009) seconds
+Test Suite 'SampleRingTests' started at 2026-10-15 21:16:32.130.
+Test Case '-[MacWisprCoreTests.SampleRingTests testCopyNewEmptyWhenCaughtUp]' started.
+Test Case '-[MacWisprCoreTests.SampleRingTests testCopyNewEmptyWhenCaughtUp]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.SampleRingTests testSpillKeepsFullCountAndReconstructs]' started.
+Test Case '-[MacWisprCoreTests.SampleRingTests testSpillKeepsFullCountAndReconstructs]' passed (0.003 seconds).
+Test Suite 'SampleRingTests' passed at 2026-10-15 21:16:32.133.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.003 (0.003) seconds
+Test Suite 'TranscriptStitchTests' started at 2026-10-15 21:16:32.133.
+Test Case '-[MacWisprCoreTests.TranscriptStitchTests testDropsOverlappingWordPrefix]' started.
+Test Case '-[MacWisprCoreTests.TranscriptStitchTests testDropsOverlappingWordPrefix]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.TranscriptStitchTests testEmptyPartsIgnored]' started.
+Test Case '-[MacWisprCoreTests.TranscriptStitchTests testEmptyPartsIgnored]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.TranscriptStitchTests testOverlapIgnoresCaseAndPunctuation]' started.
+Test Case '-[MacWisprCoreTests.TranscriptStitchTests testOverlapIgnoresCaseAndPunctuation]' passed (0.000 seconds).
+Test Case '-[MacWisprCoreTests.TranscriptStitchTests testPolishWordChunksBoundSize]' started.
+Test Case '-[MacWisprCoreTests.TranscriptStitchTests testPolishWordChunksBoundSize]' passed (0.000 seconds).
+Test Suite 'TranscriptStitchTests' passed at 2026-10-15 21:16:32.134.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'MacWisprCoreTests.xctest' passed at 2026-10-15 21:16:32.134.
+	 Executed 53 tests, with 0 failures (0 unexpected) in 0.045 (0.049) seconds
+Test Suite 'Selected tests' passed at 2026-10-15 21:16:32.134.
+	 Executed 53 tests, with 0 failures (0 unexpected) in 0.045 (0.059) seconds

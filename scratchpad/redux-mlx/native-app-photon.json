@@ -1,0 +1,24 @@
+{
+  "name": "photon",
+  "returncode": 0,
+  "wall_seconds": 19.57116666599177,
+  "binary_sha256": "4a33272bf436bb8622944372ab81f73df3045569176432c1a2e6cbc35860b2e0",
+  "code_directory": "/Users/vas/Documents/macwispr/dist/redux-mlx-local.ysj2k8/MacWispr.app/Contents/Resources/ReduxMLX",
+  "events": [
+    {
+      "app_peak_rss_bytes": 83132416,
+      "event": "loaded",
+      "model": "Parakeet-Redux",
+      "runtime": "photon",
+      "seconds": 17.7067289352417
+    },
+    {
+      "app_peak_rss_bytes": 84393984,
+      "file": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-fr.wav",
+      "runtime": "photon",
+      "seconds": 0.6169670820236206,
+      "text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir."
+    }
+  ],
+  "stderr": "2026-10-15 21:10:56.040 MacWispr[4470:32566611] MacWispr: menu bar status item installed\n2026-10-15 21:10:56.417 MacWispr[4470:32566611] MacWispr: Sparkle not started (no SUFeedURL in Info.plist — expected for bare SPM builds)\nsetup 40% Loading Parakeet Redux…\nsetup 85% Loading Parakeet Redux…\nsetup 100% Ready · Photon\n"
+}

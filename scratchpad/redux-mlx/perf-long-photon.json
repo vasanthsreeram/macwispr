@@ -1,0 +1,38 @@
+{
+  "engine": "photon",
+  "source": "/Users/vas/.cache/huggingface/hub/models--moondream--parakeet-redux/snapshots/2bf128600aac4b16946f7ed8372e56117fe5e23b",
+  "wav": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus/long-public-english.wav",
+  "wav_sha256": "22f28741b937af09e1e55a9d592703ddabc1a92422e90f7b9588fc6dd73adce3",
+  "audio_seconds": 101.7400625,
+  "window_samples": 448000,
+  "overlap_samples": 32000,
+  "python": "3.12.15 (main, Oct 14 2026, 00:55:37) [Clang 23.1.3 ]",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "versions": {
+    "moondream": "2.6.1",
+    "kestrel": "0.9.1",
+    "kestrel-kernels": "0.7.4",
+    "torch": "2.14.1",
+    "numpy": "2.5.4",
+    "tokenizers": "0.23.3"
+  },
+  "load_including_imports_seconds": 3.19931712502148,
+  "first_call_seconds": 2.8086052499711514,
+  "cold_cached_weights_seconds": 6.007922374992631,
+  "warm_seconds": [
+    2.4424056250136346,
+    2.3973220409825444,
+    2.340575375012122
+  ],
+  "warm_median_seconds": 2.3973220409825444,
+  "warm_min_seconds": 2.340575375012122,
+  "warm_max_seconds": 2.4424056250136346,
+  "peak_active_bytes": 273292544,
+  "peak_active_method": "5ms sampled lower bound",
+  "peak_driver_or_cache_bytes": 1346895872,
+  "peak_driver_or_cache_label": "MPS driver allocated bytes",
+  "rss_high_water_bytes": 968933376,
+  "first_text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+  "repeat_transcripts_identical": true,
+  "reference_telemetry_disabled_in_benchmark": true
+}

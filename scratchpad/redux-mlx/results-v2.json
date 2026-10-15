@@ -1,0 +1,624 @@
+{
+  "status": "experimental; strict parity gate fails; installed application unchanged",
+  "hardware": {
+    "chip": "Apple M5",
+    "memory_bytes": 34359738368,
+    "os": "macOS 26.6.2 arm64"
+  },
+  "corpus": {
+    "cases": 42,
+    "valid_cases": 41,
+    "expected_rejections": 1,
+    "seconds": 285.8751875,
+    "manifest_sha256": "ef3160fb5c3fed10a847bac2a8eb394d193ab5c4c45b7a6d23fd0388d5b4757d",
+    "limitations": [
+      "Synthetic European-language speech is smoke coverage only.",
+      "Public speech coverage is English read speech, not conversational/noisy dictation.",
+      "Long speech is concatenated or repeated, not a natural meeting.",
+      "Byte reproduction requires retaining WAVs; say versions can change generated audio.",
+      "No claimed coverage of all 25 Redux languages or code-switching."
+    ]
+  },
+  "app_window_parity": {
+    "cases": 42,
+    "errors": 0,
+    "expected_rejections_matched": 1,
+    "parity": {
+      "raw_exact": 41,
+      "evaluated": 41,
+      "wer": 0.0,
+      "word_errors": 0,
+      "words": 729,
+      "cer": 0.0,
+      "character_errors": 0,
+      "characters": 3291
+    },
+    "photon_accuracy": {
+      "raw_exact": 18,
+      "evaluated": 41,
+      "wer": 0.009615384615384616,
+      "word_errors": 7,
+      "words": 728,
+      "cer": 0.0030358227079538553,
+      "character_errors": 10,
+      "characters": 3294
+    },
+    "mlx_accuracy": {
+      "raw_exact": 18,
+      "evaluated": 41,
+      "wer": 0.009615384615384616,
+      "word_errors": 7,
+      "words": 728,
+      "cer": 0.0030358227079538553,
+      "character_errors": 10,
+      "characters": 3294
+    },
+    "photon_latency_seconds": {
+      "median": 0.1661071249982342,
+      "p95": 0.4232232499634847
+    },
+    "photon_total_seconds": 10.339645623986144,
+    "mlx_latency_seconds": {
+      "median": 0.1350537080434151,
+      "p95": 0.4052519590477459
+    },
+    "mlx_total_seconds": 7.712926873937249
+  },
+  "tensor_gate": {
+    "passed": false,
+    "violations": [
+      "quiet-pcm16/segment-0: features exceeds diagnostic tolerance or exact-match gate",
+      "quiet-pcm16/segment-0: subsampling exceeds diagnostic tolerance or exact-match gate",
+      "quiet-pcm16/segment-0: layer_0 exceeds diagnostic tolerance or exact-match gate",
+      "quiet-low/segment-0: features exceeds diagnostic tolerance or exact-match gate"
+    ],
+    "segments": 44,
+    "exact_paths": {
+      "tokens": 44,
+      "durations": 44,
+      "frames": 44
+    },
+    "metric_extrema": {
+      "features": {
+        "max_abs": 0.20036828517913818,
+        "mean_abs": 0.00377594380499351,
+        "max_relative": 19496779.143810272,
+        "mean_relative": 9295.39585994075,
+        "cosine": 0.9998175801106866,
+        "normalized_l2": 0.01910020653367736
+      },
+      "subsampling": {
+        "max_abs": 57.375,
+        "mean_abs": 4.864246213665376,
+        "max_relative": 2372.3684210526317,
+        "mean_relative": 0.18481332931424707,
+        "cosine": 0.9997556162394261,
+        "normalized_l2": 0.0221272085766345
+      },
+      "layer_0": {
+        "max_abs": 1.9375,
+        "mean_abs": 0.16559446938873196,
+        "max_relative": 1695.2545454545455,
+        "mean_relative": 0.26813099424861586,
+        "cosine": 0.9996527089917374,
+        "normalized_l2": 0.026352856896128728
+      },
+      "layer_23": {
+        "max_abs": 0.00165557861328125,
+        "mean_abs": 4.73014370072633e-05,
+        "max_relative": 4309.415817260742,
+        "mean_relative": 0.07585633511759578,
+        "cosine": 0.9999940525259542,
+        "normalized_l2": 0.003644785422261506
+      },
+      "encoder": {
+        "max_abs": 0.00165557861328125,
+        "mean_abs": 4.73014370072633e-05,
+        "max_relative": 4309.415817260742,
+        "mean_relative": 0.07585633511759578,
+        "cosine": 0.9999940525259542,
+        "normalized_l2": 0.003644785422261506
+      },
+      "encoded": {
+        "max_abs": 0.05908203125,
+        "mean_abs": 0.0005193654447793961,
+        "max_relative": 6143.0,
+        "mean_relative": 0.24391896564526908,
+        "cosine": 0.9999940523305042,
+        "normalized_l2": 0.0035625838875164083
+      },
+      "teacher_logits_vocab": {
+        "max_abs": 0.75,
+        "mean_abs": 0.10114102740144025,
+        "max_relative": 0.010551948051948052,
+        "mean_relative": 0.001977736307902642,
+        "cosine": 0.9999997475182916,
+        "normalized_l2": 0.002015318386758211,
+        "kl_mean": 6.706297075360732e-06,
+        "kl_max": 0.00023666622704204138,
+        "argmax_matches": 2046,
+        "argmax_steps": 2046
+      },
+      "teacher_logits_duration": {
+        "max_abs": 0.96875,
+        "mean_abs": 0.1261962890625,
+        "max_relative": 3.1753130590339893,
+        "mean_relative": 0.027876056711739837,
+        "cosine": 0.9999957850602506,
+        "normalized_l2": 0.004119713396274624,
+        "kl_mean": 0.0003072932072889866,
+        "kl_max": 0.008599727750487372,
+        "argmax_matches": 2046,
+        "argmax_steps": 2046
+      }
+    },
+    "metric_extrema_scope": "max errors and minimum cosine across segments; mean_abs and KL mean extrema are worst segment means, not corpus-weighted means"
+  },
+  "tests": {
+    "total": 62,
+    "passed": 61,
+    "failed": 1,
+    "failure": "PhotonParityTests.test_feature_stages_against_photon quiet floating-point noise probe; normalized max_abs 0.3542853",
+    "metric_artifact_self_tests": "passed",
+    "optional_audio_fixtures_unavailable": [
+      "sample_10s_16k.wav",
+      "speech_12s_16k.wav"
+    ]
+  },
+  "performance": {
+    "short": {
+      "photon": {
+        "engine": "photon",
+        "source": "/Users/vas/.cache/huggingface/hub/models--moondream--parakeet-redux/snapshots/2bf128600aac4b16946f7ed8372e56117fe5e23b",
+        "wav": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-fr.wav",
+        "source_sha256": {
+          "model.safetensors": "78ec25733ee0d0c1586d1346fc86db9d0c2e436e3a8ab1d32a82d1bb8f848d21",
+          "config.json": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e",
+          "tokenizer.json": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91",
+          "ternary.json": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d"
+        },
+        "wav_sha256": "a5e81bfcd3d7b5ffeb716cec1b129eca72f30ed4545a5e6f941f1754b2f94d4f",
+        "audio_seconds": 4.223625,
+        "window_samples": 448000,
+        "overlap_samples": 32000,
+        "python": "3.12.15 (main, Oct 14 2026, 00:55:37) [Clang 23.1.3 ]",
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "versions": {
+          "moondream": "2.6.1",
+          "kestrel": "0.9.1",
+          "kestrel-kernels": "0.7.4",
+          "torch": "2.14.1",
+          "numpy": "2.5.4",
+          "tokenizers": "0.23.3"
+        },
+        "load_including_imports_seconds": 3.949389624991454,
+        "first_call_seconds": 0.33051212498685345,
+        "cold_cached_weights_seconds": 4.279901749978308,
+        "warm_seconds": [
+          0.10734500002581626,
+          0.1399080419796519,
+          0.12100745795760304,
+          0.09550908399978653,
+          0.08313370903488249,
+          0.11377108300803229,
+          0.09474941698135808
+        ],
+        "warm_median_seconds": 0.10734500002581626,
+        "warm_min_seconds": 0.08313370903488249,
+        "warm_max_seconds": 0.1399080419796519,
+        "memory_scope": "model load through all inference calls; imports excluded from GPU scope; RSS covers process",
+        "loaded_active_bytes": 220916480,
+        "pipeline_scope": "Photon rereads PCM WAV inside each timed call; MLX receives predecoded samples; preprocessing and window stitch included",
+        "cold_scope": "fresh process with cached weights; dependency imports, validation, load and first inference; excludes interpreter startup; OS caches unpurged",
+        "implementation_sha256": {
+          "convert.py": "7cf548ce6f98390a9abdb0ee34a435a99cc182c607878463dfeedcb0d33bafe7",
+          "corpus.py": "a352555883e8fdc52500fd99e037fe3a547e3cd0bbafab0edd72097f95411a1f",
+          "end_to_end.py": "a6caacaa09064cd92bc18547600c598639c53674f7bcf59bd702b0ca1efc8c82",
+          "environment.py": "b10360992fd4e745e92404767c6bd6473d156858120d79c2e33909e697764cda",
+          "evaluate.py": "a733e97e4335661e6ad02cc68fbb5128e58515e104d840b3040d8e8464e9dca7",
+          "features.py": "66e2031eba5aac0e8470ce9f12ee52d48d479d6631d3fb7985454a6145f9fe28",
+          "measure.py": "82f4a9ecb71ff7fb0300b9722886c9ebcb8cb9c5006c6bea43ff8c2d4e8ff522",
+          "model.py": "becbf682ecaa017bf5ac55c78b007355f934e3b00f228f68874f41a002688a32",
+          "offline.py": "46ee57fd8d023f2fd709cff21490a6f8fddbb820867ca4006b1d07a4795e2ef7",
+          "packed.py": "6de38ffb6c6b452e28f292789c97805e277f924610788ba36dc3d39cb0d9dd80",
+          "reference.py": "f9b4b1f4bb22d5c863ce79eda3bcfcffda669ec4ce635b5b5056f3c0564a7f51",
+          "test_convert_features.py": "a60794146223b5c6b75e126fecc761e0548a06a80ab4f44af9229195c6b977cf",
+          "test_end_to_end.py": "0d78c6f6715113aea5b1d31e89a1e729db89e00634aa3af4b864fb00425b0297",
+          "test_model.py": "ed94cb3e79dc79cfee463aa2903b60370c3dd8b046fc7eae5a8a36faecbad714",
+          "test_packed.py": "35db7f06ddb8f3ec5b8b30715866adf15d96948bf7fd2a2a92660bdae51e6ca6",
+          "transcribe.py": "b8d48cd17cbe79d2445796e90bae318fd1f0e0ba64322a7ac95b39cbe2dd05a9"
+        },
+        "peak_active_bytes": 229840896,
+        "peak_active_method": "5ms sampled lower bound",
+        "peak_driver_or_cache_bytes": 271581184,
+        "peak_driver_or_cache_label": "MPS driver allocated bytes",
+        "rss_high_water_bytes": 877527040,
+        "first_text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+        "repeat_transcripts_identical": true,
+        "reference_telemetry_disabled_in_benchmark": true,
+        "reference_provenance": {
+          "model_id": "moondream/parakeet-redux",
+          "revision": "2bf128600aac4b16946f7ed8372e56117fe5e23b",
+          "snapshot": "/Users/vas/.cache/huggingface/hub/models--moondream--parakeet-redux/snapshots/2bf128600aac4b16946f7ed8372e56117fe5e23b",
+          "source_hashes": {
+            "config.json": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e",
+            "tokenizer.json": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91",
+            "ternary.json": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d",
+            "model.safetensors": "78ec25733ee0d0c1586d1346fc86db9d0c2e436e3a8ab1d32a82d1bb8f848d21"
+          },
+          "runtime_source_hashes": {
+            "parakeet_tdt/config.py": "88ce2f9b2330c3de3e4831cbb96a81b6e538a7ec0bf46f76bab65383ea909cb1",
+            "parakeet_tdt/features.py": "c3bc00f7bbb2b249dbb73c31fd621ff3149718fdf14b5c44fbcb9d8e19ecbbe5",
+            "parakeet_tdt/model.py": "c9a6cd14bbe21cb2bb7f6833224b762d31b5949c85e557722b1d57a898afd341",
+            "parakeet_tdt/runtime.py": "81690445c4eb92e322fa6e77bf6740a8ef682397953fda367aacfb966d3e1ca8",
+            "parakeet_tdt/weights.py": "3a727e72f2630f2da7b10d8b8dbebf24c2faf2cd1c336ce71937f97f2adc0dcf",
+            "parakeet_tdt/tokenizer.py": "e0482dbc67641b414f659c4abb12558d26fb4c638b4c954094c9fda713e854cf",
+            "parakeet_tdt/segment.py": "717c337799be0a2e0f727d2876b2acd86db7c1824d5a7e737ae982e2a1930f0f",
+            "parakeet_tdt/longform.py": "9409767e4ee6f7c86bb97a22ac2ec3ba88c248ac526f1e8733ac8cef7d0b85f4",
+            "parakeet_tdt/vad.py": "4b953af4ede9c2029badbf153952b96bfca93eba15f1c4ad972677a1cc9c670c",
+            "asr/features.py": "76be163d561bc24e4cf7ee070e0265dd266a03d5c3d1cf91c9c48d5d834f5c79",
+            "asr/audio.py": "0b9d38ddde475199fb8fa94102209a37cd3239519daecf663a1bca0333f376e1",
+            "kestrel/config.py": "df3f95b5d247659779f4078fde902d76d94c5268285d7d38f336d92bad764247"
+          },
+          "exporter_source_hashes": {
+            "reference.py": "f9b4b1f4bb22d5c863ce79eda3bcfcffda669ec4ce635b5b5056f3c0564a7f51",
+            "evaluate.py": "a733e97e4335661e6ad02cc68fbb5128e58515e104d840b3040d8e8464e9dca7",
+            "corpus.py": "a352555883e8fdc52500fd99e037fe3a547e3cd0bbafab0edd72097f95411a1f",
+            "offline.py": "46ee57fd8d023f2fd709cff21490a6f8fddbb820867ca4006b1d07a4795e2ef7",
+            "reference.json": "6add42b609cd856102ee098ab2f6d4550b03a81bd5c48c2be2f356c190250bb9",
+            "requirements-reference.txt": "da04ef2a95723eb870af4bd8bc67ef1bd2823af21276dfe8ef6528d5ea336c42"
+          },
+          "packages": {
+            "moondream": "2.6.1",
+            "kestrel": "0.9.1",
+            "torch": "2.14.1",
+            "kestrel-kernels": "0.7.4",
+            "kestrel-native": "0.1.8",
+            "numpy": "2.5.4",
+            "safetensors": "0.8.0",
+            "tokenizers": "0.23.3",
+            "huggingface-hub": "2.2.0"
+          },
+          "python": "3.12.15",
+          "platform": "macOS-26.6.2-arm64-arm-64bit",
+          "machine": "arm64",
+          "mps_environment": {
+            "PYTORCH_ENABLE_MPS_FALLBACK": null,
+            "PYTORCH_MPS_FAST_MATH": null,
+            "PYTORCH_MPS_PREFER_METAL": null
+          }
+        }
+      },
+      "mlx": {
+        "engine": "mlx",
+        "source": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/converted",
+        "wav": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/say-fr.wav",
+        "source_sha256": {
+          "model.safetensors": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9",
+          "config.json": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e",
+          "tokenizer.json": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91",
+          "ternary.json": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d"
+        },
+        "wav_sha256": "a5e81bfcd3d7b5ffeb716cec1b129eca72f30ed4545a5e6f941f1754b2f94d4f",
+        "audio_seconds": 4.223625,
+        "window_samples": 448000,
+        "overlap_samples": 32000,
+        "python": "3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]",
+        "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+        "versions": {
+          "mlx": "0.31.2",
+          "numpy": "2.4.4",
+          "tokenizers": "0.22.2"
+        },
+        "load_including_imports_seconds": 0.5547257500002161,
+        "first_call_seconds": 0.14450362499337643,
+        "cold_cached_weights_seconds": 0.6992293749935925,
+        "warm_seconds": [
+          0.08315204200334847,
+          0.06502979196375236,
+          0.06720920896623284,
+          0.09683179203420877,
+          0.13741408300120384,
+          0.1203780000214465,
+          0.10974824998993427
+        ],
+        "warm_median_seconds": 0.09683179203420877,
+        "warm_min_seconds": 0.06502979196375236,
+        "warm_max_seconds": 0.13741408300120384,
+        "memory_scope": "model load through all inference calls; imports excluded from GPU scope; RSS covers process",
+        "loaded_active_bytes": 220515778,
+        "pipeline_scope": "Photon rereads PCM WAV inside each timed call; MLX receives predecoded samples; preprocessing and window stitch included",
+        "cold_scope": "fresh process with cached weights; dependency imports, validation, load and first inference; excludes interpreter startup; OS caches unpurged",
+        "implementation_sha256": {
+          "convert.py": "7cf548ce6f98390a9abdb0ee34a435a99cc182c607878463dfeedcb0d33bafe7",
+          "corpus.py": "a352555883e8fdc52500fd99e037fe3a547e3cd0bbafab0edd72097f95411a1f",
+          "end_to_end.py": "a6caacaa09064cd92bc18547600c598639c53674f7bcf59bd702b0ca1efc8c82",
+          "environment.py": "b10360992fd4e745e92404767c6bd6473d156858120d79c2e33909e697764cda",
+          "evaluate.py": "a733e97e4335661e6ad02cc68fbb5128e58515e104d840b3040d8e8464e9dca7",
+          "features.py": "66e2031eba5aac0e8470ce9f12ee52d48d479d6631d3fb7985454a6145f9fe28",
+          "measure.py": "82f4a9ecb71ff7fb0300b9722886c9ebcb8cb9c5006c6bea43ff8c2d4e8ff522",
+          "model.py": "becbf682ecaa017bf5ac55c78b007355f934e3b00f228f68874f41a002688a32",
+          "offline.py": "46ee57fd8d023f2fd709cff21490a6f8fddbb820867ca4006b1d07a4795e2ef7",
+          "packed.py": "6de38ffb6c6b452e28f292789c97805e277f924610788ba36dc3d39cb0d9dd80",
+          "reference.py": "f9b4b1f4bb22d5c863ce79eda3bcfcffda669ec4ce635b5b5056f3c0564a7f51",
+          "test_convert_features.py": "a60794146223b5c6b75e126fecc761e0548a06a80ab4f44af9229195c6b977cf",
+          "test_end_to_end.py": "0d78c6f6715113aea5b1d31e89a1e729db89e00634aa3af4b864fb00425b0297",
+          "test_model.py": "ed94cb3e79dc79cfee463aa2903b60370c3dd8b046fc7eae5a8a36faecbad714",
+          "test_packed.py": "35db7f06ddb8f3ec5b8b30715866adf15d96948bf7fd2a2a92660bdae51e6ca6",
+          "transcribe.py": "b8d48cd17cbe79d2445796e90bae318fd1f0e0ba64322a7ac95b39cbe2dd05a9"
+        },
+        "peak_active_bytes": 256226886,
+        "peak_active_method": "MLX allocator high-water",
+        "peak_driver_or_cache_bytes": 37157004,
+        "peak_driver_or_cache_label": "MLX cache bytes",
+        "rss_high_water_bytes": 553189376,
+        "first_text": "Bonjour, je voudrais réserver une table pour deux personnes ce soir.",
+        "repeat_transcripts_identical": true
+      }
+    },
+    "long": {
+      "photon": {
+        "engine": "photon",
+        "source": "/Users/vas/.cache/huggingface/hub/models--moondream--parakeet-redux/snapshots/2bf128600aac4b16946f7ed8372e56117fe5e23b",
+        "wav": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/long-public-english.wav",
+        "source_sha256": {
+          "model.safetensors": "78ec25733ee0d0c1586d1346fc86db9d0c2e436e3a8ab1d32a82d1bb8f848d21",
+          "config.json": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e",
+          "tokenizer.json": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91",
+          "ternary.json": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d"
+        },
+        "wav_sha256": "22f28741b937af09e1e55a9d592703ddabc1a92422e90f7b9588fc6dd73adce3",
+        "audio_seconds": 101.7400625,
+        "window_samples": 448000,
+        "overlap_samples": 32000,
+        "python": "3.12.15 (main, Oct 14 2026, 00:55:37) [Clang 23.1.3 ]",
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "versions": {
+          "moondream": "2.6.1",
+          "kestrel": "0.9.1",
+          "kestrel-kernels": "0.7.4",
+          "torch": "2.14.1",
+          "numpy": "2.5.4",
+          "tokenizers": "0.23.3"
+        },
+        "load_including_imports_seconds": 3.917038042040076,
+        "first_call_seconds": 4.715079625020735,
+        "cold_cached_weights_seconds": 8.632117667060811,
+        "warm_seconds": [
+          3.0842862499994226,
+          3.0614839579793625,
+          3.0332643329747953
+        ],
+        "warm_median_seconds": 3.0614839579793625,
+        "warm_min_seconds": 3.0332643329747953,
+        "warm_max_seconds": 3.0842862499994226,
+        "memory_scope": "model load through all inference calls; imports excluded from GPU scope; RSS covers process",
+        "loaded_active_bytes": 220916480,
+        "pipeline_scope": "Photon rereads PCM WAV inside each timed call; MLX receives predecoded samples; preprocessing and window stitch included",
+        "cold_scope": "fresh process with cached weights; dependency imports, validation, load and first inference; excludes interpreter startup; OS caches unpurged",
+        "implementation_sha256": {
+          "convert.py": "7cf548ce6f98390a9abdb0ee34a435a99cc182c607878463dfeedcb0d33bafe7",
+          "corpus.py": "a352555883e8fdc52500fd99e037fe3a547e3cd0bbafab0edd72097f95411a1f",
+          "end_to_end.py": "a6caacaa09064cd92bc18547600c598639c53674f7bcf59bd702b0ca1efc8c82",
+          "environment.py": "b10360992fd4e745e92404767c6bd6473d156858120d79c2e33909e697764cda",
+          "evaluate.py": "a733e97e4335661e6ad02cc68fbb5128e58515e104d840b3040d8e8464e9dca7",
+          "features.py": "66e2031eba5aac0e8470ce9f12ee52d48d479d6631d3fb7985454a6145f9fe28",
+          "measure.py": "82f4a9ecb71ff7fb0300b9722886c9ebcb8cb9c5006c6bea43ff8c2d4e8ff522",
+          "model.py": "becbf682ecaa017bf5ac55c78b007355f934e3b00f228f68874f41a002688a32",
+          "offline.py": "46ee57fd8d023f2fd709cff21490a6f8fddbb820867ca4006b1d07a4795e2ef7",
+          "packed.py": "6de38ffb6c6b452e28f292789c97805e277f924610788ba36dc3d39cb0d9dd80",
+          "reference.py": "f9b4b1f4bb22d5c863ce79eda3bcfcffda669ec4ce635b5b5056f3c0564a7f51",
+          "test_convert_features.py": "a60794146223b5c6b75e126fecc761e0548a06a80ab4f44af9229195c6b977cf",
+          "test_end_to_end.py": "0d78c6f6715113aea5b1d31e89a1e729db89e00634aa3af4b864fb00425b0297",
+          "test_model.py": "ed94cb3e79dc79cfee463aa2903b60370c3dd8b046fc7eae5a8a36faecbad714",
+          "test_packed.py": "35db7f06ddb8f3ec5b8b30715866adf15d96948bf7fd2a2a92660bdae51e6ca6",
+          "transcribe.py": "b8d48cd17cbe79d2445796e90bae318fd1f0e0ba64322a7ac95b39cbe2dd05a9"
+        },
+        "peak_active_bytes": 273292544,
+        "peak_active_method": "5ms sampled lower bound",
+        "peak_driver_or_cache_bytes": 1345110016,
+        "peak_driver_or_cache_label": "MPS driver allocated bytes",
+        "rss_high_water_bytes": 877936640,
+        "first_text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+        "repeat_transcripts_identical": true,
+        "reference_telemetry_disabled_in_benchmark": true,
+        "reference_provenance": {
+          "model_id": "moondream/parakeet-redux",
+          "revision": "2bf128600aac4b16946f7ed8372e56117fe5e23b",
+          "snapshot": "/Users/vas/.cache/huggingface/hub/models--moondream--parakeet-redux/snapshots/2bf128600aac4b16946f7ed8372e56117fe5e23b",
+          "source_hashes": {
+            "config.json": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e",
+            "tokenizer.json": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91",
+            "ternary.json": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d",
+            "model.safetensors": "78ec25733ee0d0c1586d1346fc86db9d0c2e436e3a8ab1d32a82d1bb8f848d21"
+          },
+          "runtime_source_hashes": {
+            "parakeet_tdt/config.py": "88ce2f9b2330c3de3e4831cbb96a81b6e538a7ec0bf46f76bab65383ea909cb1",
+            "parakeet_tdt/features.py": "c3bc00f7bbb2b249dbb73c31fd621ff3149718fdf14b5c44fbcb9d8e19ecbbe5",
+            "parakeet_tdt/model.py": "c9a6cd14bbe21cb2bb7f6833224b762d31b5949c85e557722b1d57a898afd341",
+            "parakeet_tdt/runtime.py": "81690445c4eb92e322fa6e77bf6740a8ef682397953fda367aacfb966d3e1ca8",
+            "parakeet_tdt/weights.py": "3a727e72f2630f2da7b10d8b8dbebf24c2faf2cd1c336ce71937f97f2adc0dcf",
+            "parakeet_tdt/tokenizer.py": "e0482dbc67641b414f659c4abb12558d26fb4c638b4c954094c9fda713e854cf",
+            "parakeet_tdt/segment.py": "717c337799be0a2e0f727d2876b2acd86db7c1824d5a7e737ae982e2a1930f0f",
+            "parakeet_tdt/longform.py": "9409767e4ee6f7c86bb97a22ac2ec3ba88c248ac526f1e8733ac8cef7d0b85f4",
+            "parakeet_tdt/vad.py": "4b953af4ede9c2029badbf153952b96bfca93eba15f1c4ad972677a1cc9c670c",
+            "asr/features.py": "76be163d561bc24e4cf7ee070e0265dd266a03d5c3d1cf91c9c48d5d834f5c79",
+            "asr/audio.py": "0b9d38ddde475199fb8fa94102209a37cd3239519daecf663a1bca0333f376e1",
+            "kestrel/config.py": "df3f95b5d247659779f4078fde902d76d94c5268285d7d38f336d92bad764247"
+          },
+          "exporter_source_hashes": {
+            "reference.py": "f9b4b1f4bb22d5c863ce79eda3bcfcffda669ec4ce635b5b5056f3c0564a7f51",
+            "evaluate.py": "a733e97e4335661e6ad02cc68fbb5128e58515e104d840b3040d8e8464e9dca7",
+            "corpus.py": "a352555883e8fdc52500fd99e037fe3a547e3cd0bbafab0edd72097f95411a1f",
+            "offline.py": "46ee57fd8d023f2fd709cff21490a6f8fddbb820867ca4006b1d07a4795e2ef7",
+            "reference.json": "6add42b609cd856102ee098ab2f6d4550b03a81bd5c48c2be2f356c190250bb9",
+            "requirements-reference.txt": "da04ef2a95723eb870af4bd8bc67ef1bd2823af21276dfe8ef6528d5ea336c42"
+          },
+          "packages": {
+            "moondream": "2.6.1",
+            "kestrel": "0.9.1",
+            "torch": "2.14.1",
+            "kestrel-kernels": "0.7.4",
+            "kestrel-native": "0.1.8",
+            "numpy": "2.5.4",
+            "safetensors": "0.8.0",
+            "tokenizers": "0.23.3",
+            "huggingface-hub": "2.2.0"
+          },
+          "python": "3.12.15",
+          "platform": "macOS-26.6.2-arm64-arm-64bit",
+          "machine": "arm64",
+          "mps_environment": {
+            "PYTORCH_ENABLE_MPS_FALLBACK": null,
+            "PYTORCH_MPS_FAST_MATH": null,
+            "PYTORCH_MPS_PREFER_METAL": null
+          }
+        }
+      },
+      "mlx": {
+        "engine": "mlx",
+        "source": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/converted",
+        "wav": "/Users/vas/Documents/macwispr/bench/results/redux_mlx/corpus-v2/long-public-english.wav",
+        "source_sha256": {
+          "model.safetensors": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9",
+          "config.json": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e",
+          "tokenizer.json": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91",
+          "ternary.json": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d"
+        },
+        "wav_sha256": "22f28741b937af09e1e55a9d592703ddabc1a92422e90f7b9588fc6dd73adce3",
+        "audio_seconds": 101.7400625,
+        "window_samples": 448000,
+        "overlap_samples": 32000,
+        "python": "3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]",
+        "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+        "versions": {
+          "mlx": "0.31.2",
+          "numpy": "2.4.4",
+          "tokenizers": "0.22.2"
+        },
+        "load_including_imports_seconds": 0.7326573330210522,
+        "first_call_seconds": 1.775090332957916,
+        "cold_cached_weights_seconds": 2.507747665978968,
+        "warm_seconds": [
+          1.8591453340486623,
+          1.7718328749760985,
+          2.053065666987095
+        ],
+        "warm_median_seconds": 1.8591453340486623,
+        "warm_min_seconds": 1.7718328749760985,
+        "warm_max_seconds": 2.053065666987095,
+        "memory_scope": "model load through all inference calls; imports excluded from GPU scope; RSS covers process",
+        "loaded_active_bytes": 220515778,
+        "pipeline_scope": "Photon rereads PCM WAV inside each timed call; MLX receives predecoded samples; preprocessing and window stitch included",
+        "cold_scope": "fresh process with cached weights; dependency imports, validation, load and first inference; excludes interpreter startup; OS caches unpurged",
+        "implementation_sha256": {
+          "convert.py": "7cf548ce6f98390a9abdb0ee34a435a99cc182c607878463dfeedcb0d33bafe7",
+          "corpus.py": "a352555883e8fdc52500fd99e037fe3a547e3cd0bbafab0edd72097f95411a1f",
+          "end_to_end.py": "a6caacaa09064cd92bc18547600c598639c53674f7bcf59bd702b0ca1efc8c82",
+          "environment.py": "b10360992fd4e745e92404767c6bd6473d156858120d79c2e33909e697764cda",
+          "evaluate.py": "a733e97e4335661e6ad02cc68fbb5128e58515e104d840b3040d8e8464e9dca7",
+          "features.py": "66e2031eba5aac0e8470ce9f12ee52d48d479d6631d3fb7985454a6145f9fe28",
+          "measure.py": "82f4a9ecb71ff7fb0300b9722886c9ebcb8cb9c5006c6bea43ff8c2d4e8ff522",
+          "model.py": "becbf682ecaa017bf5ac55c78b007355f934e3b00f228f68874f41a002688a32",
+          "offline.py": "46ee57fd8d023f2fd709cff21490a6f8fddbb820867ca4006b1d07a4795e2ef7",
+          "packed.py": "6de38ffb6c6b452e28f292789c97805e277f924610788ba36dc3d39cb0d9dd80",
+          "reference.py": "f9b4b1f4bb22d5c863ce79eda3bcfcffda669ec4ce635b5b5056f3c0564a7f51",
+          "test_convert_features.py": "a60794146223b5c6b75e126fecc761e0548a06a80ab4f44af9229195c6b977cf",
+          "test_end_to_end.py": "0d78c6f6715113aea5b1d31e89a1e729db89e00634aa3af4b864fb00425b0297",
+          "test_model.py": "ed94cb3e79dc79cfee463aa2903b60370c3dd8b046fc7eae5a8a36faecbad714",
+          "test_packed.py": "35db7f06ddb8f3ec5b8b30715866adf15d96948bf7fd2a2a92660bdae51e6ca6",
+          "transcribe.py": "b8d48cd17cbe79d2445796e90bae318fd1f0e0ba64322a7ac95b39cbe2dd05a9"
+        },
+        "peak_active_bytes": 403415648,
+        "peak_active_method": "MLX allocator high-water",
+        "peak_driver_or_cache_bytes": 332690606,
+        "peak_driver_or_cache_label": "MLX cache bytes",
+        "rss_high_water_bytes": 620789760,
+        "first_text": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes, and fat mutton pieces to be ladled out in thick, peppered, flour fattened sauce. Stuff it into you, his belly counselled him. After early nightfall the yellow lamps would light up here and there the squalid quarter of the brothels. Hello, Bertie, any good in your mind? Number ten. Fresh Nelly is waiting on you Good night, husband. The music came nearer, and he recalled the words, the words of Shelley's fragment upon the moon wandering companionless, pale for weariness. The dull light fell more faintly upon the page, whereon another equation began to unfold itself slowly and to spread abroad its widening tail. A cold, lucid indifference reigned in his soul. The chaos in which his ardor extinguished itself was a cold, indifferent knowledge of himself. At most, by an alms given to a beggar whose blessing he fled from, he might hope wearily to win for himself some measure of actual grace. Well now, Ennis, I declare you have a head, and so has my stick. On Saturday mornings when the sodality met in the chapel to recite the little office, his place was a cushioned kneeling desk at the right of the altar from which he led his wing of boys through the responses. Her eyes seemed to regard him with mild pity, her holiness, a strange light glowing faintly upon her frail flesh, did not humiliate the sinner who approached her.",
+        "repeat_transcripts_identical": true
+      }
+    }
+  },
+  "disk": {
+    "photon": 775198012,
+    "mlx": 294252754
+  },
+  "weights": {
+    "original_bytes": 177774490,
+    "converted_bytes": 207858007,
+    "converted_sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9",
+    "conversion_manifest": {
+      "format": "redux-mlx-affine2-v1",
+      "source_revision": "2bf128600aac4b16946f7ed8372e56117fe5e23b",
+      "source_model_sha256": "78ec25733ee0d0c1586d1346fc86db9d0c2e436e3a8ab1d32a82d1bb8f848d21",
+      "mapping": "q in {0,1,2}; w = scale*q - scale; 16 little-endian 2-bit codes per uint32; group_size=128",
+      "files": {
+        "model.safetensors": {
+          "bytes": 207858007,
+          "sha256": "03f41729b69807deec2d3bb7dc7d45f5c0285d781fd598c4c4a848079cf1a0d9"
+        },
+        "config.json": {
+          "bytes": 12988,
+          "sha256": "503c653b2e3bb788adbcb04f5abdee532d958686564081baeed133ff10143f6e"
+        },
+        "tokenizer.json": {
+          "bytes": 1159960,
+          "sha256": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91"
+        },
+        "ternary.json": {
+          "bytes": 57970,
+          "sha256": "1221c6d3ce901ffe09c089da758a8db8b76189f80cff41c5afc244fc61e2051d"
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "convert.py": "7cf548ce6f98390a9abdb0ee34a435a99cc182c607878463dfeedcb0d33bafe7",
+    "corpus.py": "a352555883e8fdc52500fd99e037fe3a547e3cd0bbafab0edd72097f95411a1f",
+    "diagnose_features.py": "a151ad286f1022533017f0f881bdbfc70686c6d82ab26c6055150214e31ae279",
+    "end_to_end.py": "a6caacaa09064cd92bc18547600c598639c53674f7bcf59bd702b0ca1efc8c82",
+    "environment.py": "b10360992fd4e745e92404767c6bd6473d156858120d79c2e33909e697764cda",
+    "evaluate.py": "a733e97e4335661e6ad02cc68fbb5128e58515e104d840b3040d8e8464e9dca7",
+    "features.py": "66e2031eba5aac0e8470ce9f12ee52d48d479d6631d3fb7985454a6145f9fe28",
+    "measure.py": "82f4a9ecb71ff7fb0300b9722886c9ebcb8cb9c5006c6bea43ff8c2d4e8ff522",
+    "model.py": "becbf682ecaa017bf5ac55c78b007355f934e3b00f228f68874f41a002688a32",
+    "offline.py": "46ee57fd8d023f2fd709cff21490a6f8fddbb820867ca4006b1d07a4795e2ef7",
+    "packed.py": "6de38ffb6c6b452e28f292789c97805e277f924610788ba36dc3d39cb0d9dd80",
+    "packed_tensors.json": "cd74909c621e6c5b1349bd604a8a2d51cfbcfc2d07fa71189f5240a6e11c6f73",
+    "reference.json": "6add42b609cd856102ee098ab2f6d4550b03a81bd5c48c2be2f356c190250bb9",
+    "reference.py": "f9b4b1f4bb22d5c863ce79eda3bcfcffda669ec4ce635b5b5056f3c0564a7f51",
+    "requirements-mlx.txt": "2e3cf36d8daa4487f64f30650206ee88a731440a66c75823d8a483d30cd9eee2",
+    "requirements-reference.txt": "da04ef2a95723eb870af4bd8bc67ef1bd2823af21276dfe8ef6528d5ea336c42",
+    "test_convert_features.py": "a60794146223b5c6b75e126fecc761e0548a06a80ab4f44af9229195c6b977cf",
+    "test_end_to_end.py": "0d78c6f6715113aea5b1d31e89a1e729db89e00634aa3af4b864fb00425b0297",
+    "test_model.py": "ed94cb3e79dc79cfee463aa2903b60370c3dd8b046fc7eae5a8a36faecbad714",
+    "test_packed.py": "35db7f06ddb8f3ec5b8b30715866adf15d96948bf7fd2a2a92660bdae51e6ca6",
+    "transcribe.py": "b8d48cd17cbe79d2445796e90bae318fd1f0e0ba64322a7ac95b39cbe2dd05a9"
+  },
+  "results_sha256": {
+    "app-mlx-v2.json": "8b076ba9b671cf9d78c0499269370ecf76915fbd9c467769f482e42e4c7dbd28",
+    "app-parity-v2.json": "34faca38563faacb3f64ec771fa82fbea8ad9a7c3f899044e989284fe4e3c179",
+    "app-photon-v2.json": "a189fb5ca10124aa9854bd063790fcceeffc132614b4f7d39059b82f8c5c0fbe",
+    "environment-mlx-v2.json": "e0d6f7069368a8f19382b951a014dd29f872f86754aab3b7f55faa70f88bcdc7",
+    "environment-photon-v2.json": "348ae612c7e029f4430fb6285b285c041872ca6b16ed34df3740a2b1906eacc5",
+    "perf-long-mlx-v2.json": "51ef6ab3ea3fdadccd4dc01a2284d6504e96fb95a0265ab6a1680393a0624bd7",
+    "perf-long-photon-v2.json": "30e1aa379b95cf230ecd1e659701baa50db3512d32f8877aa87eb7b09ea1a634",
+    "perf-short-mlx-v2.json": "7aef1cd86b530783595cf9dfd900f1e0e969fa66dbb1fb8d93ed63012ec1aa43",
+    "perf-short-photon-v2.json": "4cee9beb7a4c692d810e1b0be2797c051d00d1deada75d112d7f712e6d15cc2b",
+    "quiet-diagnostics-v2.json": "b074e2baef0096723284bc646c092f94dd52074e44e979f6a9883ede23a879bd",
+    "tensor-parity-v2.json": "7a05694c7bdd3a6f99f564fa8c790e16fca8298b9a7bf95eee6968185c95ed84",
+    "tests-v2.log": "e16963aca8663d4b0d3de230e4464af139c9b732c3ab27383c7752b03f2f19a7"
+  },
+  "reference_manifest_sha256": "8ffef1c9652cea468d9733e2a4c8d5082980c8c95f5dde4efcf407481e4e39b6",
+  "candidate_manifest_sha256": "0cc4b7caaf4639905e8f72e4d0409ab58e67a71bb663e1e56c93182b886b67e9",
+  "remaining": [
+    "near-floor feature parity",
+    "human multilingual/noisy/conversational coverage",
+    "broader126-case corpus blocked by macOS permissions",
+    "hour-scale memory soak",
+    "native Swift integration",
+    "native Photon VAD-driven longform API parity",
+    "licensing review before distribution"
+  ],
+  "actions": "No installation, production switch, release, publish, commit or push performed. Final Git inspection denied by macOS."
+}
