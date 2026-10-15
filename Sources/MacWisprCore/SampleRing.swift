@@ -15,6 +15,11 @@ public final class SampleRing: @unchecked Sendable {
     private var spilledHandle: FileHandle?
     private var spilledCount = 0
     private var totalCount = 0
+    /// Bumped by `reset()` so an in-flight spill never trims a new session.
+    private var generation = 0
+    private var spillScheduled = false
+    /// Disk spill runs here; `append` is called from the real-time audio tap.
+    private let spillQueue = DispatchQueue(label: "macwispr.samplering.spill", qos: .utility)
 
     public init(
         sampleRate: Int = AudioChunkPlanner.sampleRate,
@@ -46,12 +51,18 @@ public final class SampleRing: @unchecked Sendable {
 
     public func reset() {
         lock.lock()
+        generation += 1
         ram.removeAll(keepingCapacity: true)
         ramStart = 0
         totalCount = 0
         spilledCount = 0
         lock.unlock()
-        closeSpill(delete: true)
+        spillQueue.sync { closeSpill(delete: true) }
+    }
+
+    /// Waits for any queued disk spill (tests and diagnostics).
+    public func waitForPendingSpill() {
+        spillQueue.sync {}
     }
 
     public func append(_ samples: [Float]) {
@@ -63,10 +74,11 @@ public final class SampleRing: @unchecked Sendable {
         lock.lock()
         ram.append(contentsOf: samples)
         totalCount += samples.count
-        let overflow = ram.count > ramCapSamples
+        let shouldSpill = ram.count > ramCapSamples && !spillScheduled
+        if shouldSpill { spillScheduled = true }
         lock.unlock()
-        if overflow {
-            spillIfNeeded()
+        if shouldSpill {
+            spillQueue.async { [weak self] in self?.spillIfNeeded() }
         }
     }
 
@@ -164,33 +176,35 @@ public final class SampleRing: @unchecked Sendable {
         return TranscriptStitch.join(parts)
     }
 
+    /// Runs on `spillQueue`. Writes the oldest samples to disk first, then
+    /// drops them from RAM, so readers never see a range that is not on disk yet.
     private func spillIfNeeded() {
         lock.lock()
+        spillScheduled = false
+        let gen = generation
         let extra = ram.count - keepTailSamples
         guard extra > 0, ram.count > ramCapSamples else {
             lock.unlock()
             return
         }
         let toSpill = Array(ram.prefix(extra))
-        ram.removeFirst(extra)
-        ramStart += extra
-        spilledCount += extra
         lock.unlock()
 
-        let data = PCMCodec.int16Data(from: toSpill)
         do {
             let handle = try spillHandle()
-            try handle.write(contentsOf: data)
-            try handle.synchronize()
+            try handle.write(contentsOf: PCMCodec.int16Data(from: toSpill))
         } catch {
-            // If spill fails, put samples back so we do not silently drop audio.
-            lock.lock()
-            ram.insert(contentsOf: toSpill, at: 0)
-            ramStart -= extra
-            spilledCount -= extra
-            lock.unlock()
             NSLog("MacWispr SampleRing: spill failed: \(error.localizedDescription)")
+            return
         }
+
+        lock.lock()
+        if gen == generation, ram.count >= extra {
+            ram.removeFirst(extra)
+            ramStart += extra
+            spilledCount += extra
+        }
+        lock.unlock()
     }
 
     private func spillHandle() throws -> FileHandle {
@@ -199,7 +213,9 @@ public final class SampleRing: @unchecked Sendable {
             .appendingPathComponent("macwispr-\(UUID().uuidString).pcm16")
         FileManager.default.createFile(atPath: url.path, contents: nil)
         let handle = try FileHandle(forWritingTo: url)
+        lock.lock()
         spilledURL = url
+        lock.unlock()
         spilledHandle = handle
         return handle
     }
@@ -207,10 +223,13 @@ public final class SampleRing: @unchecked Sendable {
     private func closeSpill(delete: Bool) {
         try? spilledHandle?.close()
         spilledHandle = nil
-        if delete, let url = spilledURL {
+        lock.lock()
+        let url = spilledURL
+        spilledURL = nil
+        lock.unlock()
+        if delete, let url {
             try? FileManager.default.removeItem(at: url)
         }
-        spilledURL = nil
     }
 
     private static func readSpill(url: URL, start: Int, count: Int) -> [Float] {

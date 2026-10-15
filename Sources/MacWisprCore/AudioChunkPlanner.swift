@@ -44,6 +44,9 @@ public enum AudioChunkPlanner {
             return [AudioChunkWindow(startSample: 0, endSample: n)]
         }
 
+        // Every adjacent pair overlaps by exactly `overlap` samples: stitching
+        // only de-duplicates a short word run, so a wider overlap repeats speech.
+        // The last window may be shorter; it still overlaps the previous one.
         var result: [AudioChunkWindow] = []
         var start = 0
         while start < n {
@@ -51,11 +54,6 @@ public enum AudioChunkPlanner {
             result.append(AudioChunkWindow(startSample: start, endSample: end))
             if end >= n { break }
             start += step
-            // Last window: snap to the tail so we never leave a tiny remainder
-            // that would skip the overlap with the previous chunk.
-            if start < n, n - start < window {
-                start = n - window
-            }
         }
         return result
     }

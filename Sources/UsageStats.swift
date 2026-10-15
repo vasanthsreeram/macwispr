@@ -95,27 +95,92 @@ struct UsageStats {
     }
 
     func lastSevenDays(entries: [TranscriptionEntry], reference: Date = Date(), calendar: Calendar = .current) -> [DayBucket] {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE"
-        let startOfToday = calendar.startOfDay(for: reference)
-        var buckets: [DayBucket] = []
+        summary(entries: entries, reference: reference, calendar: calendar).days
+    }
 
-        for offset in (0..<7).reversed() {
-            guard let day = calendar.date(byAdding: .day, value: -offset, to: startOfToday) else { continue }
-            let next = calendar.date(byAdding: .day, value: 1, to: day) ?? day
-            let interval = DateInterval(start: day, end: next)
-            let snap = snapshot(for: entries, in: interval)
-            buckets.append(
-                DayBucket(
-                    id: ISO8601DateFormatter().string(from: day),
-                    date: day,
-                    label: formatter.string(from: day),
-                    words: snap.words,
-                    timeSavedMinutes: snap.timeSavedMinutes
-                )
+    /// Everything the dashboard and menu bar show, from one pass over history.
+    struct Summary: Equatable {
+        var week: Snapshot
+        var allTime: Snapshot
+        var days: [DayBucket]
+        var streakDays: Int
+
+        static let empty = Summary(week: .zero, allTime: .zero, days: [], streakDays: 0)
+    }
+
+    private static let weekdayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEE"
+        return f
+    }()
+
+    func summary(entries: [TranscriptionEntry], reference: Date = Date(), calendar: Calendar = .current) -> Summary {
+        let startOfToday = calendar.startOfDay(for: reference)
+        let dayStarts: [Date] = (0..<7).reversed().compactMap {
+            calendar.date(byAdding: .day, value: -$0, to: startOfToday)
+        }
+        let weekStart = dayStarts.first ?? startOfToday
+        let weekEnd = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? reference
+
+        var dayWords = [Int](repeating: 0, count: dayStarts.count)
+        var dayAudio = [Double](repeating: 0, count: dayStarts.count)
+        var weekWords = 0, weekCount = 0, weekAudio = 0.0
+        var allWords = 0, allAudio = 0.0
+        var activeDays = Set<Date>()
+
+        for entry in entries {
+            let words = entry.wordCount > 0 ? entry.wordCount : Self.wordCount(in: entry.text)
+            allWords += words
+            allAudio += entry.duration
+            activeDays.insert(calendar.startOfDay(for: entry.timestamp))
+            guard entry.timestamp >= weekStart, entry.timestamp < weekEnd else { continue }
+            weekWords += words
+            weekCount += 1
+            weekAudio += entry.duration
+            if let i = dayStarts.lastIndex(where: { $0 <= entry.timestamp }) {
+                dayWords[i] += words
+                dayAudio[i] += entry.duration
+            }
+        }
+
+        let days = dayStarts.enumerated().map { i, day in
+            DayBucket(
+                id: "\(Int(day.timeIntervalSince1970))",
+                date: day,
+                label: Self.weekdayFormatter.string(from: day),
+                words: dayWords[i],
+                timeSavedMinutes: makeSnapshot(words: dayWords[i], count: 0, audioSeconds: dayAudio[i]).timeSavedMinutes
             )
         }
-        return buckets
+
+        var streak = 0
+        var cursor = startOfToday
+        if !activeDays.contains(cursor) {
+            cursor = calendar.date(byAdding: .day, value: -1, to: cursor) ?? cursor
+        }
+        while activeDays.contains(cursor) {
+            streak += 1
+            guard let prev = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = prev
+        }
+
+        return Summary(
+            week: makeSnapshot(words: weekWords, count: weekCount, audioSeconds: weekAudio),
+            allTime: makeSnapshot(words: allWords, count: entries.count, audioSeconds: allAudio),
+            days: days,
+            streakDays: streak
+        )
+    }
+
+    private func makeSnapshot(words: Int, count: Int, audioSeconds: Double) -> Snapshot {
+        let typingMinutes = Double(words) / typingWPM
+        return Snapshot(
+            words: words,
+            dictations: count,
+            audioSeconds: audioSeconds,
+            typingMinutes: typingMinutes,
+            timeSavedMinutes: max(0, typingMinutes - audioSeconds / 60.0)
+        )
     }
 }
 
@@ -148,6 +213,19 @@ enum HistoryStore {
         let trimmed = Array(entries.prefix(maxEntries))
         guard let data = try? encoder.encode(trimmed) else { return }
         try? data.write(to: fileURL, options: .atomic)
+    }
+
+    /// Serial so a later snapshot can never be overwritten by an earlier one.
+    private static let saveQueue = DispatchQueue(label: "macwispr.history.save", qos: .utility)
+
+    /// JSON-encodes and writes 2,000 entries off the main thread.
+    static func saveInBackground(_ entries: [TranscriptionEntry]) {
+        saveQueue.async { save(entries) }
+    }
+
+    /// Blocks until queued writes finish (app termination).
+    static func flushPendingSaves() {
+        saveQueue.sync {}
     }
 
     /// Keep only the newest `maxEntries` in the mutable array (in place).

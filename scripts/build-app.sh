@@ -24,6 +24,8 @@ APP="$DIST_DIR/$APP_NAME.app"
 
 echo "==> Building $APP_NAME ($CONFIG)..."
 swift build -c "$CONFIG" --product MacWispr
+swift build -c "$CONFIG" --product MacWisprCLI
+CLI_BIN="$(swift build -c "$CONFIG" --product MacWisprCLI --show-bin-path)/MacWisprCLI"
 
 if [[ ! -x "$BIN" ]]; then
   # SPM sometimes nests the binary under apple/Products
@@ -163,6 +165,21 @@ mkdir -p "$APP/Contents/Helpers"
 cp "$UV_CACHE/uv" "$APP/Contents/Helpers/uv"
 chmod +x "$APP/Contents/Helpers/uv"
 echo "    uv $UV_VERSION → Contents/Helpers/"
+
+# Agent access: `macwispr` CLI + MCP server (read-only history and meetings).
+cp "$CLI_BIN" "$APP/Contents/Helpers/macwispr"
+chmod +x "$APP/Contents/Helpers/macwispr"
+echo "    macwispr CLI → Contents/Helpers/"
+
+# Private local experiments only; runtime-code licensing still needs review.
+if [[ "${MACWISPR_EXPERIMENTAL_REDUX_MLX:-0}" == "1" ]]; then
+  REDUX_CODE="$ROOT/bench/redux_mlx"
+  mkdir -p "$APP/Contents/Resources/ReduxMLX"
+  for file in app_server.py model.py features.py packed.py convert.py transcribe.py reference.json packed_tensors.json requirements-mlx.txt; do
+    cp "$REDUX_CODE/$file" "$APP/Contents/Resources/ReduxMLX/"
+  done
+  echo "    Experimental Python MLX runtime → Contents/Resources/ReduxMLX (local testing only)"
+fi
 
 # Sign (Developer ID when MACWISPR_SIGN_IDENTITY is set; else ad-hoc)
 if command -v codesign >/dev/null 2>&1; then

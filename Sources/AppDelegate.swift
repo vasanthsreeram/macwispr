@@ -32,11 +32,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Accessibility is required for the global ⌥Space hotkey (event tap /
         // Carbon) and for pasting into other apps. Mic is required to capture audio.
         let trusted = AXIsProcessTrusted()
-        if !trusted, HeadlessTranscribe.requestedFiles == nil, UISnapshot.outputDirectory == nil {
+        if !trusted, HeadlessTranscribe.requestedFiles == nil, HeadlessMeeting.requestedSeconds == nil, UISnapshot.outputDirectory == nil {
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
         }
-        AudioRecorder.requestPermissionIfNeeded()
+        if HeadlessTranscribe.requestedFiles == nil, UISnapshot.outputDirectory == nil {
+            AudioRecorder.requestPermissionIfNeeded()
+        }
 
         // Allow: open -a MacWispr --args --open-dashboard
         if CommandLine.arguments.contains("--open-dashboard") {
@@ -47,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Skip during automated self-test / when dashboard already requested.
         if !CommandLine.arguments.contains("--self-test"),
            HeadlessTranscribe.requestedFiles == nil,
+           HeadlessMeeting.requestedSeconds == nil,
            UISnapshot.outputDirectory == nil,
            !CommandLine.arguments.contains("--open-dashboard")
         {
@@ -71,6 +74,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             Task { @MainActor in
                 guard let state = self.appState ?? AppState.shared else { exit(3) }
                 HeadlessTranscribe.run(files: files, state: state)
+            }
+        }
+        if let seconds = HeadlessMeeting.requestedSeconds {
+            Task { @MainActor in
+                guard let state = self.appState ?? AppState.shared else { exit(3) }
+                HeadlessMeeting.run(seconds: seconds, state: state)
             }
         }
     }
@@ -225,6 +234,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        (appState ?? AppState.shared)?.flushHistoryForTermination()
+        (appState ?? AppState.shared)?.meetings.prepareForTermination()
         // Flush any pending opt-in telemetry before process exit (fail-silent).
         Telemetry.shared.flush(force: true)
         // Brief wait so the fire-and-forget URLSession task can leave the device.
@@ -272,7 +283,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         if dashboardWindow == nil {
             let root = MainWindowView()
-                .environmentObject(appState)
+                .environment(appState)
                 .frame(minWidth: 680, minHeight: 480)
 
             let hosting = NSHostingController(rootView: root)

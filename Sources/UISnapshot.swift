@@ -20,11 +20,18 @@ enum UISnapshot {
         state.hotkeyManager.register()
         state.refreshHotkeyHealth()
         let size = CGSize(width: 720, height: 640)
-        render(MainWindowSnapshot(pane: .home), state: state, size: size, to: dir.appendingPathComponent("ui-home.png"))
-        render(MainWindowSnapshot(pane: .settings), state: state, size: size, to: dir.appendingPathComponent("ui-settings.png"))
-        render(MainWindowSnapshot(pane: .history), state: state, size: size, to: dir.appendingPathComponent("ui-history.png"))
+        for pane in MainPane.allCases {
+            render(MainWindowView(initialPane: pane), state: state, size: size, to: dir.appendingPathComponent("ui-\(pane.rawValue).png"))
+        }
         render(OnboardingView(), state: state, size: CGSize(width: 440, height: 460), to: dir.appendingPathComponent("ui-onboarding.png"))
         render(MenuBarView().fixedSize(), state: state, size: CGSize(width: 300, height: 420), to: dir.appendingPathComponent("ui-menubar.png"))
+        let hud = ListeningBannerBox()
+        hud.model = ListeningBannerModel(
+            phase: .listening, timerLabel: "0:07", liveTranscript: nil,
+            statusLine: nil, showChrome: true, glassStyle: .clear
+        )
+        hud.audioLevelProvider = { Float.random(in: 0.01...0.12) }
+        render(ListeningBannerView(box: hud).frame(width: 180, height: 40).padding(20), state: state, size: CGSize(width: 220, height: 80), to: dir.appendingPathComponent("ui-hud.png"))
         print("rendered UI to \(dir.path)")
         exit(0)
     }
@@ -32,13 +39,14 @@ enum UISnapshot {
     @MainActor
     private static func render<V: View>(_ view: V, state: AppState, size: CGSize, to url: URL) {
         let root = view
-            .environmentObject(state)
+            .environment(state)
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .background(Color(nsColor: .windowBackgroundColor))
         // NSHostingView renders AppKit-backed controls (Form, Picker) faithfully.
         let host = NSHostingView(rootView: root)
         host.frame = CGRect(origin: .zero, size: size)
-        host.appearance = NSAppearance(named: .aqua)
+        let dark = ProcessInfo.processInfo.environment["MACWISPR_RENDER_DARK"] == "1"
+        host.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         let window = NSWindow(
             contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false
         )
@@ -51,26 +59,5 @@ enum UISnapshot {
         host.cacheDisplay(in: host.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: url)
         window.close()
-    }
-}
-
-/// Sidebar + detail without the NSWindow chrome, for snapshots.
-private struct MainWindowSnapshot: View {
-    let pane: MainPaneSnapshot
-
-    var body: some View {
-        MainWindowView(initialPane: pane.mainPane)
-    }
-}
-
-enum MainPaneSnapshot {
-    case home, settings, history
-
-    var mainPane: MainPane {
-        switch self {
-        case .home: return .home
-        case .settings: return .settings
-        case .history: return .history
-        }
     }
 }

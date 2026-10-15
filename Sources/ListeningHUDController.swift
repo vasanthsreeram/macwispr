@@ -584,41 +584,64 @@ struct ListeningBannerView: View {
 
 /// Scrolling bar waveform driven by live mic RMS. Low floor in silence, rises
 /// with speech — doubles as an “am I being heard?” meter. Read-only metering.
+///
+/// Drawn with one `Canvas` per frame: no per-bar views, no state writes,
+/// and the timeline pauses when the view leaves the screen.
 private struct ListeningWaveformView: View {
     let levelProvider: () -> Float
 
     private static let barCount = 26
     private static let barWidth: CGFloat = 2.5
     private static let barSpacing: CGFloat = 1.5
+    private static let sampleInterval: TimeInterval = 1.0 / 24.0
 
-    @State private var history: [CGFloat] = Array(repeating: 0, count: barCount)
-    private let timer = Timer.publish(every: 1.0 / 24.0, on: .main, in: .common).autoconnect()
+    @State private var history = LevelHistory(count: barCount)
 
     var body: some View {
-        GeometryReader { geo in
-            let maxHeight = geo.size.height
-            HStack(alignment: .center, spacing: Self.barSpacing) {
-                ForEach(0..<Self.barCount, id: \.self) { i in
-                    Capsule()
-                        .fill(Color.primary.opacity(0.85))
-                        .frame(
-                            width: Self.barWidth,
-                            height: max(2, history[i] * maxHeight)
-                        )
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            Canvas { context, size in
+                history.advance(to: timeline.date, every: Self.sampleInterval) {
+                    // Typical speech RMS ~0.01–0.3; curve lifts quiet speech without pegging loud.
+                    let raw = max(0, Double(levelProvider()))
+                    return CGFloat(min(1.0, pow(raw * 9.0, 0.65)))
+                }
+                let total = CGFloat(Self.barCount) * (Self.barWidth + Self.barSpacing) - Self.barSpacing
+                var x = (size.width - total) / 2
+                let shading = GraphicsContext.Shading.color(.primary.opacity(0.85))
+                for level in history.displayed {
+                    let h = max(2, level * size.height)
+                    let rect = CGRect(x: x, y: (size.height - h) / 2, width: Self.barWidth, height: h)
+                    context.fill(Capsule().path(in: rect), with: shading)
+                    x += Self.barWidth + Self.barSpacing
                 }
             }
-            .frame(width: geo.size.width, height: maxHeight, alignment: .center)
         }
-        .onReceive(timer) { _ in
-            // Typical speech RMS ~0.01–0.3; curve lifts quiet speech without pegging loud.
-            let raw = max(0, levelProvider())
-            let normalized = CGFloat(min(1.0, pow(Double(raw) * 9.0, 0.65)))
-            var next = history
-            next.removeFirst()
-            next.append(normalized)
-            withAnimation(.linear(duration: 1.0 / 24.0)) {
-                history = next
-            }
+    }
+}
+
+/// Mic level ring for the waveform. A class so drawing can update it without
+/// invalidating SwiftUI state.
+private final class LevelHistory {
+    private var targets: [CGFloat]
+    private(set) var displayed: [CGFloat]
+    private var lastSample: Date = .distantPast
+
+    init(count: Int) {
+        targets = Array(repeating: 0, count: count)
+        displayed = targets
+    }
+
+    func advance(to date: Date, every interval: TimeInterval, sample: () -> CGFloat) {
+        if date.timeIntervalSince(lastSample) >= interval {
+            lastSample = date
+            targets.removeFirst()
+            targets.append(sample())
+            displayed.removeFirst()
+            displayed.append(displayed.last ?? 0)
+        }
+        // Ease each bar toward its target for smooth motion between samples.
+        for i in displayed.indices {
+            displayed[i] += (targets[i] - displayed[i]) * 0.45
         }
     }
 }

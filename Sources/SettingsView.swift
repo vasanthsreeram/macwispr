@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Carbon
+import MacWisprCore
 
 /// Left-sidebar destinations (SuperWhisper-style). Used by the main window rail.
 enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
@@ -37,7 +38,7 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
 }
 
 struct SettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) var appState
     /// Which pane to show (driven by main window sidebar).
     var pane: SettingsPane = .configuration
 
@@ -47,6 +48,7 @@ struct SettingsView: View {
     @State private var elevenLabsKeyDraft: String = ""
     @State private var keySaveMessage: String?
     @State private var keySaveIsError = false
+    @State private var confirmClearHistory = false
 
     private let languages: [(String?, String)] = [
         (nil, "Auto-detect"),
@@ -85,19 +87,17 @@ struct SettingsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    /// Configuration = former General + Transcription (no nested tabs).
+    /// Configuration: speech model, shortcuts, mic and permissions, then general options.
     private var configurationSettings: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                generalSettings
-                Divider().padding(.vertical, 8)
-                keyboardShortcutsSettings
-                Divider().padding(.vertical, 8)
-                microphoneAndPermissionsSettings
-                Divider().padding(.vertical, 8)
-                transcriptionSettings
-            }
+        Form {
+            transcriptionSettings
+            ReduxRuntimeSettings()
+            keyboardShortcutsSettings
+            microphoneAndPermissionsSettings
+            generalSettings
         }
+        .formStyle(.grouped)
+        .settingsColumn()
     }
 
     /// Sound = chimes only (hotkeys live under Configuration).
@@ -106,13 +106,14 @@ struct SettingsView: View {
             soundAndChimesSection
         }
         .formStyle(.grouped)
-        .padding()
+        .settingsColumn()
     }
 
+    @ViewBuilder
     private var generalSettings: some View {
-        Form {
-            Section("Text Insertion") {
-                Picker("Mode", selection: Binding(
+        Group {
+            Section {
+                Picker("Insert text by", selection: Binding(
                     get: { appState.insertionMode },
                     set: { appState.setInsertionMode($0) }
                 )) {
@@ -120,141 +121,77 @@ struct SettingsView: View {
                         Text(mode.rawValue).tag(mode)
                     }
                 }
-            }
-
-            Section("Time Saved") {
-                HStack {
-                    Text("Typing speed baseline")
-                    Spacer()
-                    Text("\(Int(appState.typingWPM)) WPM")
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                Toggle("Capitalize first letter", isOn: Bindable(appState).autoCapitalize)
+                LabeledContent {
+                    HStack(spacing: DS.Space.m) {
+                        Slider(
+                            value: Binding(
+                                get: { appState.typingWPM },
+                                set: { appState.setTypingWPM($0) }
+                            ),
+                            in: 20...200,
+                            step: 5
+                        )
+                        .frame(width: 160)
+                        Text("\(Int(appState.typingWPM)) WPM")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .frame(width: 64, alignment: .trailing)
+                    }
+                } label: {
+                    Text("Your typing speed")
+                    Text("Used to estimate time saved")
                 }
-                Slider(
-                    value: Binding(
-                        get: { appState.typingWPM },
-                        set: { appState.setTypingWPM($0) }
-                    ),
-                    in: 20...200,
-                    step: 5
-                )
-                Text("How fast you type — used only for “time saved” estimates (up to 200 WPM).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Text")
             }
 
-            Section("History") {
-                Button("Clear transcription history", role: .destructive) {
-                    appState.clearHistory()
-                }
-            }
-
-            Section("Privacy") {
-                Toggle("Share anonymous usage data", isOn: Binding(
+            Section {
+                Toggle(isOn: Binding(
                     get: { appState.telemetryOptIn },
                     set: { appState.setTelemetryOptIn($0) }
-                ))
+                )) {
+                    Text("Share anonymous usage data")
+                    Text("Never includes your words or audio")
+                }
                 Button("What we collect…") {
                     appState.showTelemetryDisclosure = true
                 }
-
-                if appState.leaderboardOptIn {
-                    LabeledContent("Leaderboard") {
-                        if let rank = appState.leaderboardRank {
-                            Text("#\(rank) · \(appState.leaderboardDisplayName.isEmpty ? "syncing…" : appState.leaderboardDisplayName)")
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        } else {
-                            Text("Joined · syncing rank…")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                } else {
-                    Text("Leaderboard is off.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Text("Join, set a public name, and see your rank from the Leaderboard page in the sidebar.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Button("Open Leaderboard…") {
-                    NotificationCenter.default.post(name: .macWisprShowLeaderboard, object: nil)
-                }
+                .buttonStyle(.link)
+            } header: {
+                Text("Privacy")
             }
 
-            Section("Developer") {
-                Toggle("Save audio + text locally", isOn: Binding(
-                    get: { appState.devCaptureEnabled },
-                    set: { appState.setDevCaptureEnabled($0) }
-                ))
-                Text(
-                    "Dev mode: each dictation writes a WAV plus raw STT / post-process / polished text under Application Support → MacWispr → dev-captures. Stays on this Mac only — never uploaded. Keeps the last \(DevCaptureStore.maxCaptures) captures."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                if ProcessInfo.processInfo.environment["MACWISPR_DEV_CAPTURE"] == "1" {
-                    Text("Forced on by MACWISPR_DEV_CAPTURE=1 for this process.")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                }
-                HStack {
-                    Button("Open captures folder") {
-                        DevCaptureStore.openInFinder()
-                    }
-                    Button("Clear captures", role: .destructive) {
-                        DevCaptureStore.clearAll()
-                    }
-                }
-                Text("\(DevCaptureStore.captureCount()) capture(s) on disk")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Light post-process only; polish packs live under Models → AI Models.
-            Section("Post-Processing") {
-                Toggle("Auto-capitalize first letter", isOn: $appState.autoCapitalize)
-
-                HStack {
-                    Text("Polish")
-                    Spacer()
-                    if appState.polishProvider == .off {
-                        Text("Off")
-                            .foregroundStyle(.secondary)
-                    } else if appState.polishProvider == .local {
-                        Text(appState.polishLocalModel.catalogTitle)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    } else {
-                        Text(appState.polishProvider.displayName)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Text("Enable packs in Models → AI Models → Show experimental models.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if appState.polishProvider == .local {
-                    if appState.isLLMLoading {
-                        ProgressView(value: appState.llmLoadProgress) {
-                            Text(appState.llmLoadStatus).font(.caption)
+            Section {
+                if appState.reduxRuntimeConfiguration.runtime == .photon {
+                    LabeledContent("Speech model") {
+                        Button("Re-download") {
+                            Task {
+                                await appState.deleteDownloadedASRModel(appState.asrModelSize)
+                                await appState.loadModel()
+                            }
                         }
-                    } else if appState.isLLMLoaded {
-                        Label("Loaded", systemImage: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    } else if !appState.isPolishModelOnDisk {
-                        Label("Not downloaded — open Models → AI Models", systemImage: "arrow.down.circle")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
+                        .disabled(appState.isModelLoading || appState.isRecording)
                     }
-                } else if appState.polishProvider == .openAI, !appState.hasOpenAIKey {
-                    Label("Add an OpenAI key under Speech provider below", systemImage: "exclamationmark.triangle")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
                 }
+                LabeledContent("History") {
+                    Button("Clear All…", role: .destructive) {
+                        confirmClearHistory = true
+                    }
+                    .disabled(appState.transcriptionHistory.isEmpty)
+                }
+            } header: {
+                Text("Advanced")
+            }
+            .confirmationDialog(
+                "Clear all transcription history?",
+                isPresented: $confirmClearHistory
+            ) {
+                Button("Clear History", role: .destructive) { appState.clearHistory() }
+            } message: {
+                Text("This deletes \(appState.transcriptionHistory.count) dictations from this Mac and resets your stats.")
             }
         }
-        .formStyle(.grouped)
-        .padding()
     }
 
     // MARK: - Models (Voice + LLM) — icon-first, minimal copy
@@ -629,11 +566,10 @@ struct SettingsView: View {
 
     private var appearanceSettings: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Appearance")
-                    .font(.title2.weight(.semibold))
+            VStack(alignment: .leading, spacing: DS.Space.l) {
+                PaneHeader(pane: .appearance, subtitle: "How the recording window looks while you speak.")
+                    .padding(.horizontal, -DS.Space.xs)
 
-                // One grouped card like System Settings → Appearance
                 VStack(spacing: 0) {
                     appearanceIconRow(
                         label: "Window",
@@ -666,8 +602,12 @@ struct SettingsView: View {
                     if appState.recordingWindowStyle == .classic {
                         Divider().padding(.leading, 16)
                         HStack {
-                            Text("Live draft")
-                                .font(.body)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Live draft")
+                                Text("Show words as you speak")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                             Spacer()
                             Toggle("", isOn: Binding(
                                 get: { appState.livePartialsEnabled },
@@ -680,13 +620,12 @@ struct SettingsView: View {
                         .padding(.vertical, 12)
                     }
                 }
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-                )
+                .card(padding: 0)
             }
-            .padding(20)
+            .padding(.horizontal, DS.Space.xl)
+            .padding(.vertical, DS.Space.l)
+            .frame(maxWidth: DS.contentMaxWidth - 120)
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -712,9 +651,10 @@ struct SettingsView: View {
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                                         .strokeBorder(
-                                            item.isSelected ? Color.accentColor : Color.primary.opacity(0.12),
-                                            lineWidth: item.isSelected ? 2.5 : 1
+                                            item.isSelected ? Color.accentColor : DS.hairline,
+                                            lineWidth: item.isSelected ? 2 : 1
                                         )
+                                        .padding(item.isSelected ? -3 : 0)
                                 )
                             Text(item.title)
                                 .font(.caption)
@@ -729,18 +669,18 @@ struct SettingsView: View {
         .padding(.vertical, 14)
     }
 
+    /// Wallpaper stand-in behind the appearance tiles (icon graphite + ember).
+    private var previewBackdrop: some View {
+        ZStack {
+            LinearGradient(colors: [DS.graphiteTop, DS.graphiteBottom], startPoint: .top, endPoint: .bottom)
+            RadialGradient(colors: [DS.ember.opacity(0.45), .clear], center: .bottomTrailing, startRadius: 0, endRadius: 70)
+        }
+    }
+
     /// Mini mock of Classic / Mini / None recording windows.
     private func recordingWindowPreview(_ style: RecordingWindowStyle) -> some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.12, green: 0.18, blue: 0.45),
-                    Color(red: 0.25, green: 0.35, blue: 0.75),
-                    Color(red: 0.45, green: 0.55, blue: 0.95)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            previewBackdrop
 
             switch style {
             case .classic:
@@ -775,15 +715,7 @@ struct SettingsView: View {
     /// Liquid Glass Clear / Tinted swatches (same idea as System Settings).
     private func liquidGlassPreview(_ style: LiquidGlassStyle) -> some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.15, green: 0.10, blue: 0.55),
-                    Color(red: 0.35, green: 0.20, blue: 0.85),
-                    Color(red: 0.55, green: 0.40, blue: 0.95)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            previewBackdrop
 
             Capsule()
                 .fill(Color.white.opacity(style == .clear ? 0.22 : 0.12))
@@ -815,158 +747,48 @@ struct SettingsView: View {
         }
     }
 
+    /// The one on-device model and its status. Nothing to pick.
+    @ViewBuilder
     private var transcriptionSettings: some View {
-        Form {
+        Group {
             Section {
-                HStack {
-                    Text("Status")
-                    Spacer()
-                    if appState.isReadyToDictate {
-                        Label(appState.readinessLabel, systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                    } else if appState.isModelLoading {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text(appState.modelLoadStatus)
+                HStack(alignment: .center, spacing: 12) {
+                    GlyphTile(systemImage: "waveform", size: 34)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(ModelCatalog.shippedDisplayName)
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(speechStatusText)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                    if appState.isModelLoading {
+                        ProgressView().controlSize(.small)
+                    } else if appState.isReadyToDictate {
+                        StatusDot(tone: .ready, text: "Ready")
                     } else {
-                        Label(appState.readinessLabel, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
-                    }
-                }
-
-                Picker("Language", selection: $appState.selectedLanguage) {
-                    ForEach(languages, id: \.0) { lang in
-                        Text(lang.1).tag(lang.0)
-                    }
-                }
-
-                if appState.transcriptionProvider == .local {
-                    Text("Speech model: \(appState.asrModelSize.displayName)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("Change or download models in the Models tab.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-            }
-
-            // BYOK last — pick provider, keys expand only when needed.
-            Section("Speech provider") {
-                Picker("Provider", selection: Binding(
-                    get: { appState.transcriptionProvider },
-                    set: { appState.setTranscriptionProvider($0) }
-                )) {
-                    ForEach(TranscriptionProvider.selectableCases) { provider in
-                        Text(provider.displayName).tag(provider)
-                    }
-                }
-                .disabled(appState.isRecording)
-                .onAppear { appState.refreshGrokSession() }
-
-                if appState.transcriptionProvider == .grok {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if appState.hasGrokSession {
-                            Text(appState.grokSessionLabel.isEmpty
-                                  ? "Grok CLI session found on this Mac"
-                                  : "Signed in as \(appState.grokSessionLabel)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("No Grok login found. In Terminal run: grok login")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
-                        }
-                        Text(TranscriptionProvider.grok.help)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                        HStack {
-                            if !appState.grokSTTConsented {
-                                Button("Enable Grok STT") {
-                                    appState.acceptGrokSTTConsent(switchProvider: true)
-                                }
-                                .disabled(!appState.hasGrokSession || appState.isRecording)
-                            } else {
-                                Button("Disable Grok STT", role: .destructive) {
-                                    appState.revokeGrokSTTConsent()
-                                }
-                                .disabled(appState.isRecording)
-                            }
-                            Spacer()
+                        Button(appState.modelLoadStatus.hasPrefix("Error") ? "Try Again" : "Set Up") {
+                            Task { await appState.loadModel() }
                         }
                     }
-                    .padding(.vertical, 4)
                 }
-
-                if appState.transcriptionProvider == .openAI {
-                    DisclosureGroup("OpenAI API key") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            if appState.hasOpenAIKey {
-                                Text(appState.openAIKeyMasked)
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                            }
-                            SecureField("sk-…", text: $openAIKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                                .font(.system(.body, design: .monospaced))
-                            HStack {
-                                Button("Save") { saveOpenAIKey() }
-                                    .disabled(openAIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                                if appState.hasOpenAIKey {
-                                    Button("Clear", role: .destructive) { clearOpenAIKey() }
-                                }
-                                Spacer()
-                                Link("Get key", destination: URL(string: "https://platform.openai.com/api-keys")!)
-                                    .font(.caption)
-                            }
-                            Text("Stored in Keychain only.")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-
-                if appState.transcriptionProvider == .elevenLabs {
-                    DisclosureGroup("ElevenLabs API key") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            if appState.hasElevenLabsKey {
-                                Text(appState.elevenLabsKeyMasked)
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                            }
-                            SecureField("xi-…", text: $elevenLabsKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                                .font(.system(.body, design: .monospaced))
-                            HStack {
-                                Button("Save") { saveElevenLabsKey() }
-                                    .disabled(elevenLabsKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                                if appState.hasElevenLabsKey {
-                                    Button("Clear", role: .destructive) { clearElevenLabsKey() }
-                                }
-                                Spacer()
-                                Link("Get key", destination: URL(string: "https://elevenlabs.io/app/settings/api-keys")!)
-                                    .font(.caption)
-                            }
-                            Text("Stored in Keychain only.")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-
-                if let keySaveMessage {
-                    Text(keySaveMessage)
-                        .font(.caption)
-                        .foregroundStyle(keySaveIsError ? .red : .green)
+                .padding(.vertical, 2)
+            } header: {
+                VStack(alignment: .leading, spacing: DS.Space.l) {
+                    PaneHeader(pane: .configuration, subtitle: "Speech model, shortcuts, microphone, and permissions.")
+                    Text("Speech model")
                 }
             }
         }
-        .formStyle(.grouped)
-        .padding()
+    }
+
+    private var speechStatusText: String {
+        if appState.isModelLoading {
+            return appState.modelLoadStatus.isEmpty ? "Setting up…" : appState.modelLoadStatus
+        }
+        if appState.modelLoadStatus.hasPrefix("Error") { return appState.modelLoadStatus }
+        return "\(appState.reduxRuntimeConfiguration.runtime.displayName) · Runs on this Mac. Your voice never leaves it."
     }
 
     private func addVocabTerm() {
@@ -1024,10 +846,11 @@ struct SettingsView: View {
 
     // MARK: - Keyboard shortcuts (Configuration)
 
+    @ViewBuilder
     private var keyboardShortcutsSettings: some View {
-        Form {
-            Section("Dictation Mode") {
-                Picker("Mode", selection: Binding(
+        Group {
+            Section {
+                Picker("Dictation mode", selection: Binding(
                     get: { appState.dictationMode },
                     set: { appState.setDictationMode($0) }
                 )) {
@@ -1036,13 +859,8 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .fixedSize()
 
-                Text(appState.dictationMode.help)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section {
                 shortcutRow(
                     title: "Dictation",
                     subtitle: appState.dictationMode == .hold
@@ -1062,32 +880,13 @@ struct SettingsView: View {
                     requireSafeGlobal: false
                 )
             } header: {
-                Text("Keyboard Shortcuts")
+                Text("Shortcuts")
             } footer: {
-                Text("Click a shortcut, then press the keys you want. Esc cancels capture. Also available via Shortcuts / Spotlight: Start, Stop, Toggle dictation.")
-            }
-
-            if appState.hotkeyArmed {
-                Section {
-                    Label("Hotkey armed · \(appState.dictationHotkey.displayString)", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.caption)
-                }
-            } else {
-                Section {
-                    HStack {
-                        Label("Hotkey not armed", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                            .font(.caption)
-                        Spacer()
-                        Button("Repair") { appState.repairHotkey() }
-                            .controlSize(.small)
-                    }
-                }
+                Text("\(appState.dictationMode.help) Click a shortcut to change it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
-        .padding()
     }
 
     private func shortcutRow(
@@ -1127,14 +926,11 @@ struct SettingsView: View {
     }
 
     private var soundAndChimesSection: some View {
-        Section("Sound") {
+        Section {
             Toggle("Play feedback sounds", isOn: Binding(
                 get: { appState.soundFeedbackEnabled },
                 set: { appState.setSoundFeedbackEnabled($0) }
             ))
-            Text("Recording window (Classic / Mini / None) is under Appearance.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
             if appState.soundFeedbackEnabled {
                 if appState.outputMuted {
@@ -1158,18 +954,20 @@ struct SettingsView: View {
                     Slider(
                         value: Binding(
                             get: { appState.feedbackSoundVolume },
-                            set: { appState.setFeedbackSoundVolume($0) }
+                            set: { appState.setFeedbackSoundVolume(($0 * 20).rounded() / 20) }
                         ),
-                        in: 0...1,
-                        step: 0.05
-                    )
-                    Text("Applies to all MacWispr chimes (separate from system volume).")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        in: 0...1
+                    ) {
+                        EmptyView()
+                    } minimumValueLabel: {
+                        Image(systemName: "speaker.fill").foregroundStyle(.tertiary)
+                    } maximumValueLabel: {
+                        Image(systemName: "speaker.wave.3.fill").foregroundStyle(.tertiary)
+                    }
                 }
 
                 chimePicker(
-                    title: "Start listening",
+                    title: "Start",
                     selection: Binding(
                         get: { appState.startChime },
                         set: { appState.setStartChime($0) }
@@ -1177,7 +975,7 @@ struct SettingsView: View {
                     preview: { FeedbackSounds.playListeningStarted() }
                 )
                 chimePicker(
-                    title: "Stop / release",
+                    title: "Stop",
                     selection: Binding(
                         get: { appState.stopChime },
                         set: { appState.setStopChime($0) }
@@ -1185,7 +983,7 @@ struct SettingsView: View {
                     preview: { FeedbackSounds.playListeningStopped() }
                 )
                 chimePicker(
-                    title: "Done (final chime)",
+                    title: "Done",
                     selection: Binding(
                         get: { appState.successChime },
                         set: { appState.setSuccessChime($0) }
@@ -1193,7 +991,7 @@ struct SettingsView: View {
                     preview: { FeedbackSounds.playSuccess() }
                 )
                 chimePicker(
-                    title: "Error / not ready",
+                    title: "Error",
                     selection: Binding(
                         get: { appState.failureChime },
                         set: { appState.setFailureChime($0) }
@@ -1212,21 +1010,26 @@ struct SettingsView: View {
                             FeedbackSounds.playSuccess()
                         }
                     }
+                    Spacer()
                     Button("Recheck mute") {
                         appState.refreshOutputMuteState()
                     }
+                    .buttonStyle(.link)
                     .font(.caption)
                 }
             }
+        } header: {
+            PaneHeader(pane: .sound, subtitle: "Chimes when recording starts, stops, and finishes.")
         }
         .onAppear {
             appState.refreshOutputMuteState()
         }
     }
 
+    @ViewBuilder
     private var microphoneAndPermissionsSettings: some View {
-        Form {
-            Section("Microphone") {
+        Group {
+            Section {
                 Picker("Input device", selection: Binding(
                     get: { appState.selectedInputDeviceUID },
                     set: { appState.setInputDeviceUID($0) }
@@ -1236,27 +1039,27 @@ struct SettingsView: View {
                         Text(device.name).tag(device.uid)
                     }
                 }
-                if appState.selectedInputDeviceUID.isEmpty {
-                    Text("Following macOS default: \(AudioInputDevices.defaultInputDeviceName())")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Text("Applies on the next dictation. Plug in a USB or Bluetooth mic, then refresh if it does not appear.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Button("Refresh device list") {
-                    appState.refreshInputDevices()
+            } header: {
+                Text("Microphone")
+            } footer: {
+                HStack {
+                    Text(appState.selectedInputDeviceUID.isEmpty
+                         ? "Following macOS: \(AudioInputDevices.defaultInputDeviceName())"
+                         : "Applies on the next dictation.")
+                    Spacer()
+                    Button("Refresh") { appState.refreshInputDevices() }
+                        .buttonStyle(.link)
                 }
                 .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
-            Section("Permissions") {
+            Section {
                 HStack {
                     Text("Accessibility")
                     Spacer()
                     if appState.accessibilityTrusted {
-                        Label("Granted", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                        StatusDot(tone: .ready, text: "Granted")
                     } else {
                         Button("Grant Access") {
                             appState.repairHotkey()
@@ -1267,26 +1070,26 @@ struct SettingsView: View {
                     Text("Global hotkey")
                     Spacer()
                     if appState.hotkeyArmed {
-                        Label("\(appState.dictationHotkey.displayString) ready", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                        StatusDot(tone: .ready, text: "Active")
                     } else {
                         Button("Repair Hotkey") {
                             appState.repairHotkey()
                         }
                     }
                 }
-                Text("Accessibility is required for the global hotkey and for pasting into other apps. After an update or reinstall, re-enable MacWispr in System Settings → Privacy & Security → Accessibility. The hotkey re-arms automatically once granted.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Button("Show setup checklist again…") {
-                    appState.reopenOnboarding()
+            } header: {
+                Text("Permissions")
+            } footer: {
+                HStack(alignment: .top) {
+                    Text("Needed for the shortcut and for typing into other apps. After an update, re-enable MacWispr in Privacy & Security → Accessibility.")
+                    Spacer()
+                    Button("Setup checklist") { appState.reopenOnboarding() }
+                        .buttonStyle(.link)
                 }
                 .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
-        .padding()
         .onAppear {
             appState.refreshInputDevices()
         }
@@ -1294,52 +1097,50 @@ struct SettingsView: View {
 
     private var aboutView: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                if let logo = NSImage.appLogo {
-                    Image(nsImage: logo)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 96, height: 96)
-                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
-                } else {
-                    Image(systemName: "waveform.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundStyle(Color.accentColor)
+            VStack(spacing: DS.Space.xl) {
+                VStack(spacing: DS.Space.m) {
+                    Group {
+                        if let logo = NSImage.appLogo {
+                            Image(nsImage: logo).resizable().aspectRatio(contentMode: .fit)
+                        } else {
+                            GlyphTile(systemImage: "mic.fill", size: 88)
+                        }
+                    }
+                    .frame(width: 96, height: 96)
+                    .shadow(color: DS.ember.opacity(0.25), radius: 18, y: 8)
+
+                    VStack(spacing: DS.Space.xs) {
+                        Text("MacWispr")
+                            .font(.system(size: 26, weight: .semibold))
+                        Text("Private voice dictation for your Mac")
+                            .foregroundStyle(.secondary)
+                        Text("Version \(AppVersion.display)")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .padding(.top, 2)
+                    }
+
+                    Button("Check for Updates…") {
+                        SparkleUpdater.shared.checkForUpdates()
+                    }
+                    .controlSize(.large)
+                    .disabled(!SparkleUpdater.shared.canCheckForUpdates)
+                    .padding(.top, DS.Space.xs)
                 }
 
-                Text("MacWispr")
-                    .font(.title)
-                    .fontWeight(.bold)
-
-                Text("Voice dictation for macOS — local or BYOK cloud")
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                Text("Version \(AppVersion.display)")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-
-                Button {
-                    SparkleUpdater.shared.checkForUpdates()
-                } label: {
-                    Label("Check for Updates…", systemImage: "arrow.triangle.2.circlepath")
+                VStack(spacing: 0) {
+                    aboutRow(icon: "lock.shield", title: "On-device", detail: "\(ModelCatalog.shippedDisplayName) by Moondream. Your voice never leaves this Mac.")
+                    Divider().padding(.leading, 44)
+                    aboutRow(icon: "keyboard", title: "Shortcut", detail: "Hold or toggle \(appState.dictationHotkey.displayString). Change it in Configuration.")
                 }
-                .buttonStyle(.bordered)
-                .disabled(!SparkleUpdater.shared.canCheckForUpdates)
+                .card(padding: 0)
+                .frame(maxWidth: 420)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    aboutRow(icon: "macbook", title: "On-device", detail: "Qwen (En + Asian) · Parakeet v3 (En + EU)")
-                    aboutRow(icon: "key.fill", title: "BYOK cloud", detail: "OpenAI · ElevenLabs Scribe v2")
-                    aboutRow(icon: "text.badge.checkmark", title: "Polish", detail: "Local LLM or OpenAI · Keychain-only keys")
-                    aboutRow(icon: "keyboard", title: "Hotkey", detail: "Customizable in Configuration · Hold or Toggle")
-                }
-                .frame(maxWidth: 360)
-                .padding(.top, 4)
-
-                HStack(spacing: 16) {
+                HStack(spacing: DS.Space.l) {
                     Link("Website", destination: URL(string: "https://vasanthsreeram.github.io/macwispr/")!)
+                    Text("·").foregroundStyle(.tertiary)
                     Link("GitHub", destination: URL(string: "https://github.com/vasanthsreeram/macwispr")!)
+                    Text("·").foregroundStyle(.tertiary)
                     Link("Releases", destination: URL(string: "https://github.com/vasanthsreeram/macwispr/releases")!)
                 }
                 .font(.callout)
@@ -1347,9 +1148,9 @@ struct SettingsView: View {
                 Text("MIT License · Open source")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                    .padding(.top, 8)
             }
-            .padding()
+            .padding(DS.Space.xxl)
+            .padding(.top, DS.Space.xl)
             .frame(maxWidth: .infinity)
         }
     }
@@ -1379,19 +1180,23 @@ struct SettingsView: View {
     }
 
     private func aboutRow(icon: String, title: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: DS.Space.m) {
             Image(systemName: icon)
-                .frame(width: 18)
+                .font(.system(size: 15))
+                .frame(width: 20)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.system(size: 13, weight: .semibold))
                 Text(detail)
-                    .font(.caption)
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
+        .padding(.horizontal, DS.Space.l)
+        .padding(.vertical, DS.Space.m)
     }
 }
 
@@ -1412,7 +1217,7 @@ struct ShortcutRecorderControl: View {
     var requireSafeGlobal: Bool = true
     let onRecorded: (KeyChord) -> Void
 
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @State private var isRecording = false
     @State private var flashError = false
     @State private var monitor: Any?
@@ -1539,7 +1344,7 @@ enum PrivacyDoc {
 
 /// Exact collect / never-collect manifest for the opt-in disclosure sheet.
 struct TelemetryDisclosureSheet: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) var appState
     /// When true, "Not now" only dismisses without changing opt-in (re-open from Settings).
     var isRevisit: Bool = false
 
@@ -1639,5 +1444,39 @@ extension NSImage {
             return image
         }
         return nil
+    }
+}
+
+// MARK: - Pane chrome
+
+/// Title block at the top of a settings pane, matching its sidebar symbol.
+struct PaneHeader: View {
+    let pane: SettingsPane
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: DS.Space.m) {
+            GlyphTile(systemImage: pane.systemImage, size: 38)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(pane.title)
+                    .font(.system(size: 20, weight: .semibold))
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(.primary)
+        .textCase(nil)
+        .padding(.bottom, DS.Space.s)
+    }
+}
+
+extension View {
+    /// Grouped forms read best at a fixed width; center them in wide windows.
+    func settingsColumn() -> some View {
+        self
+            .frame(maxWidth: DS.contentMaxWidth - 80)
+            .frame(maxWidth: .infinity)
     }
 }

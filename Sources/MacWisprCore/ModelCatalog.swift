@@ -25,25 +25,47 @@ public enum ModelCatalog {
     }
 }
 
-/// Destinations in the main window sidebar.
+/// Destinations in the main window sidebar, grouped as they appear.
 public enum MainPane: String, CaseIterable, Sendable {
     case home
+    case appearance
+    case configuration
+    case sound
     case history
-    case settings
+    case meetings
+    case about
 
     public var title: String {
         switch self {
         case .home: return "Home"
+        case .appearance: return "Appearance"
+        case .configuration: return "Configuration"
+        case .sound: return "Sound"
         case .history: return "History"
-        case .settings: return "Settings"
+        case .meetings: return "Meetings"
+        case .about: return "About"
         }
     }
 
     public var systemImage: String {
         switch self {
         case .home: return "house.fill"
+        case .appearance: return "paintbrush.fill"
+        case .configuration: return "gearshape.fill"
+        case .sound: return "speaker.wave.2.fill"
         case .history: return "clock.fill"
-        case .settings: return "gearshape.fill"
+        case .meetings: return "person.2.wave.2.fill"
+        case .about: return "info.circle.fill"
         }
     }
+
+    /// Sidebar sections: Home alone, then app settings, then history and about.
+    public static let sidebarSections: [[MainPane]] = [
+        [.home],
+        [.appearance, .configuration, .sound],
+        [.history, .meetings, .about],
+    ]
+
+    /// Where "Settings…" (menu bar, ⌘,) lands.
+    public static let settings: MainPane = .configuration
 }

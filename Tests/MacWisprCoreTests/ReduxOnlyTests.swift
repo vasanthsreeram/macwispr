@@ -18,9 +18,13 @@ final class ModelCatalogTests: XCTestCase {
         XCTAssertEqual(ModelCatalog.migrate(savedModelID: "Parakeet-Redux"), "Parakeet-Redux")
     }
 
-    func testSidebarHasThreePanes() {
-        XCTAssertEqual(MainPane.allCases, [.home, .history, .settings])
-        XCTAssertEqual(MainPane.allCases.map(\.title), ["Home", "History", "Settings"])
+    func testSidebarPanes() {
+        XCTAssertEqual(
+            MainPane.allCases.map(\.title),
+            ["Home", "Appearance", "Configuration", "Sound", "History", "Meetings", "About"]
+        )
+        XCTAssertEqual(MainPane.sidebarSections.flatMap { $0 }, MainPane.allCases)
+        XCTAssertEqual(MainPane.settings, .configuration)
     }
 }
 

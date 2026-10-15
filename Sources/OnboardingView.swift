@@ -2,7 +2,7 @@ import SwiftUI
 
 /// First-run checklist: mic, Accessibility, hotkey, model, sound.
 struct OnboardingView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) var appState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -11,7 +11,7 @@ struct OnboardingView: View {
                     if let logo = NSImage.appLogo {
                         Image(nsImage: logo).resizable().aspectRatio(contentMode: .fit)
                     } else {
-                        Image(systemName: "waveform.circle.fill").resizable().foregroundStyle(.tint)
+                        GlyphTile(systemImage: "mic.fill", size: 44)
                     }
                 }
                 .frame(width: 44, height: 44)

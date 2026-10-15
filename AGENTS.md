@@ -11,6 +11,7 @@ Instructions for coding agents working in this repository.
   [RELEASE_1.3.0.md](docs/context/RELEASE_1.3.0.md). Qwen / Parakeet v3 / cloud code paths
   remain in the source but are not reachable from the UI.
 - **Live partials (local Qwen + Parakeet):** while the mic is open, re-run ASR on the growing buffer and show a monochrome multi-line draft HUD; **final full pass on release** — [docs/context/LIVE_PARTIALS.md](docs/context/LIVE_PARTIALS.md)
+- **Meetings:** record mic + other apps' audio (Core Audio process tap), transcribe on-device after stop, save audio + transcript per meeting. **Agent access:** bundled `macwispr` CLI + MCP server (read-only history + meetings) — [MEETINGS_AND_AGENT_ACCESS.md](docs/context/MEETINGS_AND_AGENT_ACCESS.md)
 - Optional: BYOK cloud STT (OpenAI / ElevenLabs) + optional **local polish** (off by default; Qwen3.5 SFT via MLX **4-bit** — **not** in Sparkle zip; downloads ~400 MB from HF on enable into Application Support — [POLISH_TRAINING.md](docs/context/POLISH_TRAINING.md))
 - Global hotkey: **⌥Space** (hold or toggle)
 - Inserts text system-wide (Accessibility required for paste / event tap)
@@ -57,6 +58,9 @@ Instructions for coding agents working in this repository.
 | `PolishLocalModel.swift` | Local polish pack catalog + HF download-on-enable (default Qwen enum SFT; optional LFM) |
 | `DevCaptureStore.swift` | Opt-in **dev mode**: local WAV + raw/polished text under Application Support |
 | `SparkleUpdater.swift` | Check for Updates |
+| `MeetingController.swift` / `MeetingCapture.swift` / `MeetingsView.swift` | Meeting recording, processing, Meetings pane |
+| `MacWisprCLI/` | `macwispr` CLI + MCP server (shipped as `Contents/Helpers/macwispr`) |
+| `MacWisprCore/AgentData.swift` | Data folder layout + read API shared by app and CLI |
 
 ## Privacy & telemetry (must not regress)
 

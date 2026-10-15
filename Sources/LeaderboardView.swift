@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Dedicated leaderboard surface: join, optional public name, live rank.
 struct LeaderboardView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) var appState
     @State private var nameDraft: String = ""
     @FocusState private var nameFocused: Bool
 

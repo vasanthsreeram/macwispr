@@ -5,7 +5,7 @@ import MacWisprCore
 /// The whole settings surface: one page, plain words, nothing to configure
 /// for the speech model. Rarely used options sit under "Advanced".
 struct SimpleSettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) var appState
     @State private var showAdvanced = false
 
     var body: some View {

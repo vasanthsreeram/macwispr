@@ -1,5 +1,6 @@
 import Foundation
 import AudioCommon
+import MacWisprCore
 
 /// On-disk integrity helpers for speech-swift Hugging Face caches.
 ///
@@ -23,7 +24,13 @@ enum ASRModelCache {
     }
 
     /// True when the cache looks complete enough to load without a re-download.
-    static func looksComplete(size: ASRModelSize) -> Bool {
+    static func looksComplete(size: ASRModelSize, reduxConfiguration: ReduxRuntimeConfiguration? = nil) -> Bool {
+        if size.engine == .photonParakeet {
+            let configuration = reduxConfiguration ?? ReduxRuntimeConfiguration.load()
+            return configuration.runtime == .mlx
+                ? ReduxMLXSidecar.isReady(configuration: configuration)
+                : PhotonSidecar.isReady
+        }
         guard let dir = directory(for: size.modelId) else { return false }
         switch size.engine {
         case .qwenMLX:

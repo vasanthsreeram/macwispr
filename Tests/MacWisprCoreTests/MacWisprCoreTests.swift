@@ -53,6 +53,26 @@ final class AudioChunkPlannerTests: XCTestCase {
         XCTAssertEqual(windows.last?.endSample, samples)
     }
 
+    /// Overlap must stay at the configured 2 s for every pair, including the
+    /// last window. A tail snapped back to a full window re-transcribed up to
+    /// 26 s twice and the word-level stitch could not remove it.
+    func testOverlapNeverExceedsConfigured() {
+        let sr = AudioChunkPlanner.sampleRate
+        for seconds in [29, 30, 35, 45, 60, 90, 181] {
+            let windows = AudioChunkPlanner.windows(
+                sampleCount: seconds * sr,
+                windowSamples: AudioChunkPlanner.parakeetWindowSamples,
+                overlapSamples: AudioChunkPlanner.parakeetOverlapSamples
+            )
+            XCTAssertEqual(windows.first?.startSample, 0)
+            XCTAssertEqual(windows.last?.endSample, seconds * sr)
+            for i in 1..<windows.count {
+                let overlap = windows[i - 1].endSample - windows[i].startSample
+                XCTAssertEqual(overlap, AudioChunkPlanner.parakeetOverlapSamples, "\(seconds)s window \(i)")
+            }
+        }
+    }
+
     func testMaxTokensIsPerWindowNotFullHour() {
         let hour = 60 * 60 * AudioChunkPlanner.sampleRate
         let hourTokens = AudioChunkPlanner.maxTokens(forSampleCount: hour, cap: 256)
@@ -72,6 +92,14 @@ final class TranscriptStitchTests: XCTestCase {
             "this is a test of stitching",
         ])
         XCTAssertEqual(joined, "hello world this is a test of stitching")
+    }
+
+    func testOverlapIgnoresCaseAndPunctuation() {
+        let joined = TranscriptStitch.join([
+            "penetrating into obscure silences only to hear and",
+            "Silences only to hear and feel the more deeply",
+        ])
+        XCTAssertEqual(joined, "penetrating into obscure silences only to hear and feel the more deeply")
     }
 
     func testEmptyPartsIgnored() {
@@ -208,6 +236,9 @@ final class SampleRingTests: XCTestCase {
             i = end
         }
         XCTAssertEqual(ring.count, 5_000)
+        // Reads must be correct both while a spill is queued and after it lands.
+        XCTAssertEqual(ring.loadRange(start: 0, count: 10).count, 10)
+        ring.waitForPendingSpill()
         let tail = ring.snapshotTail(maxSamples: 50)
         XCTAssertEqual(tail.count, 50)
 

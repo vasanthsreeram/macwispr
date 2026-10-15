@@ -73,6 +73,20 @@ Settings → General → **Developer → Save audio + text locally** (off by def
 - Caps at the last 100 captures; you can clear from Settings.
 - Can also be forced for a process with env `MACWISPR_DEV_CAPTURE=1`.
 
+### Meeting recordings (local only, not telemetry)
+
+**Meetings → Record Meeting** records only while you press it, and the menu bar shows a red timer the whole time. It can record two sources, each with its own switch:
+
+- **Microphone**: you and the room.
+- **Other apps**: audio that apps on this Mac play (Zoom, Meet, Teams, browsers). macOS asks for the *Screen & System Audio Recording* permission the first time.
+
+Audio (`audio.m4a`, `mic.m4a`, `system.m4a`) and the on-device transcript are saved to
+`~/Library/Application Support/MacWispr/Meetings/<date_time>/` on this Mac only. MacWispr never uploads them and never sends them through telemetry. Meetings send no telemetry events at all. Tell the other people in a meeting that you are recording it; some places require their consent.
+
+### Agent access (local, read-only)
+
+The app includes a `macwispr` command (`MacWispr.app/Contents/Helpers/macwispr`). It reads dictation history and meetings from the folder above, and it can run as an MCP server (`macwispr mcp`), so AI agents that *you* set up on this Mac can read them. The command never writes or deletes data, and it makes no network calls. Agents you connect to it can send what they read to their own providers.
+
 ---
 
 ## Where data goes
@@ -102,6 +116,7 @@ If you need data removed for a specific install ID, open a GitHub issue or conta
 | **Cloud BYOK** (OpenAI / ElevenLabs) | Yes — audio (and polish text, if enabled) go to the provider you chose, under **your** API key and their privacy policy |
 | **Grok (SuperGrok)** | Yes — only after **explicit consent**. Audio is streamed to xAI speech-to-text using your Grok CLI OAuth session (`~/.grok/auth.json`). Counted against your SuperGrok usage entitlement, not MacWispr servers. No API key is copied into MacWispr’s Keychain. |
 | **Transcript history / dashboard** | Stored locally under Application Support on your Mac |
+| **Meeting recordings** | No. Audio and transcripts are stored and transcribed on this Mac |
 
 Turning telemetry on does **not** change where transcription runs. Local stays local. Grok STT is never enabled silently.
 

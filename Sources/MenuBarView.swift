@@ -2,11 +2,9 @@ import SwiftUI
 import AppKit
 
 struct MenuBarView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) var appState
 
-    private var week: UsageStats.Snapshot {
-        UsageStats(typingWPM: appState.typingWPM).weeklySnapshot(entries: appState.transcriptionHistory)
-    }
+    private var week: UsageStats.Snapshot { appState.usageSummary.week }
 
     private var displayTranscript: String {
         if !appState.lastCleanTranscription.isEmpty {
@@ -17,6 +15,8 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 10) {
+            header
+
             // Compact alerts only — status + Hold to Speak live on the menu-bar
             // icon / ⌥Space, not duplicated in this popover.
             if !appState.hotkeyArmed {
@@ -67,36 +67,23 @@ struct MenuBarView: View {
             }
 
             if week.words > 0 || week.dictations > 0 {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("This week")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Text("\(week.words.formatted()) words")
-                            .font(.callout.weight(.semibold))
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Time saved")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Text(week.formattedTimeSaved)
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(.green)
-                    }
+                HStack(spacing: 0) {
+                    weekStat(week.formattedTimeSaved, "saved this week")
+                    Rectangle().fill(Color.white.opacity(0.12)).frame(width: 1, height: 26)
+                    weekStat(week.words.formatted(), "words")
                 }
-                .padding(.horizontal)
-
-                Divider()
+                .padding(.vertical, DS.Space.m)
+                .brandSurface(radius: DS.Radius.m)
+                .padding(.horizontal, DS.Space.m)
             }
 
             if !displayTranscript.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Last result")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text("Last dictation")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.tertiary)
                     Text(displayTranscript)
-                        .font(.body)
+                        .font(.system(size: 13))
                         .lineLimit(4)
                         .textSelection(.enabled)
                     HStack(spacing: 8) {
@@ -113,12 +100,20 @@ struct MenuBarView: View {
                 }
                 .padding(.horizontal)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-                Divider()
             }
 
-            VStack(spacing: 2) {
+            VStack(spacing: 0) {
+                Divider().padding(.bottom, 4)
                 micPickerRow
+                Divider().padding(.vertical, 4)
+                menuRow(
+                    title: appState.meetings.isRecording
+                        ? "Stop Meeting Recording (\(appState.meetings.elapsedLabel))"
+                        : "Record Meeting",
+                    systemImage: appState.meetings.isRecording ? "stop.circle.fill" : "record.circle"
+                ) {
+                    appState.meetings.toggle()
+                }
                 Divider().padding(.vertical, 4)
                 menuRow(title: "Open Dashboard", systemImage: "chart.bar.fill") {
                     StatusBarController.shared.closePopover()
@@ -149,7 +144,8 @@ struct MenuBarView: View {
             }
             .padding(.horizontal)
         }
-        .padding(.vertical, 12)
+        .padding(.top, DS.Space.m)
+        .padding(.bottom, DS.Space.s)
         .frame(width: 300)
         // Avoid extra material layers inside NSPopover (double glass on Tahoe).
         .background(Color(nsColor: .windowBackgroundColor))
@@ -196,8 +192,13 @@ struct MenuBarView: View {
     }
 
     private var micPickerRow: some View {
-        HStack(spacing: 6) {
-            Label(currentInputDeviceLabel, systemImage: "mic.fill")
+        HStack(spacing: DS.Space.s) {
+            Image(systemName: "mic")
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            Text(currentInputDeviceLabel)
+                .font(.system(size: 13))
                 .lineLimit(1)
             Spacer(minLength: 0)
             Image(systemName: "chevron.up.chevron.down")
@@ -206,8 +207,8 @@ struct MenuBarView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-        .padding(.vertical, 6)
-        .padding(.horizontal, 4)
+        .padding(.vertical, 5)
+        .padding(.horizontal, 8)
         .allowsHitTesting(false)
         .overlay {
             GeometryReader { _ in
@@ -249,15 +250,34 @@ struct MenuBarView: View {
         return items
     }
 
-    private func menuRow(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .padding(.vertical, 6)
-                .padding(.horizontal, 4)
+    private var header: some View {
+        let status = appState.readiness
+        return HStack(spacing: DS.Space.s) {
+            Text("MacWispr")
+                .font(.system(size: 13, weight: .semibold))
+            Spacer()
+            StatusDot(tone: status.tone, text: status.text)
+            if status.tone == .ready {
+                Keycaps(keys: appState.dictationHotkey.badgeLabels, size: 10)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal)
+    }
+
+    private func weekStat(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 1) {
+            Text(value)
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func menuRow(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        MenuRow(title: title, systemImage: systemImage, action: action)
     }
 
     private func openMainWindow() {
@@ -278,3 +298,31 @@ struct MenuBarView: View {
 }
 
 
+
+/// Full-width popover row with a hover fill, like a native menu item.
+private struct MenuRow: View {
+    let title: String
+    let systemImage: String
+    let action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(spacing: DS.Space.s) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            Text(title)
+                .font(.system(size: 13))
+            Spacer()
+        }
+        .padding(.vertical, 5)
+        .padding(.horizontal, 8)
+        .background(
+            RoundedRectangle(cornerRadius: DS.Radius.s, style: .continuous)
+                .fill(isHovering ? Color.primary.opacity(0.07) : .clear)
+        )
+        .onHover { isHovering = $0 }
+        .appKitTap(title, action: action)
+    }
+}

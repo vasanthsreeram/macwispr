@@ -38,7 +38,15 @@ let package = Package(
                 .product(name: "HuggingFace", package: "swift-huggingface"),
             ],
             path: "Sources",
-            exclude: ["MacWisprCore"]
+            exclude: ["MacWisprCore", "MacWisprCLI"]
+        ),
+        // `macwispr` CLI + MCP server: read-only agent access to history and meetings.
+        // build-app.sh ships it as Contents/Helpers/macwispr (a target named
+        // `macwispr` would collide with `MacWispr` on case-insensitive disks).
+        .executableTarget(
+            name: "MacWisprCLI",
+            dependencies: ["MacWisprCore"],
+            path: "Sources/MacWisprCLI"
         ),
         .executableTarget(
             name: "BenchLatency",
@@ -48,6 +56,15 @@ let package = Package(
                 .product(name: "AudioCommon", package: "speech-swift"),
             ],
             path: "BenchLatency"
+        ),
+        // ASR gate: pass/fail harness for engine swaps (bench/asr_gate/README.md).
+        .executableTarget(
+            name: "ASRGate",
+            dependencies: [
+                "MacWisprCore",
+                .product(name: "ParakeetASR", package: "speech-swift"),
+            ],
+            path: "bench/asr_gate/ASRGate"
         ),
         .executableTarget(
             name: "CompareASR",

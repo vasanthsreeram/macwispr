@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import Darwin
 
 /// `MacWispr --transcribe-file <audio> [...]` — load the shipped model through
 /// the same `TranscriptionEngine` the app uses, transcribe each file, print
@@ -28,24 +29,45 @@ enum HeadlessTranscribe {
                 emit(["event": "load_failed", "error": error.localizedDescription])
                 exit(2)
             }
-            emit([
+            var loaded: [String: Any] = [
                 "event": "loaded",
                 "model": size.rawValue,
+                "runtime": await engine.runtimeIdentifier ?? "unknown",
                 "seconds": Date().timeIntervalSince(start),
-            ])
+            ]
+            await addMemory(to: &loaded, engine: engine)
+            emit(loaded)
             var failed = false
             for path in files {
                 do {
                     let samples = try loadMono16k(path)
                     let t = Date()
                     let text = try await engine.transcribe(samples: samples)
-                    emit(["file": path, "text": text, "seconds": Date().timeIntervalSince(t)])
+                    var result: [String: Any] = ["file": path, "text": text, "seconds": Date().timeIntervalSince(t),
+                                                "runtime": await engine.runtimeIdentifier ?? "unknown"]
+                    await addMemory(to: &result, engine: engine)
+                    emit(result)
                 } catch {
                     failed = true
                     emit(["file": path, "error": error.localizedDescription])
                 }
             }
             exit(failed ? 1 : 0)
+        }
+    }
+
+    private static func addMemory(to output: inout [String: Any], engine: TranscriptionEngine) async {
+        var usage = rusage()
+        if getrusage(RUSAGE_SELF, &usage) == 0 {
+            output["app_peak_rss_bytes"] = usage.ru_maxrss
+        }
+        do {
+            if let stats = try await engine.reduxDiagnostics() {
+                let data = try JSONEncoder().encode(stats)
+                output["backend_memory"] = try JSONSerialization.jsonObject(with: data)
+            }
+        } catch {
+            output["memory_error"] = error.localizedDescription
         }
     }
 

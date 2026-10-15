@@ -10,6 +10,7 @@ actor TranscriptionEngine {
         case qwen(Qwen3ASRModel)
         case parakeet(ParakeetASRModel)
         case photon(PhotonSidecar)
+        case reduxMLX(ReduxMLXSidecar)
     }
 
     private var backend: Backend?
@@ -18,6 +19,7 @@ actor TranscriptionEngine {
     private var isWarmedUp = false
     private(set) var loadedModelId: String?
     private var loadedEngine: ASRModelSize.Engine?
+    private var loadedReduxConfiguration: ReduxRuntimeConfiguration?
     /// Bumped on each load start and on unload so a finishing stale load
     /// cannot reinstall weights after the user switched provider/size.
     private var loadGeneration = 0
@@ -27,11 +29,21 @@ actor TranscriptionEngine {
 
     func loadModel(
         size: ASRModelSize,
+        reduxConfiguration configuration: ReduxRuntimeConfiguration? = nil,
         progressHandler: @escaping @Sendable (Double, String) -> Void
     ) async throws {
+        if size.engine == .photonParakeet,
+           let value = ProcessInfo.processInfo.environment["MACWISPR_REDUX_RUNTIME"],
+           ReduxRuntime(rawValue: value) == nil {
+            throw NSError(domain: "MacWispr.Redux", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "MACWISPR_REDUX_RUNTIME must be photon or mlx."
+            ])
+        }
         let modelId = size.modelId
+        let reduxConfiguration = size.engine == .photonParakeet ? (configuration ?? ReduxRuntimeConfiguration.load()) : nil
+        let usesReduxMLX = reduxConfiguration?.runtime == .mlx
         // Already on the requested model (and VAD ready for Qwen streaming).
-        if backend != nil, loadedModelId == modelId {
+        if backend != nil, loadedModelId == modelId, loadedReduxConfiguration == reduxConfiguration {
             if size.engine == .qwenMLX, vadModel == nil {
                 try await loadVAD(progressHandler: progressHandler, generation: loadGeneration)
             }
@@ -46,20 +58,21 @@ actor TranscriptionEngine {
 
         // Drop incomplete/corrupt HF cache *before* load so speech-swift does not
         // treat a stub `model.safetensors` as “already downloaded”.
-        ASRModelCache.prepareForLoad(size: size)
+        if !usesReduxMLX { ASRModelCache.prepareForLoad(size: size) }
 
         do {
             try await loadModelOnce(
                 size: size,
                 modelId: modelId,
                 generation: generation,
+                reduxConfiguration: reduxConfiguration,
                 progressHandler: progressHandler
             )
         } catch is CancellationError {
             throw CancellationError()
         } catch {
             // Common on flaky first downloads: partial weights → “file couldn’t be opened”.
-            guard ASRModelCache.shouldRetryAfterPurge(error) else { throw error }
+            guard !usesReduxMLX, ASRModelCache.shouldRetryAfterPurge(error) else { throw error }
             guard generation == loadGeneration else { throw CancellationError() }
             NSLog(
                 "MacWispr: ASR load failed (\(error.localizedDescription)); purging cache and re-downloading \(modelId)"
@@ -70,6 +83,7 @@ actor TranscriptionEngine {
                 size: size,
                 modelId: modelId,
                 generation: generation,
+                reduxConfiguration: reduxConfiguration,
                 progressHandler: progressHandler
             )
         }
@@ -79,6 +93,7 @@ actor TranscriptionEngine {
         size: ASRModelSize,
         modelId: String,
         generation: Int,
+        reduxConfiguration: ReduxRuntimeConfiguration?,
         progressHandler: @escaping @Sendable (Double, String) -> Void
     ) async throws {
         switch size.engine {
@@ -123,19 +138,33 @@ actor TranscriptionEngine {
 
         case .photonParakeet:
             vadModel = nil
-            let sidecar = PhotonSidecar()
-            try await Task.detached {
-                try sidecar.start(progress: progressHandler)
-            }.value
-            guard generation == loadGeneration else {
-                sidecar.stop()
-                throw CancellationError()
+            let configuration = reduxConfiguration ?? ReduxRuntimeConfiguration.load()
+            if configuration.runtime == .mlx {
+                let sidecar = ReduxMLXSidecar(configuration: configuration)
+                try await Task.detached {
+                    try sidecar.start(progress: progressHandler)
+                }.value
+                guard generation == loadGeneration else {
+                    sidecar.stop()
+                    throw CancellationError()
+                }
+                self.backend = .reduxMLX(sidecar)
+            } else {
+                let sidecar = PhotonSidecar()
+                try await Task.detached {
+                    try sidecar.start(progress: progressHandler)
+                }.value
+                guard generation == loadGeneration else {
+                    sidecar.stop()
+                    throw CancellationError()
+                }
+                self.backend = .photon(sidecar)
             }
-            self.backend = .photon(sidecar)
             self.loadedModelId = modelId
             self.loadedEngine = .photonParakeet
+            self.loadedReduxConfiguration = configuration
             isWarmedUp = true
-            progressHandler(1.0, "Ready")
+            progressHandler(1.0, "Ready · \(configuration.runtime.displayName)")
         }
     }
 
@@ -177,6 +206,8 @@ actor TranscriptionEngine {
             model.unload()
         case .photon(let sidecar):
             sidecar.stop()
+        case .reduxMLX(let sidecar):
+            sidecar.stop()
         case .none:
             break
         }
@@ -185,6 +216,7 @@ actor TranscriptionEngine {
         isWarmedUp = false
         loadedModelId = nil
         loadedEngine = nil
+        loadedReduxConfiguration = nil
         Memory.clearCache()
     }
 
@@ -292,6 +324,18 @@ actor TranscriptionEngine {
             }
             return try sidecar.transcribe(samples: samples)
 
+        case .reduxMLX(let sidecar):
+            if !sidecar.isRunning {
+                let generation = loadGeneration
+                NSLog("MacWispr: experimental Redux MLX sidecar restarting")
+                try await Task.detached { try sidecar.start { _, _ in } }.value
+                guard generation == loadGeneration else {
+                    sidecar.stop()
+                    throw CancellationError()
+                }
+            }
+            return try sidecar.transcribe(samples: samples)
+
         case .parakeet(let model):
             if !isWarmedUp { try warmUpParakeet(model) }
             // Fixed-shape Core ML encoders expect mel [1, 128, 3000] only.
@@ -326,7 +370,7 @@ actor TranscriptionEngine {
         }
 
         switch backend {
-        case .parakeet, .photon:
+        case .parakeet, .photon, .reduxMLX:
             // Parakeet TDT is batch-only in this build.
             let text = try await transcribe(
                 samples: samples, language: language, context: context)
@@ -462,6 +506,21 @@ actor TranscriptionEngine {
             return Array(samples.suffix(maxSamples))
         }
         return samples
+    }
+
+    var runtimeIdentifier: String? {
+        switch backend {
+        case .reduxMLX: return "redux-mlx"
+        case .photon: return "photon"
+        case .qwen: return "qwen-mlx"
+        case .parakeet: return "parakeet-coreml"
+        case .none: return nil
+        }
+    }
+
+    func reduxDiagnostics() throws -> ReduxRuntimeDiagnostics? {
+        guard case .reduxMLX(let sidecar) = backend else { return nil }
+        return try sidecar.diagnostics()
     }
 
     var isLoaded: Bool {

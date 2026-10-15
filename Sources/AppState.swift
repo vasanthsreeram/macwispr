@@ -46,157 +46,191 @@ enum DictationPhase: Equatable {
 }
 
 @MainActor
-final class AppState: ObservableObject {
+@Observable
+final class AppState {
     static private(set) var shared: AppState?
 
-    @Published var isRecording = false
-    @Published var isModelLoaded = false
-    @Published var isModelLoading = false
-    @Published var modelLoadProgress: Double = 0
-    @Published var modelLoadStatus: String = ""
+    var isRecording = false
+    var isModelLoaded = false
+    var isModelLoading = false
+    var modelLoadProgress: Double = 0
+    var modelLoadStatus: String = ""
+    var reduxRuntimeConfiguration = ReduxRuntimeConfiguration.load()
+    var reduxMemoryDiagnostics: ReduxRuntimeDiagnostics?
+    var reduxDiagnosticsError: String?
     /// Qwen size; RAM-aware default applied in `init` when no preference is saved.
-    @Published var asrModelSize: ASRModelSize = ASRModelSize.recommendedDefault
-    @Published var transcriptionProvider: TranscriptionProvider = .local
-    @Published var polishProvider: PolishProvider = .off
-    @Published var polishLocalModel: PolishLocalModel = .miniCPM
+    var asrModelSize: ASRModelSize = ASRModelSize.recommendedDefault
+    var transcriptionProvider: TranscriptionProvider = .local
+    var polishProvider: PolishProvider = .off
+    var polishLocalModel: PolishLocalModel = .miniCPM
     /// Models → AI Models: when false, polish packs stay hidden (SuperWhisper-style).
-    @Published var showExperimentalAIModels = false
+    var showExperimentalAIModels = false
     /// Opt-in local debug: save WAV + raw/polished text under Application Support.
-    @Published var devCaptureEnabled: Bool = false
-    /// Keychain presence flags (never store the raw secrets in @Published).
-    @Published var hasOpenAIKey = false
-    @Published var hasElevenLabsKey = false
-    @Published var openAIKeyMasked: String = ""
-    @Published var elevenLabsKeyMasked: String = ""
+    var devCaptureEnabled: Bool = false
+    /// Keychain presence flags (never store the raw secrets in observed state).
+    var hasOpenAIKey = false
+    var hasElevenLabsKey = false
+    var openAIKeyMasked: String = ""
+    var elevenLabsKeyMasked: String = ""
     /// Grok CLI session present on this Mac (`~/.grok/auth.json`).
-    @Published var hasGrokSession = false
+    var hasGrokSession = false
     /// User consented to use Grok SuperGrok STT (local preference only).
-    @Published var grokSTTConsented = false
+    var grokSTTConsented = false
     /// Masked identity from Grok auth (email if present).
-    @Published var grokSessionLabel: String = ""
-    @Published var currentTranscription: String = ""
-    @Published var transcriptionHistory: [TranscriptionEntry] = []
-    @Published var selectedLanguage: String? = nil
-    @Published var insertionMode: InsertionMode = .both
+    var grokSessionLabel: String = ""
+    var currentTranscription: String = ""
+    var transcriptionHistory: [TranscriptionEntry] = [] {
+        didSet { refreshUsageSummary() }
+    }
+    /// Cached dashboard / menu bar numbers; recomputed only when history or WPM changes.
+    private(set) var usageSummary: UsageStats.Summary = .empty
+    var selectedLanguage: String? = nil
+    var insertionMode: InsertionMode = .both
     /// Light first-letter capitalize only — no hardcoded filler/word lists (polish model owns cleanup).
-    @Published var autoCapitalize = true
+    var autoCapitalize = true
     /// Legacy flag kept in sync with polishProvider == .local for older UI bindings.
-    @Published var llmPolishEnabled = false
-    @Published var isLLMLoaded = false
-    @Published var isLLMLoading = false
-    @Published var llmLoadStatus: String = ""
+    var llmPolishEnabled = false
+    var isLLMLoaded = false
+    var isLLMLoading = false
+    var llmLoadStatus: String = ""
     /// 0…1 while downloading / loading the local polish pack (Settings progress).
-    @Published var llmLoadProgress: Double = 0
+    var llmLoadProgress: Double = 0
     /// True when Application Support (or bundle/env) has complete polish weights.
-    @Published var isPolishModelOnDisk: Bool = PolishLocalModel.miniCPM.isAvailable
-    @Published var soundFeedbackEnabled = true
+    var isPolishModelOnDisk: Bool = PolishLocalModel.miniCPM.isAvailable
+    var soundFeedbackEnabled = true
     /// Default output is muted / volume ~0 — chimes will be silent until unmuted.
-    @Published var outputMuted = false
+    var outputMuted = false
     /// 0…1 feedback chime level (settings slider).
-    @Published var feedbackSoundVolume: Double = FeedbackSoundPreferences.volume
-    @Published var startChime: SystemChime = FeedbackSoundPreferences.startChime
-    @Published var stopChime: SystemChime = FeedbackSoundPreferences.stopChime
-    @Published var successChime: SystemChime = FeedbackSoundPreferences.successChime
-    @Published var failureChime: SystemChime = FeedbackSoundPreferences.failureChime
-    @Published var dictationMode: DictationMode = .hold
+    var feedbackSoundVolume: Double = FeedbackSoundPreferences.volume
+    var startChime: SystemChime = FeedbackSoundPreferences.startChime
+    var stopChime: SystemChime = FeedbackSoundPreferences.stopChime
+    var successChime: SystemChime = FeedbackSoundPreferences.successChime
+    var failureChime: SystemChime = FeedbackSoundPreferences.failureChime
+    var dictationMode: DictationMode = .hold
     /// Global dictation chord (default ⌥Space). Click-to-record in Configuration.
-    @Published var dictationHotkey: KeyChord = .defaultDictation
+    var dictationHotkey: KeyChord = .defaultDictation
     /// Discard in-progress listening without pasting (default Esc).
-    @Published var cancelHotkey: KeyChord = .defaultCancel
-    @Published var typingWPM: Double = UsageStats.defaultTypingWPM
+    var cancelHotkey: KeyChord = .defaultCancel
+    var typingWPM: Double = UsageStats.defaultTypingWPM {
+        didSet { refreshUsageSummary() }
+    }
     /// Custom vocabulary / domain terms fed to Qwen3-ASR as system context.
-    @Published var customVocabulary: [String] = []
+    var customVocabulary: [String] = []
     /// Reflects HotkeyManager.isArmed so the menu bar can reactively show Fix.
-    @Published var hotkeyArmed = false
+    var hotkeyArmed = false
     /// AXIsProcessTrusted() polled with hotkey health.
-    @Published var accessibilityTrusted = false
+    var accessibilityTrusted = false
     /// Privacy Settings: share anonymous usage data (default OFF).
-    @Published var telemetryOptIn = false
+    var telemetryOptIn = false
     /// First-run (or first Settings visit) disclosure sheet for telemetry.
-    @Published var showTelemetryDisclosure = false
+    var showTelemetryDisclosure = false
     /// Privacy Settings: appear on the public website leaderboard (default OFF).
     /// Identity is anonymous only — never linked to telemetry install ID.
-    @Published var leaderboardOptIn = false
+    var leaderboardOptIn = false
     /// Server-derived label (e.g. "Anonymous Otter · a1f2") after first sync.
-    @Published var leaderboardDisplayName: String = ""
+    var leaderboardDisplayName: String = ""
     /// Public rank (#1 = top). Nil when opted out or not yet synced.
-    @Published var leaderboardRank: Int? = nil
+    var leaderboardRank: Int? = nil
     /// Short label for Home UI (e.g. "Otter · a1f2").
-    @Published var leaderboardShortName: String = ""
+    var leaderboardShortName: String = ""
     /// Animal token for cute avatar (e.g. "Otter").
-    @Published var leaderboardAnimal: String = ""
+    var leaderboardAnimal: String = ""
     /// Stable avatar art key (non-identifying).
-    @Published var leaderboardAvatarKey: String = ""
+    var leaderboardAvatarKey: String = ""
     /// Last known aggregates from board sync (for Home chips).
-    @Published var leaderboardRemoteStats: LeaderboardStats = .zero
+    var leaderboardRemoteStats: LeaderboardStats = .zero
     /// True when the board shows a user-chosen competitive name.
-    @Published var leaderboardIsCustomName = false
+    var leaderboardIsCustomName = false
     /// Draft public name (empty = anonymous animal). Synced when opted in.
-    @Published var leaderboardPublicNameDraft: String = ""
+    var leaderboardPublicNameDraft: String = ""
     /// Human message if the chosen name was rejected (taken / invalid).
-    @Published var leaderboardNameError: String? = nil
+    var leaderboardNameError: String? = nil
     /// Pipeline phase for menu bar / HUD (Ready → Listening → Transcribing → Done/Fail).
-    @Published var dictationPhase: DictationPhase = .setup
+    var dictationPhase: DictationPhase = .setup
     /// Short human label for the current phase (tooltips, HUD).
-    @Published var phaseDetail: String = ""
+    var phaseDetail: String = ""
     /// Seconds since listening started (updates while recording).
-    @Published var recordingElapsed: TimeInterval = 0
+    var recordingElapsed: TimeInterval = 0
     /// Clean last transcript (no ⚠️ suffixes) for Copy / Re-paste.
-    @Published var lastCleanTranscription: String = ""
+    var lastCleanTranscription: String = ""
     /// Transient failure banner (AX, empty mic, STT) — not mixed into history text.
-    @Published var lastFailureMessage: String? = nil
+    var lastFailureMessage: String? = nil
     /// Show a simple floating banner under the menu bar while dictating.
     /// (Not a Dynamic Island — plain app UI, easy to see.)
     /// Prefer `recordingWindowStyle`; this stays in sync for older call sites.
-    @Published var listeningHUDEnabled = true
+    var listeningHUDEnabled = true
     /// SuperWhisper-style: Classic (live draft) / Mini (timer) / None (off).
-    @Published var recordingWindowStyle: RecordingWindowStyle = .classic
+    var recordingWindowStyle: RecordingWindowStyle = .classic
     /// Liquid Glass look for the floating recording window (Clear / Tinted).
-    @Published var liquidGlassStyle: LiquidGlassStyle = .clear
+    var liquidGlassStyle: LiquidGlassStyle = .clear
     /// Live draft while mic is open (only applies when recording window is Classic).
-    @Published var livePartialsEnabled = true
+    var livePartialsEnabled = true
     /// First-run setup checklist until the user dismisses it.
-    @Published var showOnboarding = false
+    var showOnboarding = false
     /// Connected microphones (refreshed when Settings opens).
-    @Published var availableInputDevices: [AudioInputDevice] = []
+    var availableInputDevices: [AudioInputDevice] = []
     /// Core Audio UID; empty string = follow macOS system default.
-    @Published var selectedInputDeviceUID: String = ""
+    var selectedInputDeviceUID: String = ""
 
+    @ObservationIgnored
     let transcriptionEngine = TranscriptionEngine()
+    @ObservationIgnored
     let textPolisher = TextPolisher()
+    @ObservationIgnored
     let audioRecorder = AudioRecorder()
+    @ObservationIgnored
     let hotkeyManager = HotkeyManager()
+    /// Meeting recording (mic + other apps' audio) and its on-device transcripts.
+    @ObservationIgnored
+    let meetings = MeetingController()
+    @ObservationIgnored
     let textInserter = TextInserter()
 
+    @ObservationIgnored
     private var recordingSession = 0
+    @ObservationIgnored
     private var hotkeyHealthTimer: Timer?
+    @ObservationIgnored
     private var recordingElapsedTimer: Timer?
+    @ObservationIgnored
     private var recordingStartedAt: Date?
+    @ObservationIgnored
     private var phaseResetTask: Task<Void, Never>?
     /// Current health-timer interval (shorter while unarmed so we recover quickly).
+    @ObservationIgnored
     private var hotkeyHealthInterval: TimeInterval = 2.0
     private static let hotkeyHealthIntervalUnarmed: TimeInterval = 2.0
     private static let hotkeyHealthIntervalArmed: TimeInterval = 8.0
     /// History id for the latest dictation (so Dictate edits update the same row).
+    @ObservationIgnored
     private var lastTranscriptionId: UUID?
     /// Bumped when starting a local load or leaving `.local` so a finishing
     /// mid-load progress cannot stomp cloud readiness / UI flags.
+    @ObservationIgnored
     private var modelLoadGeneration = 0
     /// Debounced history persistence — avoids rewriting history.json every dictation.
+    @ObservationIgnored
     private var historySaveTask: Task<Void, Never>?
     /// Live partial ASR while the mic is open (local Qwen + Parakeet).
+    @ObservationIgnored
     private var livePartialTask: Task<Void, Never>?
     /// Prevents overlapping live ASR calls on the engine actor.
+    @ObservationIgnored
     private var livePartialInFlight = false
     /// PCM sample count that produced the last accepted live draft (for release fast-path).
+    @ObservationIgnored
     private var lastLivePartialSampleCount = 0
     /// Live Grok streaming STT session (mic-open WebSocket, like Grok Build).
+    @ObservationIgnored
     private var grokStreamSession: GrokStreamingSession?
     /// Pump task: snapshot mic → send PCM deltas + receive display updates.
+    @ObservationIgnored
     private var grokStreamPumpTask: Task<Void, Never>?
     /// How many float samples have already been sent on the live Grok socket.
+    @ObservationIgnored
     private var grokStreamSentSamples = 0
     /// True while Grok stream is connecting / finishing (release can await it).
+    @ObservationIgnored
     private var grokStreamBusy = false
     private static let historySaveDebounceNs: UInt64 = 750_000_000 // 0.75s
     /// How often to re-transcribe the growing buffer while listening.
@@ -209,7 +243,12 @@ final class AppState: ObservableObject {
     /// Max time to wait for an in-flight live pass to finish on release.
     private static let livePartialDrainTimeoutNs: UInt64 = 1_500_000_000 // 1.5s
     /// Idle GPU unload + memory-pressure source (menu-bar process can live for days).
+    @ObservationIgnored
     private var idleUnloadTask: Task<Void, Never>?
+    /// Meeting transcription is using the engine; idle unload waits.
+    @ObservationIgnored
+    private var meetingTranscriptionActive = false
+    @ObservationIgnored
     private var memoryPressureSource: DispatchSourceMemoryPressure?
     private static let customVocabularyKey = "customVocabulary"
     private static let asrModelSizeKey = "asrModelSize"
@@ -231,7 +270,7 @@ final class AppState: ObservableObject {
         switch transcriptionProvider {
         case .local:
             // Idle-unloaded weights still count as ready — we reload on hotkey.
-            return isModelLoaded || ASRModelCache.looksComplete(size: asrModelSize)
+            return isModelLoaded || ASRModelCache.looksComplete(size: asrModelSize, reduxConfiguration: reduxRuntimeConfiguration)
         case .openAI:
             return hasOpenAIKey
         case .elevenLabs:
@@ -246,7 +285,7 @@ final class AppState: ObservableObject {
         case .local:
             if isModelLoaded { return "Ready" }
             if isModelLoading { return modelLoadStatus.isEmpty ? "Setting up…" : modelLoadStatus }
-            if ASRModelCache.looksComplete(size: asrModelSize) { return "Ready" }
+            if ASRModelCache.looksComplete(size: asrModelSize, reduxConfiguration: reduxRuntimeConfiguration) { return "Ready" }
             return modelLoadStatus.hasPrefix("Error") ? modelLoadStatus : "Speech model not set up yet"
         case .openAI:
             return hasOpenAIKey ? "Ready · OpenAI" : "Add OpenAI API key"
@@ -302,6 +341,12 @@ final class AppState: ObservableObject {
         return true
     }
 
+    /// Also called when the dashboard appears so the 7-day window follows the date.
+    func refreshUsageSummary() {
+        let next = UsageStats(typingWPM: typingWPM).summary(entries: transcriptionHistory)
+        if next != usageSummary { usageSummary = next }
+    }
+
     var needsSetup: Bool {
         !isReadyToDictate || !accessibilityTrusted || !hotkeyArmed
     }
@@ -312,6 +357,7 @@ final class AppState: ObservableObject {
         if let savedWPM = UserDefaults.standard.object(forKey: "typingWPM") as? Double, savedWPM > 0 {
             typingWPM = savedWPM
         }
+        refreshUsageSummary()
         if UserDefaults.standard.object(forKey: "soundFeedbackEnabled") != nil {
             soundFeedbackEnabled = UserDefaults.standard.bool(forKey: "soundFeedbackEnabled")
         }
@@ -433,8 +479,10 @@ final class AppState: ObservableObject {
         refreshKeyPresence()
         refreshGrokSession()
         syncIdlePhase()
+        meetings.attach(self)
         // Headless transcription drives the engine itself; no hotkey or auto-load.
-        guard HeadlessTranscribe.requestedFiles == nil, UISnapshot.outputDirectory == nil else { return }
+        guard HeadlessTranscribe.requestedFiles == nil, HeadlessMeeting.requestedSeconds == nil,
+              UISnapshot.outputDirectory == nil else { return }
         setupHotkey()
         Task { await prepareActiveProvider() }
         if polishProvider == .local {
@@ -809,6 +857,8 @@ final class AppState: ObservableObject {
         modelLoadGeneration += 1
         isModelLoading = false
         await transcriptionEngine.unloadModel()
+        reduxMemoryDiagnostics = nil
+        reduxDiagnosticsError = nil
     }
 
     private func cancelIdleUnload() {
@@ -816,8 +866,29 @@ final class AppState: ObservableObject {
         idleUnloadTask = nil
     }
 
+    /// Loads the speech model for meeting transcription and holds off idle unload
+    /// until `endMeetingTranscription()`. Returns false if the model cannot load.
+    func beginMeetingTranscription() async -> Bool {
+        meetingTranscriptionActive = true
+        cancelIdleUnload()
+        if !isModelLoaded, !isModelLoading {
+            await loadModel()
+        }
+        while isModelLoading {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        cancelIdleUnload()
+        return isModelLoaded
+    }
+
+    func endMeetingTranscription() {
+        meetingTranscriptionActive = false
+        scheduleIdleUnload()
+    }
+
     /// Drop GPU/ANE weights after idle so a days-long menu-bar process does not pin RAM.
     private func scheduleIdleUnload() {
+        guard !meetingTranscriptionActive else { return }
         cancelIdleUnload()
         idleUnloadTask = Task { @MainActor [weak self] in
             let polishNs = UInt64(MemoryPressurePolicy.idlePolishUnloadSeconds * 1_000_000_000)
@@ -834,7 +905,7 @@ final class AppState: ObservableObject {
             if rest > 0 {
                 try? await Task.sleep(nanoseconds: UInt64(rest * 1_000_000_000))
             }
-            guard !Task.isCancelled, !self.isRecording else { return }
+            guard !Task.isCancelled, !self.isRecording, !self.meetingTranscriptionActive else { return }
             guard self.transcriptionProvider == .local, self.isModelLoaded else { return }
             await self.unloadLocalModelForProviderSwitch()
             self.isModelLoaded = false
@@ -867,7 +938,7 @@ final class AppState: ObservableObject {
             availableBytes: ProcessMemory.availableBytes(),
             asrLoaded: transcriptionProvider == .local && isModelLoaded,
             polishLoaded: isLLMLoaded,
-            recording: isRecording
+            recording: isRecording || meetingTranscriptionActive
         )
         switch action {
         case .keep:
@@ -903,7 +974,11 @@ final class AppState: ObservableObject {
         isModelLoading = true
         isModelLoaded = false
         modelLoadProgress = 0
-        modelLoadStatus = asrModelSize.isDownloaded ? "Loading speech model…" : "Setting up speech model…"
+        let configuration = reduxRuntimeConfiguration
+        let alreadyCached = ASRModelCache.looksComplete(size: asrModelSize, reduxConfiguration: configuration)
+        modelLoadStatus = alreadyCached ? "Loading speech model…" : "Setting up speech model…"
+        reduxMemoryDiagnostics = nil
+        reduxDiagnosticsError = nil
 
         do {
             let engine = transcriptionEngine
@@ -911,8 +986,7 @@ final class AppState: ObservableObject {
             try await Task.detached {
                 // Keep "Download" wording when the pack is not on disk yet so users
                 // know a multi‑hundred‑MB HF fetch is in progress (not a local load).
-                let alreadyCached = ASRModelCache.looksComplete(size: size)
-                try await engine.loadModel(size: size) { progress, status in
+                try await engine.loadModel(size: size, reduxConfiguration: configuration) { progress, status in
                     DispatchQueue.main.async { [weak self] in
                         guard let self, self.modelLoadGeneration == generation else { return }
                         self.modelLoadProgress = progress
@@ -948,7 +1022,9 @@ final class AppState: ObservableObject {
             }
 
             isModelLoaded = true
-            modelLoadStatus = "Ready"
+            modelLoadStatus = "Ready · \(configuration.runtime.displayName)"
+            await refreshReduxMemoryDiagnostics()
+            guard generation == modelLoadGeneration else { return }
             syncIdlePhase()
             scheduleIdleUnload()
         } catch is CancellationError {
@@ -974,6 +1050,44 @@ final class AppState: ObservableObject {
         if generation == modelLoadGeneration {
             isModelLoading = false
             if isModelLoaded { syncIdlePhase() }
+        }
+    }
+
+    var canChangeReduxRuntime: Bool {
+        !isRecording && !isModelLoading && !dictationPhase.isBusy && !meetingTranscriptionActive
+    }
+
+    func setReduxRuntimeConfiguration(_ configuration: ReduxRuntimeConfiguration) {
+        guard canChangeReduxRuntime, configuration != reduxRuntimeConfiguration else { return }
+        let previous = reduxRuntimeConfiguration
+        reduxRuntimeConfiguration = configuration
+        configuration.store()
+        guard previous.runtime != configuration.runtime || configuration.runtime == .mlx else { return }
+        cancelIdleUnload()
+        isModelLoaded = false
+        isModelLoading = true
+        modelLoadStatus = "Switching speech runtime…"
+        reduxMemoryDiagnostics = nil
+        reduxDiagnosticsError = nil
+        Task { await loadModel() }
+    }
+
+    func refreshReduxMemoryDiagnostics() async {
+        guard isModelLoaded, reduxRuntimeConfiguration.runtime == .mlx else {
+            reduxMemoryDiagnostics = nil
+            reduxDiagnosticsError = nil
+            return
+        }
+        let generation = modelLoadGeneration
+        do {
+            let diagnostics = try await transcriptionEngine.reduxDiagnostics()
+            guard generation == modelLoadGeneration else { return }
+            reduxMemoryDiagnostics = diagnostics
+            reduxDiagnosticsError = nil
+        } catch {
+            guard generation == modelLoadGeneration else { return }
+            reduxMemoryDiagnostics = nil
+            reduxDiagnosticsError = error.localizedDescription
         }
     }
 
@@ -1092,7 +1206,6 @@ final class AppState: ObservableObject {
         if size == .parakeetInt8 {
             ASRModelCache.purge(modelId: ASRModelSize.parakeetInt4.modelId)
         }
-        objectWillChange.send()
     }
 
     /// Select + ensure model is loaded (download if needed).
@@ -1170,13 +1283,19 @@ final class AppState: ObservableObject {
         recordingStartedAt = Date()
         recordingElapsed = 0
         recordingElapsedTimer?.invalidate()
+        // Ticks at 4 Hz so the label never lags a second boundary, but only
+        // writes observed state (and re-syncs HUD / status item) when the
+        // whole second changes.
         let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self, let start = self.recordingStartedAt else { return }
-                self.recordingElapsed = Date().timeIntervalSince(start)
+                let elapsed = Date().timeIntervalSince(start)
+                guard Int(elapsed) != Int(self.recordingElapsed) else { return }
+                self.recordingElapsed = elapsed
                 ListeningHUDController.shared.sync(with: self)
             }
         }
+        timer.tolerance = 0.05
         RunLoop.main.add(timer, forMode: .common)
         recordingElapsedTimer = timer
     }
@@ -1833,11 +1952,13 @@ final class AppState: ObservableObject {
         case .local:
             // Parakeet ignores context; only pass vocab for Qwen.
             let context = asrModelSize.supportsContext ? asrContext : nil
-            return try await transcriptionEngine.transcribe(
+            let text = try await transcriptionEngine.transcribe(
                 ring: ring,
                 language: selectedLanguage,
                 context: context
             )
+            await refreshReduxMemoryDiagnostics()
+            return text
         case .openAI:
             guard let key = KeychainStore.load(account: .openAI) else {
                 throw CloudSTTError.missingAPIKey("OpenAI")
@@ -1948,20 +2069,30 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Writes any debounced history save now and waits for it (app quit).
+    func flushHistoryForTermination() {
+        if historySaveTask != nil {
+            historySaveTask?.cancel()
+            historySaveTask = nil
+            HistoryStore.saveInBackground(transcriptionHistory)
+        }
+        HistoryStore.flushPendingSaves()
+    }
+
     /// Cap + debounce full history rewrites (#4 item 4).
     private func scheduleHistorySave(immediate: Bool = false) {
         HistoryStore.trimInPlace(&transcriptionHistory)
         if immediate {
             historySaveTask?.cancel()
             historySaveTask = nil
-            HistoryStore.save(transcriptionHistory)
+            HistoryStore.saveInBackground(transcriptionHistory)
             return
         }
         historySaveTask?.cancel()
         historySaveTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: Self.historySaveDebounceNs)
             guard !Task.isCancelled, let self else { return }
-            HistoryStore.save(self.transcriptionHistory)
+            HistoryStore.saveInBackground(self.transcriptionHistory)
             self.historySaveTask = nil
         }
     }
@@ -2257,7 +2388,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Re-read tap/carbon/AX into @Published fields for SwiftUI.
+    /// Re-read tap/carbon/AX into observed fields for SwiftUI.
     func refreshHotkeyHealth() {
         let armed = hotkeyManager.isArmed
         let ax = hotkeyManager.accessibilityTrusted

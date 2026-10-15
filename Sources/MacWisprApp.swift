@@ -4,7 +4,7 @@ import AppKit
 @main
 struct MacWisprApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var appState = AppState()
+    @State private var appState = AppState()
 
     /// Status item must be installed **once**. Side-effect in `body` re-ran on
     /// every scene invalidation and rebuilt the popover host → ghosted UI.
@@ -21,8 +21,11 @@ struct MacWisprApp: App {
         // SwiftUI still requires a Scene. `Settings` is only an anchor; product
         // Settings live in the dashboard. Settings-only scenes omit File > Close
         // for AppKit hosts, so Cmd+Q/W are explicit (not the default suite).
+        // macOS can still open this scene directly (app menu, ⌘, before our
+        // command group loads), so it redirects to the dashboard's Settings
+        // pane and closes itself instead of showing an empty window.
         Settings {
-            EmptyView()
+            SettingsSceneRedirect(open: openDashboardSettings)
         }
         .commands {
             CommandGroup(replacing: .appSettings) {
@@ -62,5 +65,31 @@ struct MacWisprApp: App {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             NotificationCenter.default.post(name: .macWisprShowSettings, object: nil)
         }
+    }
+}
+
+/// Content of the SwiftUI `Settings` scene: closes its own window and opens
+/// the real Settings pane in the dashboard.
+private struct SettingsSceneRedirect: View {
+    let open: () -> Void
+
+    var body: some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .background(WindowCloser())
+            .onAppear(perform: open)
+    }
+
+    private struct WindowCloser: NSViewRepresentable {
+        func makeNSView(context: Context) -> NSView {
+            let view = NSView()
+            DispatchQueue.main.async {
+                view.window?.orderOut(nil)
+                view.window?.close()
+            }
+            return view
+        }
+
+        func updateNSView(_ nsView: NSView, context: Context) {}
     }
 }

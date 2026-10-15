@@ -22,11 +22,15 @@ public enum TranscriptStitch {
             return base + " " + next
         }
 
+        // Compare words without case or punctuation: the same audio at a window
+        // edge often comes back as "silences" in one chunk and "Silences." in the next.
+        let baseKeys = baseWords.map(Self.matchKey)
+        let nextKeys = nextWords.map(Self.matchKey)
         let maxOverlap = min(12, baseWords.count, nextWords.count)
         var overlap = 0
         if maxOverlap > 0 {
             for k in stride(from: maxOverlap, through: 1, by: -1) {
-                if Array(baseWords.suffix(k)) == Array(nextWords.prefix(k)) {
+                if Array(baseKeys.suffix(k)) == Array(nextKeys.prefix(k)) {
                     overlap = k
                     break
                 }
@@ -38,6 +42,10 @@ public enum TranscriptStitch {
         let rest = nextWords.dropFirst(overlap).joined(separator: " ")
         if rest.isEmpty { return base }
         return base + " " + rest
+    }
+
+    static func matchKey(_ word: String) -> String {
+        String(word.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
     }
 
     public static func words(_ text: String) -> [String] {

@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import Combine
 
 /// System menu-bar presence via AppKit `NSStatusItem` + a single `NSPopover`.
 ///
@@ -17,7 +16,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     /// Single host — must not be replaced while the popover is open.
     private var hostingController: NSHostingController<AnyView>?
     private var appState: AppState?
-    private var cancellables = Set<AnyCancellable>()
+    private var isObservingPhase = false
+    /// Last rendered status-item state; avoids redundant menu bar redraws.
+    private var lastAppliedKey = ""
     private var didInstall = false
     /// Event monitor so transient popover dismiss stays reliable.
     private var localEventMonitor: Any?
@@ -75,7 +76,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
 
     /// Create the hosting controller once. SwiftUI observes `AppState` via
-    /// `environmentObject`, so live UI updates without replacing the host.
+    /// the environment, so live UI updates without replacing the host.
     private func ensureHostingController() {
         guard let appState, let popover else { return }
 
@@ -85,7 +86,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
 
         let root = AnyView(
             MenuBarView()
-                .environmentObject(appState)
+                .environment(appState)
                 .frame(width: 300)
                 // Solid enough background so Liquid Glass doesn't stack two materials.
                 .background(Color(nsColor: .windowBackgroundColor))
@@ -99,32 +100,48 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         popover.contentSize = NSSize(width: 300, height: 420)
     }
 
+    /// Re-applies the icon whenever a property read inside `applyPhase` changes.
+    /// Observation tracking fires once per change, so this re-arms itself.
     private func bindPhaseUpdates(_ appState: AppState) {
-        cancellables.removeAll()
+        guard !isObservingPhase else { return }
+        isObservingPhase = true
+        observePhase()
+    }
 
-        appState.$dictationPhase
-            .combineLatest(appState.$phaseDetail, appState.$recordingElapsed, appState.$isModelLoading)
-            .receive(on: RunLoop.main)
-            .sink { [weak self] phase, detail, _, _ in
-                guard let self, let state = self.appState else { return }
-                // Icon / title only — never touch the popover host here.
-                self.applyPhase(phase, detail: detail, state: state)
-            }
-            .store(in: &cancellables)
-
-        appState.$isModelLoaded
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                guard let self, let state = self.appState else { return }
-                self.applyPhase(state.dictationPhase, detail: state.phaseDetail, state: state)
-            }
-            .store(in: &cancellables)
+    private func observePhase() {
+        guard let state = appState else { return }
+        withObservationTracking {
+            applyPhase(state.dictationPhase, detail: state.phaseDetail, state: state)
+        } onChange: {
+            Task { @MainActor [weak self] in self?.observePhase() }
+        }
     }
 
     private func applyPhase(_ phase: DictationPhase, detail: String, state: AppState) {
         guard let item = statusItem, let button = item.button else { return }
 
+        // Read everything the icon depends on up front so tracking sees it,
+        // then skip AppKit writes when the rendered result is unchanged.
+        let meetingLabel = state.meetings.isRecording ? state.meetings.elapsedLabel : ""
+        let key = "\(phase)|\(detail)|\(state.recordingElapsedFixedLabel)|\(state.isModelLoading)|\(state.isModelLoaded)|\(state.modelLoadStatus)|\(state.readinessLabel)|\(meetingLabel)"
+        guard key != lastAppliedKey else { return }
+        lastAppliedKey = key
+
         button.appearsDisabled = false
+
+        // A meeting recording shows when dictation is not busy.
+        if !meetingLabel.isEmpty, !phase.isBusy {
+            item.length = 76
+            let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+            button.image = NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: "MacWispr meeting recording")?
+                .withSymbolConfiguration(config)?
+                .tintedSafely(with: .systemRed)
+            button.imagePosition = .imageLeading
+            button.attributedTitle = Self.timerTitle(meetingLabel, color: .systemRed)
+            button.contentTintColor = .systemRed
+            button.toolTip = "MacWispr — Recording meeting \(meetingLabel)"
+            return
+        }
 
         switch phase {
         case .listening:
