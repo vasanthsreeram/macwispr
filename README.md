@@ -18,7 +18,7 @@ Hold a hotkey, speak, release — text appears in whatever app you're typing in.
 
 ## Website
 
-- Marketing site: **[fuckwisprflow.com](https://www.fuckwisprflow.com)** (MacWispr vs cloud)
+- Marketing site: **[fuckwisprflow.com](https://fuckwisprflow.com)** (MacWispr vs cloud)
 - Product notes: **[vasanthsreeram.github.io/macwispr](https://vasanthsreeram.github.io/macwispr/)**
 
 ## Easy install (stable)

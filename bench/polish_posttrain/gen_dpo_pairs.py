@@ -22,9 +22,14 @@ from mlx_lm import load
 from mlx_lm.generate import generate
 from mlx_lm.sample_utils import make_sampler
 
+from fact_heuristic import fact_retention
 from polish_verifier import verify
 
 PROMPT = "### Input:\n{raw}\n\n### Output:\n"
+
+# Fact retention dominates: a pretty-but-lossy output must always rank
+# below a faithful one, so weight facts 2x the polish/format score.
+FACT_WEIGHT = 2.0
 
 
 def main() -> None:
@@ -53,21 +58,27 @@ def main() -> None:
                     max_tokens=args.max_tokens, sampler=sampler,
                 )
                 out = out.split("### Input:")[0].strip()
-                scored.append((verify(c["raw"], out, c["tags"]).score, out))
+                fact = fact_retention(c["raw"], out)
+                score = verify(c["raw"], out, c.get("tags", [])).score + FACT_WEIGHT * fact
+                scored.append((score, fact, out))
             scored.sort(key=lambda s: s[0], reverse=True)
             best, worst = scored[0], scored[-1]
             margin = best[0] - worst[0]
-            if margin >= args.min_margin and best[1] != worst[1]:
+            best_fact = max(s[1] for s in scored)
+            # chosen must be maximally faithful among samples — never teach
+            # a preference for an output that drops or corrupts a fact.
+            if margin >= args.min_margin and best[2] != worst[2] and best[1] >= best_fact:
                 f.write(json.dumps({
                     "prompt": prompt,
-                    "chosen": best[1],
-                    "rejected": worst[1],
+                    "chosen": best[2],
+                    "rejected": worst[2],
                     "margin": round(margin, 3),
-                    "tags": c["tags"],
+                    "tags": c.get("tags", []),
                 }) + "\n")
                 kept += 1
             print(f"{i + 1}/{len(cases)} {c.get('id', '?'):6s} "
-                  f"best={best[0]:+.2f} worst={worst[0]:+.2f} kept={kept}")
+                  f"best={best[0]:+.2f} worst={worst[0]:+.2f} "
+                  f"fact={best[1]:.2f}/{worst[1]:.2f} kept={kept}")
 
     print(f"\nwrote {kept}/{len(cases)} pairs -> {args.out}")
 

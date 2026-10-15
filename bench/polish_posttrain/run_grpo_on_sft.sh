@@ -49,23 +49,49 @@ PY
 rm -rf "$ADAPTER"
 mkdir -p "$ADAPTER"
 
-python -m mlx_lm_lora.train \
-  --model "$SFT_FUSED" \
-  --train \
-  --train-mode grpo \
-  --train-type lora \
-  --data "${PP}/grpo_data" \
-  --batch-size 1 \
-  --iters "$ITERS" \
-  --learning-rate 5e-6 \
-  --adapter-path "$ADAPTER" \
-  --group-size 4 \
-  --max-completion-length 256 \
-  --reward-functions-file "${PP}/grpo_rewards.py" \
-  --reward-functions polish_reward \
-  --steps-per-report 10 \
-  --save-every 50 \
-  --seed 42
+# mlx_lm_lora's GRPO loop aborts (Metal memory growth) after ~4-5 min, so run
+# in short chunks: each chunk is a fresh process resuming from the last adapter.
+CHUNK="${CHUNK:-25}"
+DONE=0
+CRASHES=0
+RESUME=""
+[[ -f "$ADAPTER/adapters.safetensors" ]] && RESUME="$ADAPTER/adapters.safetensors" && echo "resuming from existing checkpoint"
+while (( DONE < ITERS )); do
+  N=$(( ITERS - DONE < CHUNK ? ITERS - DONE : CHUNK ))
+  set +e
+  python -m mlx_lm_lora.train \
+    --model "$SFT_FUSED" \
+    --train \
+    --train-mode grpo \
+    --train-type lora \
+    --data "${PP}/grpo_data" \
+    --batch-size 1 \
+    --iters "$N" \
+    --learning-rate 5e-6 \
+    --adapter-path "$ADAPTER" \
+    --group-size "${GROUP_SIZE:-3}" \
+    --max-completion-length "${MAX_COMPLETION:-192}" \
+    --reward-functions-file "${PP}/grpo_rewards.py" \
+    --reward-functions polish_reward \
+    --steps-per-report 10 \
+    --save-every "$CHUNK" \
+    --seed $((42 + DONE + CRASHES)) \
+    ${RESUME:+--resume-adapter-file "$RESUME"}
+  rc=$?
+  set -e
+  [[ -f "$ADAPTER/adapters.safetensors" ]] && RESUME="$ADAPTER/adapters.safetensors"
+  if (( rc == 0 )); then
+    DONE=$((DONE + N))
+    echo "chunk ok: $DONE/$ITERS iters"
+  else
+    CRASHES=$((CRASHES + 1))
+    echo "chunk aborted rc=$rc (crash #$CRASHES) at ~$DONE iters — resuming from checkpoint"
+    if (( CRASHES >= 20 )); then
+      echo "too many crashes; giving up" >&2
+      exit 1
+    fi
+  fi
+done
 
 rm -rf "$FUSED"
 mlx_lm.fuse --model "$SFT_FUSED" --adapter-path "$ADAPTER" --save-path "$FUSED"

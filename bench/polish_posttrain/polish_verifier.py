@@ -42,6 +42,32 @@ def _content_words(text: str) -> set[str]:
     }
 
 
+def _has_block_heading(text: str) -> bool:
+    """True if any list block is introduced by a heading.
+
+    Accepts markdown headings, bold lines, colon-terminated lines
+    (HEADING_RE), or a plain short title line sitting directly above a
+    list item (optionally separated by blank lines) — models often emit
+    `Groceries` rather than `Groceries:` and both are fine for a human.
+    """
+    if HEADING_RE.search(text):
+        return True
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped or len(stripped) > 60:
+            continue
+        if BULLET_RE.match(line) or CHECKBOX_RE.match(line) or NUMBERED_RE.match(line):
+            continue
+        for nxt in lines[i + 1 :]:
+            if not nxt.strip():
+                continue
+            if BULLET_RE.match(nxt) or CHECKBOX_RE.match(nxt) or NUMBERED_RE.match(nxt):
+                return True
+            break
+    return False
+
+
 def _list_blocks(text: str) -> int:
     """Count separate list blocks (list runs separated by non-list lines)."""
     blocks, in_block = 0, False
@@ -86,7 +112,7 @@ def verify(raw: str, out: str, tags: list[str]) -> Verdict:
         fb.append("residual filler/course-correction left in output")
 
     if "multi_list" in tags:
-        if blocks >= 2 and HEADING_RE.search(out):
+        if blocks >= 2 and _has_block_heading(out):
             score += 1.0
         elif blocks >= 2:
             score += 0.5
