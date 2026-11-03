@@ -3,8 +3,9 @@
 **Status: BLOCKED for publication, branch ready for review.** I built a Windows dictation app and
 it passes build, self-test, end-to-end hotkey→paste and installer checks on a real Windows
 machine (a GitHub-hosted `windows-2022` runner). It has **not** been tested with a real
-microphone or on Windows 10/11 desktop, so I did not publish it, change the website, or
-create a release. You stopped the local VM because it caused memory and swap pressure on this host.
+microphone or on Windows 10/11 desktop, so I did not publish it, deploy the website, or
+create a release. The website changes are committed on the branch and ready to deploy, but they are **not live**.
+You stopped the local VM because it caused memory and swap pressure on this host, and I have not restarted it.
 
 Labels: **[M]** measured (tool output), **[I]** inferred, **[U]** unknown.
 
@@ -15,10 +16,11 @@ Labels: **[M]** measured (tool output), **[I]** inferred, **[U]** unknown.
   `.../macwispr/main` checkout or the MacBook [M].
 - Commits: `3697cd7` app + build + CI · `4373bbd` remove committed bytecode, pytest path ·
   `fc5e961` bundle package metadata · `af39394` stdout/stderr for the windowed build ·
-  `da23750` e2e race fix · plus a final commit with the rule-10 report and website draft patch.
+  `da23750` e2e race fix · `331709a` rule-10 report · `f68e46a` **website preparation**
+  (unpublished) · plus a final commit that updates the rule-10 report.
 - PR not opened: https://github.com/vasanthsreeram/macwispr/pull/new/feat/windows-dictation
-- macOS app: no Swift, `Package.swift`, script or website file changed [M] (`git diff --stat origin/main`:
-  only `windows/**`, `.github/workflows/windows.yml`, `.gitignore`, `scratchpad/**`). The macOS
+- macOS app: no Swift, `Package.swift` or script file changed [M]. `git diff --stat origin/main` shows
+  `windows/**`, `.github/workflows/windows.yml`, `.gitignore`, `scratchpad/**` and 6 `website/` files. The macOS
   CI workflow triggers only on `main`, so I did not run it [M].
 
 ## What was built (`windows/`)
@@ -76,23 +78,49 @@ and `~/vms/macwispr-win` (7.2 GB: ISO, partial disk, OEM script, a random VM pas
 To remove them: `docker rm macwispr-win && rm -rf ~/vms/macwispr-win`.
 
 ## Website and release status
-- Live https://fuckwisprflow.com/ matches `website/index.html` on `main` byte-for-byte [M]. **Unchanged.**
-- **No** GitHub release, no R2 upload, no Pages deploy, no appcast change [M]. The CI artifact
-  (`MacWispr-windows-da23750…`, 14-day retention) is the only build.
-- I prepared a draft that is **not applied**: `scratchpad/windows-website-draft.patch` on the branch. It extends the R2 download
-  function allow-list to `MacWispr-<v>-windows-x64(-setup.exe|.zip)`; a node check showed the old Mac names still match and
-  `../`-style names are rejected [M]. It also adds a "Windows preview" chip and install block. In a local Chromium check, desktop and 390 px
-  had no overflow or JS errors and the link scrolled to the block [M]. **Fix before use:** the heading hides under the sticky
-  header, and the existing copy "Mac only", "No Windows builds. On purpose." and "Windows can wait outside" contradicts it.
-  The ticker, OG/Twitter descriptions, FAQ JSON-LD and footer also need updating.
+- **Not published [M]:** live https://fuckwisprflow.com/ still matches `origin/main:website/index.html`
+  byte-for-byte. `/download/MacWispr-0.1.0-windows-x64-setup.exe` returns 404. GitHub Latest is still
+  `v1.3.0`. There was no R2 upload, Pages deploy or appcast change. The branch only gets Windows CI,
+  which builds artifacts and does not deploy. The CI artifact (`MacWispr-windows-da23750…`, 14-day retention) is the only build.
+- **Prepared on the branch (`f68e46a`)**, ready to deploy after the live-mic test:
+  - Mac-only copy replaced with "Mac + Windows preview" wording in: meta description and keywords,
+    OG/Twitter text, JSON-LD (`operatingSystem`, description, the offline FAQ, and the "Does MacWispr support
+    Windows?" FAQ, which now answers "Yes, in preview"), the ticker, the hero eyebrow, the comparison list, the Platform card
+    ("Mac first. Windows is in preview."), the CTA note plus a "Windows preview" button, the footers on `/`, and the
+    footer notes on `/why`, `/rnd` and `/leaderboard`. The "No Windows builds. On purpose." notes are removed. A grep for
+    "mac only", "no windows" and "wait outside" across `website/**/*.html` finds nothing [M].
+  - New "Install on Windows (x64)" block with 3 steps (installer link, SmartScreen, tray plus about 670 MB model, mic plus
+    Alt+Space). The `/privacy` page gets a Windows section: no telemetry, CPU-only ASR, a one-time model download, and local
+    history, settings and log in `%LOCALAPPDATA%\MacWispr`.
+  - R2 download function: the allow-list now also accepts `MacWispr-<v>-windows-x64(-setup.exe|.zip)`. A node check shows the Mac
+    names still match and `../` names are rejected [M].
+  - **Sticky-header fix:** `<style>#install-windows { scroll-margin-top: 6.5rem; }</style>` is inline in
+    `index.html`, because `styles.v7.css` is cached `immutable` for a year (`_headers`).
+- **Browser tests [M]** (Playwright plus system Chromium against a local static server, at 1280×900 and 390×844):
+  - Clicking the hero "Windows (preview)" chip and clicking the CTA "Windows preview" button both land on the section.
+    The kicker sits below the header's bottom edge: 104 px vs 68 px on desktop and 82 px vs 69 px on mobile. The
+    installer href is correct.
+  - No horizontal overflow on `/`, `/why/`, `/rnd/`, `/leaderboard/` or `/privacy/`. All return 200 and there are no JS page errors.
+  - I checked screenshots of the Windows section, the Platform card and the privacy section. The first render broke
+    "More info → Run anyway" into block headings, because the step cards style `<strong>` as headings. I replaced it with quoted text and re-checked.
+  - Console noise that also occurs on `main` and comes from the local server: the leaderboard API's CORS allows only `https://fuckwisprflow.com`.
+    `/leaderboard/` requests `styles.v8.css`, which my local server 404s, but production serves it with 200 [M].
+- Not tested [U]: Cloudflare Pages Functions locally (no `wrangler pages dev` run) and real downloads through R2.
 
 ## Next action (to publish)
 1. Test `MacWispr-0.1.0-windows-x64-setup.exe` from the CI artifact on a real Windows 10/11 PC with
    a mic: install, wait for the model, then dictate into Notepad, a browser and Word in hold and toggle modes.
 2. If it passes: open a PR from `feat/windows-dictation` and merge it. Run `gh release create windows-v0.1.0 --prerelease`
    with the CI artifacts, which leaves macOS `latest` and the appcast untouched. Run `wrangler r2 object put macwispr-downloads/<file>` for each
-   artifact, apply and finish the website patch, then run `wrangler pages deploy website --project-name=fuckwisprflow`.
+   artifact, merge the branch's website changes, then run `wrangler pages deploy website --project-name=fuckwisprflow`.
+   Afterwards, check that `/download/MacWispr-0.1.0-windows-x64-setup.exe` returns 200 on production.
    On this host `wrangler whoami` returned no account details, so Cloudflare access is [U]. `gh` is logged in [M].
 3. Consider code signing (SmartScreen) and a lighter model later.
 
-Timebox: started 13:30, finished about 14:10 SGT [M].
+Suggested follow-ups (outside scope, not fixed):
+- On mobile, the existing Mac `#install` heading sits slightly under the sticky header (title top 61 px vs header bottom
+  69 px, same as on `main`) [M].
+- The `/privacy` local row still says "ASR runs on Apple Silicon via MLX"; 1.3.0 uses Photon.
+- `website-macwispr/` (macwispr.lintware.com) and `PRIVACY.md` still describe the product as Mac only.
+
+Timebox: started 13:30. The first pass finished about 14:10 SGT, and the website preparation pass finished about 14:15 SGT [M].
