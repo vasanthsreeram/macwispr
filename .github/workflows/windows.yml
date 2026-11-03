@@ -33,28 +33,18 @@ jobs:
       - name: Build (unit tests, PyInstaller, zip, installer)
         run: ./build.ps1
 
-      - name: Self-test (clipboard, keyboard hook, mic, model download + transcription)
+      - name: Self-test with the runner's microphone privacy switch off (as found)
         run: |
-          $p = Start-Process dist\MacWispr\MacWispr.exe -PassThru -Wait -ArgumentList `
-            '--self-test','--wav','..\bench\clips\sample_10s_16k.wav','--out',"$PWD\selftest.json"
-          Get-Content selftest.json
-          $r = Get-Content selftest.json | ConvertFrom-Json
-          if (-not $r.ok) { throw "self-test failed" }
+          New-Item -ItemType Directory -Force evidence | Out-Null
+          $k = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
+          "user microphone access: $((Get-ItemProperty $k).Value)"
+          Start-Process dist\MacWispr\MacWispr.exe -Wait -ArgumentList `
+            '--self-test','--wav','..\bench\clips\sample_10s_16k.wav','--out',"$PWD\evidence\selftest_mic_denied.json"
+          Get-Content evidence\selftest_mic_denied.json
+          $r = Get-Content evidence\selftest_mic_denied.json | ConvertFrom-Json
+          foreach ($c in 'clipboard','hotkey_hook','model') { if (-not $r.checks.$c.ok) { throw "$c failed" } }
           if ($r.checks.model.detail.text -notmatch 'springboard') { throw "unexpected transcript" }
-          New-Item -ItemType Directory -Force evidence | Out-Null
-          Copy-Item selftest.json evidence\
-
-      - name: Capture probe (devices, formats, known-audio round trip through the app's Recorder)
-        if: always()
-        run: |
-          New-Item -ItemType Directory -Force evidence | Out-Null
-          # Windows microphone privacy switches (machine / user) as found on the runner; not changed.
-          foreach ($k in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone',
-                         'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone',
-                         'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\NonPackaged') {
-            "$k = $((Get-ItemProperty $k -ErrorAction SilentlyContinue).Value)"
-          }
-          .venv\Scripts\python.exe tests\ci_capture_probe.py ..\bench\clips\sample_10s_16k.wav evidence
+          if ($r.checks.microphone.detail -notmatch 'Windows is blocking the microphone') { throw "no clear microphone-privacy error" }
 
       - name: Installer installs and launches
         run: |
@@ -65,6 +55,28 @@ jobs:
           Start-Process $exe -Wait -ArgumentList '--version','--out',"$PWD\version.json"
           Get-Content version.json
           Get-FileHash out\* -Algorithm SHA256 | Format-Table -AutoSize | Out-String -Width 200
+
+      - name: Installed app, microphone blocked -> clear error, nothing pasted
+        run: |
+          .venv\Scripts\python.exe tests\e2e_capture.py "$env:LOCALAPPDATA\Programs\MacWispr\MacWispr.exe" ..\bench\clips evidence --denied
+          if ($LASTEXITCODE) { throw "denied-microphone scenario failed" }
+
+      - name: Turn on microphone access for this user (what README step 4 asks users to do)
+        run: |
+          $k = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
+          Set-ItemProperty $k -Name Value -Value Allow
+          "user microphone access: $((Get-ItemProperty $k).Value) / desktop apps: $((Get-ItemProperty "$k\NonPackaged").Value)"
+
+      - name: Self-test with microphone access on (clipboard, hook, 1 s capture, model)
+        run: |
+          Start-Process dist\MacWispr\MacWispr.exe -Wait -ArgumentList `
+            '--self-test','--wav','..\bench\clips\sample_10s_16k.wav','--out',"$PWD\evidence\selftest.json"
+          Get-Content evidence\selftest.json
+          if (-not (Get-Content evidence\selftest.json | ConvertFrom-Json).ok) { throw "self-test failed" }
+
+      - name: Capture probe (devices, formats, known-audio round trip through the app's Recorder)
+        if: always()
+        run: .venv\Scripts\python.exe tests\ci_capture_probe.py ..\bench\clips\sample_10s_16k.wav evidence
 
       - name: End-to-end through the cable with the installed app (hold, toggle, 68.8 s)
         run: |

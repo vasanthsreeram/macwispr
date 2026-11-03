@@ -7,7 +7,10 @@ so PortAudio/WASAPI/MME capture, the hotkey hook, the model and the paste are
 all the shipped code. Scenarios: hold mode, toggle mode, and a 68.8 s hold that
 crosses the 60 s chunk boundary.
 
-    python tests/e2e_capture.py <MacWispr.exe> <clips dir> <evidence dir>
+    python tests/e2e_capture.py <MacWispr.exe> <clips dir> <evidence dir> [--denied]
+
+--denied: run while the Windows microphone privacy switch is off and check that
+the user gets the clear "Windows is blocking the microphone" error and nothing is pasted.
 """
 from __future__ import annotations
 
@@ -159,10 +162,43 @@ def run_scenario(exe: str, log: Path, name: str, mode: str, clip_names: list[str
         time.sleep(1)
 
 
+def run_denied(exe: str, log: Path, ev: Path) -> int:
+    log_start = log.stat().st_size if log.exists() else 0
+
+    def new_log() -> str:
+        with open(log, "rb") as f:
+            f.seek(log_start)
+            return f.read().decode("utf-8", "replace")
+
+    note = subprocess.Popen(["notepad.exe"])
+    app = subprocess.Popen([exe])
+    try:
+        top, edit = wait_for(notepad, 20)
+        assert wait_for(lambda: log.exists() and "status: ready" in new_log(), 300, 1), "never ready"
+        focus(top)
+        chord(True)
+        time.sleep(2)
+        chord(False)
+        found = wait_for(lambda: "Windows is blocking the microphone" in new_log(), 20, 0.5)
+        time.sleep(1)
+        result = {"scenario": "microphone_denied", "clear_error_logged": bool(found), "pasted_text": window_text(edit),
+                  "log": [l for l in new_log().splitlines() if "status:" in l or "MicrophoneAccessDenied" in l
+                          or "dictation failed" in l or "MME error" in l]}
+        (ev / "e2e_microphone_denied.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+        print(json.dumps(result, indent=2))
+        return 0 if found and not result["pasted_text"] else 1
+    finally:
+        app.kill()
+        note.kill()
+        time.sleep(1)
+
+
 def main() -> int:
     exe, clips, ev = sys.argv[1], Path(sys.argv[2]), Path(sys.argv[3])
     ev.mkdir(parents=True, exist_ok=True)
     log = Path(os.environ["LOCALAPPDATA"]) / "MacWispr" / "macwispr.log"
+    if "--denied" in sys.argv:
+        return run_denied(exe, log, ev)
     print("default input:", sd.query_devices(kind="input")["name"], "| default output:", sd.query_devices(kind="output")["name"])
     s10, s12 = "sample_10s_16k.wav", "speech_12s_16k.wav"
     results = [
