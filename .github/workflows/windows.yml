@@ -1,0 +1,107 @@
+# Builds MacWispr for Windows and tests it on a real Windows desktop runner.
+# Artifacts only; publishing stays manual (see windows/README.md).
+name: Windows
+
+on:
+  push:
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows.yml"
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Add a real audio endpoint (VB-Audio Virtual Cable, signed driver)
+        run: ./tests/ci_install_vbcable.ps1
+
+      - name: Build (unit tests, PyInstaller, zip, installer)
+        run: ./build.ps1
+
+      - name: Self-test with microphone access explicitly denied
+        run: |
+          New-Item -ItemType Directory -Force evidence | Out-Null
+          # Fresh Windows images do not always have per-user consent keys. Establish
+          # both scenarios on this disposable VM instead of relying on image defaults.
+          foreach ($root in 'HKLM:', 'HKCU:') {
+            $base = "$root\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone"
+            foreach ($path in $base, "$base\NonPackaged") {
+              if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
+              New-ItemProperty -Path $path -Name Value -Value Allow -PropertyType String -Force | Out-Null
+            }
+          }
+          $k = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
+          Set-ItemProperty $k -Name Value -Value Deny
+          "user microphone access: $((Get-ItemProperty $k).Value)"
+          Start-Process dist\MacWispr\MacWispr.exe -Wait -ArgumentList `
+            '--self-test','--wav','..\bench\clips\sample_10s_16k.wav','--out',"$PWD\evidence\selftest_mic_denied.json"
+          Get-Content evidence\selftest_mic_denied.json
+          $r = Get-Content evidence\selftest_mic_denied.json | ConvertFrom-Json
+          foreach ($c in 'clipboard','hotkey_hook','model') { if (-not $r.checks.$c.ok) { throw "$c failed" } }
+          if ($r.checks.model.detail.text -notmatch 'springboard') { throw "unexpected transcript" }
+          if ($r.checks.microphone.detail -notmatch 'Windows is blocking the microphone') { throw "no clear microphone-privacy error" }
+
+      - name: Installer installs and launches
+        run: |
+          $setup = Get-ChildItem out\*-setup.exe | Select-Object -First 1
+          Start-Process $setup.FullName -Wait -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART'
+          $exe = "$env:LOCALAPPDATA\Programs\MacWispr\MacWispr.exe"
+          if (-not (Test-Path $exe)) { throw "installer did not install $exe" }
+          Start-Process $exe -Wait -ArgumentList '--version','--out',"$PWD\version.json"
+          Get-Content version.json
+          Get-FileHash out\* -Algorithm SHA256 | Format-Table -AutoSize | Out-String -Width 200
+
+      - name: Installed app, microphone blocked -> clear error, nothing pasted
+        run: |
+          .venv\Scripts\python.exe tests\e2e_capture.py "$env:LOCALAPPDATA\Programs\MacWispr\MacWispr.exe" ..\bench\clips evidence --denied
+          if ($LASTEXITCODE) { throw "denied-microphone scenario failed" }
+
+      - name: Turn on microphone access for this user (what README step 4 asks users to do)
+        run: |
+          $k = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
+          Set-ItemProperty $k -Name Value -Value Allow
+          "user microphone access: $((Get-ItemProperty $k).Value) / desktop apps: $((Get-ItemProperty "$k\NonPackaged").Value)"
+
+      - name: Self-test with microphone access on (clipboard, hook, 1 s capture, model)
+        run: |
+          Start-Process dist\MacWispr\MacWispr.exe -Wait -ArgumentList `
+            '--self-test','--wav','..\bench\clips\sample_10s_16k.wav','--out',"$PWD\evidence\selftest.json"
+          Get-Content evidence\selftest.json
+          if (-not (Get-Content evidence\selftest.json | ConvertFrom-Json).ok) { throw "self-test failed" }
+
+      - name: Capture probe (devices, formats, known-audio round trip through the app's Recorder)
+        if: always()
+        run: .venv\Scripts\python.exe tests\ci_capture_probe.py ..\bench\clips\sample_10s_16k.wav evidence
+
+      - name: End-to-end through the cable with the installed app (hold, toggle, 68.8 s)
+        run: |
+          try {
+            .venv\Scripts\python.exe tests\e2e_capture.py "$env:LOCALAPPDATA\Programs\MacWispr\MacWispr.exe" ..\bench\clips evidence
+            if ($LASTEXITCODE) { throw "end-to-end capture failed" }
+          } finally {
+            Copy-Item "$env:LOCALAPPDATA\MacWispr\macwispr.log" evidence\app.log -ErrorAction SilentlyContinue
+          }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MacWispr-windows-${{ github.sha }}
+          path: |
+            windows/out/*
+            windows/evidence/*
+          retention-days: 14

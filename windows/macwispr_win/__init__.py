@@ -1,0 +1,1 @@
+"""MacWispr for Windows."""

@@ -1,5 +1,5 @@
 // Serves release artifacts from R2 (Pages caps static files at 25 MiB).
-const ALLOWED = /^MacWispr-[0-9][0-9A-Za-z.\-]*-macos-arm64\.(dmg|zip)$/;
+const ALLOWED = /^MacWispr-[0-9][0-9A-Za-z.\-]*-(macos-arm64\.(dmg|zip)|windows-x64(-setup\.exe|\.zip))$/;
 
 export async function onRequest({ params, env, request }) {
   const name = Array.isArray(params.path) ? params.path.join("/") : params.path;
@@ -13,7 +13,8 @@ export async function onRequest({ params, env, request }) {
   if (!obj) return new Response("Not found", { status: 404 });
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
-  headers.set("Content-Type", name.endsWith(".dmg") ? "application/x-apple-diskimage" : "application/zip");
+  headers.set("Content-Type", name.endsWith(".dmg") ? "application/x-apple-diskimage"
+    : name.endsWith(".exe") ? "application/vnd.microsoft.portable-executable" : "application/zip");
   headers.set("Content-Disposition", `attachment; filename="${name}"`);
   headers.set("Cache-Control", "public, max-age=3600");
   headers.set("ETag", obj.httpEtag);

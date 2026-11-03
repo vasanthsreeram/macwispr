@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>MacWispr — Free Local Dictation for Mac (&lt;0.5s)</title>
-  <meta name="description" content="Free on-device speech-to-text for Mac. Local ASR under 0.5s on Apple Silicon. No account, no cloud queue — open-source alternative to $2B cloud dictation. MIT." />
-  <meta name="keywords" content="MacWispr, free dictation Mac, local speech to text, Apple Silicon ASR, Wispr Flow alternative, offline dictation macOS, voice typing Mac, open source dictation" />
+  <meta name="description" content="Free on-device speech-to-text for Mac, now in preview on Windows. Local ASR under 0.5s on Apple Silicon. No account, no cloud queue — open-source alternative to $2B cloud dictation. MIT." />
+  <meta name="keywords" content="MacWispr, free dictation Mac, local speech to text, Apple Silicon ASR, Wispr Flow alternative, offline dictation macOS, voice typing Mac, offline dictation Windows, voice typing Windows, open source dictation" />
   <meta name="author" content="MacWispr" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <meta name="theme-color" content="#f7f2e8" />
@@ -18,7 +18,7 @@
   <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="https://fuckwisprflow.com/" />
   <meta property="og:title" content="MacWispr — Free local dictation for Mac" />
-  <meta property="og:description" content="On-device ASR under 0.5s. Free open source. Mac only. Stop renting your voice to a $2B cloud app." />
+  <meta property="og:description" content="On-device ASR under 0.5s. Free open source. Mac + Windows preview. Stop renting your voice to a $2B cloud app." />
   <meta property="og:image" content="https://fuckwisprflow.com/brand/macwispr-share-v2.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -27,7 +27,7 @@
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="MacWispr — Free local dictation for Mac" />
-  <meta name="twitter:description" content="On-device ASR under 0.5s. Free open source. Mac only." />
+  <meta name="twitter:description" content="On-device ASR under 0.5s. Free open source. Mac + Windows preview." />
   <meta name="twitter:image" content="https://fuckwisprflow.com/brand/macwispr-share-v2.png" />
 
   <link rel="icon" type="image/png" sizes="128x128" href="/brand/macwispr-icon-v2-128.png" />
@@ -48,6 +48,7 @@
   </noscript>
 
   <link rel="stylesheet" href="/styles.v7.css" />
+  <style>#install-windows { scroll-margin-top: 6.5rem; }</style>
 
   <script type="application/ld+json">
   {
@@ -69,7 +70,7 @@
         "name": "MacWispr",
         "applicationCategory": "UtilitiesApplication",
         "applicationSubCategory": "Speech Recognition",
-        "operatingSystem": "macOS 14+",
+        "operatingSystem": "macOS 14+, Windows 10/11 (x64, preview)",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -81,7 +82,7 @@
         "softwareVersion": "1.3.0",
         "url": "https://fuckwisprflow.com/",
         "image": "https://fuckwisprflow.com/brand/macwispr-share-v2.png",
-        "description": "Free on-device dictation for Apple Silicon Macs. Local ASR under 0.5s with no cloud upload for transcription.",
+        "description": "Free on-device dictation for Apple Silicon Macs, with a Windows 10/11 x64 preview. Local ASR under 0.5s on Mac with no cloud upload for transcription.",
         "featureList": [
           "On-device speech recognition",
           "Under 0.5 second latency",
@@ -112,7 +113,7 @@
             "name": "Does MacWispr work offline?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Local ASR runs on-device on Apple Silicon. Audio does not leave your Mac for local transcription."
+              "text": "Yes. Speech recognition runs on-device: Apple Silicon on Mac, your CPU on Windows. Audio does not leave your computer for transcription. Windows downloads its model once on first launch."
             }
           },
           {
@@ -120,7 +121,7 @@
             "name": "Does MacWispr support Windows?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "No. MacWispr is Mac only — built for macOS 14+ and Apple Silicon."
+              "text": "Yes, in preview. MacWispr for Windows 0.1.0 runs on Windows 10/11 x64 and uses Parakeet v3 on the CPU. The Mac app needs macOS 14+ on Apple Silicon."
             }
           }
         ]
@@ -178,8 +179,8 @@
 
   <div class="ticker" role="note">
     <div class="ticker-track">
-      <span>&lt;0.5s LOCAL · ~2–3s WISPR FLOW · FREE · MAC ONLY · NO WINDOWS · $0 ·</span>
-      <span aria-hidden="true">&lt;0.5s LOCAL · ~2–3s WISPR FLOW · FREE · MAC ONLY · NO WINDOWS · $0 ·</span>
+      <span>&lt;0.5s LOCAL · ~2–3s WISPR FLOW · FREE · MAC + WINDOWS PREVIEW · $0 ·</span>
+      <span aria-hidden="true">&lt;0.5s LOCAL · ~2–3s WISPR FLOW · FREE · MAC + WINDOWS PREVIEW · $0 ·</span>
     </div>
   </div>
 
@@ -203,7 +204,7 @@
   <main>
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <p class="eyebrow">v1.3.0 · free · local · open source · Mac</p>
+        <p class="eyebrow">v1.3.0 · free · local · open source · Mac + Windows preview</p>
         <h1 id="hero-title">
           <span class="line">Don’t type.</span>
           <span class="line grad-text">Just speak.</span>
@@ -221,7 +222,7 @@
           <span class="chip yes">Parakeet Redux</span>
           <span class="chip yes">macOS 14+</span>
           <span class="chip yes">Apple Silicon</span>
-          <span class="chip no">Windows</span>
+          <a class="chip yes" href="#install-windows">Windows (preview)</a>
         </div>
       </div>
     </section>
@@ -293,7 +294,7 @@
             <li><strong>&lt;0.5s</strong> local</li>
             <li><strong>Your Mac</strong></li>
             <li><strong>$0 forever</strong></li>
-            <li><strong>Mac only</strong></li>
+            <li><strong>Mac + Windows preview</strong></li>
             <li><strong>MIT open source</strong></li>
           </ul>
         </div>
@@ -355,12 +356,12 @@
 
         <article class="bento-card bento-mac glass-card reveal" data-delay="0.05">
           <span class="bento-label">Platform</span>
-          <h3>Mac only. Windows can wait outside.</h3>
-          <p>Built for Apple Silicon. If you need a power brick to open Chrome, this isn’t for you. Yet.</p>
+          <h3>Mac first. Windows is in preview.</h3>
+          <p>Built for Apple Silicon. Windows 10/11 x64 gets a CPU preview with the same flow: hold <kbd>Alt</kbd> <kbd>Space</kbd>, talk, let go.</p>
           <div class="mac-pills">
             <span class="chip yes">macOS 14+</span>
             <span class="chip yes">Apple Silicon</span>
-            <span class="chip no">Windows</span>
+            <a class="chip yes" href="#install-windows">Windows (preview)</a>
           </div>
         </article>
 
@@ -442,15 +443,50 @@
           </div>
         </li>
       </ol>
+      <div class="section-head reveal" id="install-windows">
+        <p class="kicker">Preview · Windows 0.1.0</p>
+        <h2 id="install-windows-title">Install on Windows (x64)</h2>
+        <p class="install-beta-note">
+          <strong>Preview:</strong> Windows 10/11 on x64. Speech runs on your CPU with Parakeet v3, so no GPU is needed.
+          The installer isn’t code-signed yet, so SmartScreen may ask first.
+        </p>
+      </div>
+      <ol class="steps">
+        <li class="glass-card reveal">
+          <span class="step-n">01</span>
+          <div>
+            <strong>Download &amp; install</strong>
+            <p>
+              <a href="https://fuckwisprflow.com/download/MacWispr-0.1.0-windows-x64-setup.exe">MacWispr for Windows 0.1.0 (installer)</a>
+              → if SmartScreen appears, choose “More info”, then “Run anyway”. No admin rights needed.
+            </p>
+          </div>
+        </li>
+        <li class="glass-card reveal" data-delay="0.06">
+          <span class="step-n">02</span>
+          <div>
+            <strong>Open it</strong>
+            <p>MacWispr sits in the system tray. The first launch downloads the speech model (about 670 MB, one time).</p>
+          </div>
+        </li>
+        <li class="glass-card reveal" data-delay="0.12">
+          <span class="step-n">03</span>
+          <div>
+            <strong>Allow the mic · dictate</strong>
+            <p>Allow microphone access if Windows asks, then hold <kbd>Alt</kbd> <kbd>Space</kbd>, speak, and let go.</p>
+          </div>
+        </li>
+      </ol>
     </section>
 
     <section class="section cta-final cv-auto" aria-labelledby="cta-title">
       <div class="cta-box glass-card reveal">
         <div class="cta-glow" aria-hidden="true"></div>
         <h2 id="cta-title">Speak free. Own the default.</h2>
-        <p class="cta-note">Open-source dictation for Mac. No account. No $2B subscription story. Windows can wait outside.</p>
+        <p class="cta-note">Open-source dictation for Mac, now in preview on Windows. No account. No $2B subscription story.</p>
         <div class="hero-actions center">
           <a class="btn btn-dark btn-glow" href="https://fuckwisprflow.com/download/MacWispr-1.3.0-macos-arm64.dmg">Download for Mac · $0</a>
+          <a class="btn btn-ghost glass" href="#install-windows">Windows preview</a>
           <a class="btn btn-ghost glass" href="/why">Read why</a>
           <a class="btn btn-ghost glass" href="https://github.com/vasanthsreeram/macwispr">GitHub</a>
         </div>
@@ -463,7 +499,7 @@
       <img src="/brand/macwispr-icon-v2-128.png" width="28" height="28" alt="" decoding="async" loading="lazy" />
       <div>
         <strong>f*ckwisprflow.com</strong>
-        <span>MacWispr · Mac only</span>
+        <span>MacWispr · Mac + Windows preview</span>
       </div>
     </div>
     <div class="footer-links">
@@ -475,7 +511,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/sitemap.xml">Sitemap</a>
     </div>
-    <p class="footer-note">Not affiliated with Wispr Flow. No Windows builds. On purpose. © <span id="y"></span></p>
+    <p class="footer-note">Not affiliated with Wispr Flow. © <span id="y"></span></p>
   </footer>
 
   <!-- Motion libs: defer so HTML paints first; app.js boots after -->

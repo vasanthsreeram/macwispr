@@ -21,7 +21,18 @@ Hold a hotkey, speak, release — text appears in whatever app you're typing in.
 - Marketing site: **[fuckwisprflow.com](https://www.fuckwisprflow.com)** (MacWispr vs cloud)
 - Product notes: **[vasanthsreeram.github.io/macwispr](https://vasanthsreeram.github.io/macwispr/)**
 
-## Easy install (stable)
+## Install
+
+### Windows preview
+
+The Windows x64 preview uses local Parakeet v3 on CPU. Get the installer from
+[fuckwisprflow.com](https://fuckwisprflow.com/#install-windows) or the
+[Windows 0.1.0 preview release](https://github.com/vasanthsreeram/macwispr/releases/tag/windows-v0.1.0).
+Hold **Alt+Space** to dictate, or choose toggle mode from the system tray.
+See [Windows setup, features and testing](windows/README.md) for the first model download,
+microphone permissions and preview limitations.
+
+### macOS
 
 1. Grab **MacWispr 1.2.3** (stable / Latest) **DMG / `.app` zip** from [Releases · Latest](https://github.com/vasanthsreeram/macwispr/releases/latest)
 2. Unzip / open DMG and drag **MacWispr.app** into Applications
