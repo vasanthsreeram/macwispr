@@ -56,11 +56,20 @@ def main():
     lead = np.zeros(int(0.5 * SAMPLE_RATE), dtype=np.float32)
     rec = audio.Recorder()  # the app's capture class, default input device, as the app uses it
     rec.start()
-    t = threading.Thread(target=lambda: (sd.play(np.concatenate([lead, src]), SAMPLE_RATE), sd.wait()))
+    play_status = {}
+
+    def player():
+        # High output latency so the test's own playback doesn't underrun on a busy runner.
+        sd.play(np.concatenate([lead, src]), SAMPLE_RATE, latency="high")
+        sd.wait()
+        play_status["flags"] = str(sd.get_status())
+
+    t = threading.Thread(target=player)
     t.start()
     t.join()
     time.sleep(0.5)
     captured = rec.stop()
+    capture_status = sorted(rec._statuses)
     audio.write_wav(out / "roundtrip_captured.wav", captured)
 
     # Align by cross-correlation (FFT) and compare against the source.
@@ -70,17 +79,33 @@ def main():
     seg = captured[lag: lag + len(src)]
     m = min(len(seg), len(src))
     corr = float(np.corrcoef(seg[:m], src[:m])[0, 1]) if m > SAMPLE_RATE else 0.0
+    # Per-second alignment: a single dropped/inserted buffer shifts the lag and drags the
+    # global figure down, so also report each second aligned on its own.
+    windows = []
+    for w in range(int(len(src) / SAMPLE_RATE) - 1):
+        ref = src[w * SAMPLE_RATE:(w + 1) * SAMPLE_RATE]
+        base = lag + w * SAMPLE_RATE
+        best = max(range(max(0, base - 800), base + 800, 4),
+                   key=lambda L: abs(float(np.dot(captured[L:L + SAMPLE_RATE], ref))) if L + SAMPLE_RATE <= len(captured) else 0)
+        windows.append({"second": w, "lag_seconds": round(best / SAMPLE_RATE - w, 4),
+                        "correlation": round(float(np.corrcoef(captured[best:best + SAMPLE_RATE], ref)[0, 1]), 3)})
     report["roundtrip"] = {
         "output_device": out_info["name"], "input_device": sd.query_devices(kind="input")["name"],
         "source_seconds": round(len(src) / SAMPLE_RATE, 2), "captured_seconds": round(len(captured) / SAMPLE_RATE, 2),
         "lag_seconds": round(lag / SAMPLE_RATE, 3), "correlation": round(corr, 4),
         "captured_peak": round(float(np.abs(captured).max()), 4) if len(captured) else 0.0,
         "gain": round(float(np.std(seg[:m]) / (np.std(src[:m]) + 1e-9)), 3) if m else 0.0,
+        "playback_status": play_status.get("flags"), "capture_status": capture_status or "ok",
+        "per_second": windows,
     }
     (out / "capture_probe.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps(report, indent=2))
+    lags = {w["lag_seconds"] for w in windows}
+    if capture_status:
+        raise SystemExit(f"capture reported {capture_status}")
     if corr < 0.9:
-        raise SystemExit(f"round-trip correlation too low: {corr}")
+        raise SystemExit(f"round-trip correlation {corr} < 0.9 (per-second lags {sorted(lags)}, "
+                         f"playback status {play_status.get('flags')!r})")
 
 
 if __name__ == "__main__":
