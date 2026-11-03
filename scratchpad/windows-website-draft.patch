@@ -1,0 +1,58 @@
+diff --git a/website/functions/download/[[path]].js b/website/functions/download/[[path]].js
+index 9c116f2..e4a53ff 100644
+--- a/website/functions/download/[[path]].js
++++ b/website/functions/download/[[path]].js
+@@ -1,5 +1,5 @@
+ // Serves release artifacts from R2 (Pages caps static files at 25 MiB).
+-const ALLOWED = /^MacWispr-[0-9][0-9A-Za-z.\-]*-macos-arm64\.(dmg|zip)$/;
++const ALLOWED = /^MacWispr-[0-9][0-9A-Za-z.\-]*-(macos-arm64\.(dmg|zip)|windows-x64(-setup\.exe|\.zip))$/;
+ 
+ export async function onRequest({ params, env, request }) {
+   const name = Array.isArray(params.path) ? params.path.join("/") : params.path;
+@@ -13,7 +13,8 @@ export async function onRequest({ params, env, request }) {
+   if (!obj) return new Response("Not found", { status: 404 });
+   const headers = new Headers();
+   obj.writeHttpMetadata(headers);
+-  headers.set("Content-Type", name.endsWith(".dmg") ? "application/x-apple-diskimage" : "application/zip");
++  headers.set("Content-Type", name.endsWith(".dmg") ? "application/x-apple-diskimage"
++    : name.endsWith(".exe") ? "application/vnd.microsoft.portable-executable" : "application/zip");
+   headers.set("Content-Disposition", `attachment; filename="${name}"`);
+   headers.set("Cache-Control", "public, max-age=3600");
+   headers.set("ETag", obj.httpEtag);
+diff --git a/website/index.html b/website/index.html
+index 2c27afe..2500921 100644
+--- a/website/index.html
++++ b/website/index.html
+@@ -221,7 +221,7 @@
+           <span class="chip yes">Parakeet Redux</span>
+           <span class="chip yes">macOS 14+</span>
+           <span class="chip yes">Apple Silicon</span>
+-          <span class="chip no">Windows</span>
++          <a class="chip yes" href="#install-windows">Windows (preview)</a>
+         </div>
+       </div>
+     </section>
+@@ -360,7 +360,7 @@
+           <div class="mac-pills">
+             <span class="chip yes">macOS 14+</span>
+             <span class="chip yes">Apple Silicon</span>
+-            <span class="chip no">Windows</span>
++            <a class="chip yes" href="#install-windows">Windows (preview)</a>
+           </div>
+         </article>
+ 
+@@ -442,6 +442,14 @@
+           </div>
+         </li>
+       </ol>
++      <div class="section-head reveal" id="install-windows">
++        <h2>Windows preview (x64)</h2>
++        <p class="install-beta-note">
++          <a href="https://fuckwisprflow.com/download/MacWispr-0.1.0-windows-x64-setup.exe">MacWispr for Windows 0.1.0 (installer)</a>
++          · Windows 10/11 x64 · hold <kbd>Alt</kbd> <kbd>Space</kbd>. Not code-signed yet: SmartScreen → More info → Run anyway.
++          First launch downloads the speech model (Parakeet v3, about 670 MB, one time).
++        </p>
++      </div>
+     </section>
+ 
+     <section class="section cta-final cv-auto" aria-labelledby="cta-title">
