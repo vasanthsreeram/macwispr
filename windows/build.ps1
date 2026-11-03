@@ -20,7 +20,7 @@ if ($LASTEXITCODE) { throw "tests failed" }
 
 & $py -m PyInstaller --noconfirm --clean --windowed --name MacWispr `
     --icon assets\MacWispr.ico --add-data "assets\MacWispr.ico;assets" `
-    --collect-data onnx_asr --collect-binaries onnxruntime --hidden-import pystray._win32 `
+    --collect-data onnx_asr --collect-submodules onnx_asr --collect-binaries onnxruntime --hidden-import pystray._win32 `
     --copy-metadata onnx-asr --copy-metadata onnxruntime --copy-metadata huggingface-hub `
     MacWispr.py
 if ($LASTEXITCODE) { throw "PyInstaller failed" }

@@ -31,6 +31,9 @@ uses **NVIDIA Parakeet TDT 0.6B v3**, the model Redux is derived from, as an int
   with no GPU or CUDA.
 - Redux on Windows would need torch plus kestrel's native kernels in a Python sidecar; whether
   those run on a plain Windows CPU is untested, and the download is much larger.
+- Recordings go through the Silero voice-activity detector (`istupakov/silero-vad-onnx`, 2.3 MB), and
+  only the detected speech is decoded. Without it, Parakeet int8 returned an empty transcript for some
+  recordings that start with digital silence. This was reproduced with audio captured on Windows.
 - Cost: a bigger model download (about 670 MB vs. about 180 MB for Redux), and about 1.4 s
   to transcribe a 10 s clip on a 4-core laptop CPU (measured on Linux, same ONNX build).
 
@@ -54,7 +57,7 @@ powershell -ExecutionPolicy Bypass -File build.ps1   # unit tests, PyInstaller, 
 
 ## Testing
 
-- `pytest tests` — hotkey state machine, settings, WAV I/O, controller (runs on any OS).
+- `pytest tests` — hotkey state machine, settings, WAV I/O, controller and error reporting (runs on any OS).
 - `MacWispr.exe --self-test --wav <speech.wav> --out report.json` — clipboard round-trip,
   keyboard hook install, 1 s microphone capture, model download + transcription.
 - `tests\ci_capture_probe.py` and `tests\e2e_capture.py` — CI only. They install the signed VB-Audio

@@ -1,4 +1,4 @@
-"""On-device speech recognition: Parakeet TDT 0.6B v3 (int8 ONNX) on ONNX Runtime CPU."""
+"""On-device speech recognition: Parakeet TDT 0.6B v3 (int8 ONNX) on ONNX Runtime CPU, behind Silero VAD."""
 from __future__ import annotations
 
 import logging
@@ -7,25 +7,30 @@ from pathlib import Path
 
 import numpy as np
 
-from .config import MODEL_FILES, MODEL_NAME, MODEL_QUANTIZATION, MODEL_REPO, SAMPLE_RATE, model_dir, model_installed
+from .config import (MODEL_FILES, MODEL_NAME, MODEL_QUANTIZATION, MODEL_REPO, SAMPLE_RATE, VAD_FILES, VAD_NAME,
+                     VAD_REPO, model_dir, vad_dir)
 
 log = logging.getLogger(__name__)
 
-CHUNK_SECONDS = 60  # Parakeet is trained on short utterances; split long dictations
 MIN_SECONDS = 0.3
+MAX_SEGMENT_SECONDS = 30  # VAD splits longer speech; Parakeet is trained on short utterances
+
+
+def _fetch(repo: str, names, path: Path) -> None:
+    from huggingface_hub import hf_hub_download
+
+    path.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        if not ((path / name).is_file() and (path / name).stat().st_size > 0):
+            log.info("downloading %s/%s", repo, name)
+            hf_hub_download(repo, name, local_dir=str(path))
 
 
 def download_model(path: Path | None = None) -> Path:
     """Fetch the model files from Hugging Face once; later runs are offline."""
-    from huggingface_hub import hf_hub_download
-
     path = path or model_dir()
-    if model_installed(path):
-        return path
-    path.mkdir(parents=True, exist_ok=True)
-    for name in MODEL_FILES:
-        log.info("downloading %s/%s", MODEL_REPO, name)
-        hf_hub_download(MODEL_REPO, name, local_dir=str(path))
+    _fetch(MODEL_REPO, MODEL_FILES, path)
+    _fetch(VAD_REPO, VAD_FILES, vad_dir())
     return path
 
 
@@ -46,18 +51,15 @@ class Transcriber:
             import onnx_asr
 
             download_model(self.path)
-            self._model = onnx_asr.load_model(MODEL_NAME, str(self.path), quantization=MODEL_QUANTIZATION,
-                                              providers=["CPUExecutionProvider"])
+            providers = ["CPUExecutionProvider"]
+            asr = onnx_asr.load_model(MODEL_NAME, str(self.path), quantization=MODEL_QUANTIZATION, providers=providers)
+            vad = onnx_asr.load_vad(VAD_NAME, str(vad_dir()), providers=providers)
+            self._model = asr.with_vad(vad, max_speech_duration_s=MAX_SEGMENT_SECONDS)
 
     def transcribe(self, audio: np.ndarray) -> str:
         if len(audio) < MIN_SECONDS * SAMPLE_RATE:
             return ""
         self.load()
-        step = CHUNK_SECONDS * SAMPLE_RATE
-        parts = []
         with self._lock:
-            for start in range(0, len(audio), step):
-                chunk = audio[start:start + step]
-                if len(chunk) >= MIN_SECONDS * SAMPLE_RATE:
-                    parts.append(self._model.recognize(chunk.astype(np.float32), sample_rate=SAMPLE_RATE).strip())
-        return " ".join(p for p in parts if p)
+            segments = self._model.recognize(audio.astype(np.float32), sample_rate=SAMPLE_RATE)
+            return " ".join(seg.text.strip() for seg in segments if seg.text.strip())

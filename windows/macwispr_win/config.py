@@ -17,6 +17,12 @@ MODEL_QUANTIZATION = "int8"
 MODEL_FILES = ("encoder-model.int8.onnx", "decoder_joint-model.int8.onnx", "vocab.txt", "config.json")
 MODEL_DOWNLOAD_LABEL = "about 670 MB"
 
+# Silero voice-activity detector: Parakeet int8 returns an empty transcript for some
+# recordings that start with digital silence, so only the detected speech is decoded.
+VAD_NAME = "silero"
+VAD_REPO = "istupakov/silero-vad-onnx"
+VAD_FILES = ("silero_vad.onnx", "config.json")
+
 SAMPLE_RATE = 16_000
 
 
@@ -31,9 +37,16 @@ def model_dir() -> Path:
     return data_dir() / "models" / "parakeet-tdt-0.6b-v3-int8"
 
 
+def vad_dir() -> Path:
+    return data_dir() / "models" / "silero-vad"
+
+
+def _complete(path: Path, names) -> bool:
+    return all((path / name).is_file() and (path / name).stat().st_size > 0 for name in names)
+
+
 def model_installed(path: Path | None = None) -> bool:
-    path = path or model_dir()
-    return all((path / name).is_file() and (path / name).stat().st_size > 0 for name in MODEL_FILES)
+    return _complete(path or model_dir(), MODEL_FILES) and _complete(vad_dir(), VAD_FILES)
 
 
 @dataclass
