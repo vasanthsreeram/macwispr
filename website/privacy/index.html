@@ -204,6 +204,9 @@
     </table>
     <p>Turning telemetry on does <strong>not</strong> change where transcription runs. Local stays local.</p>
 
+    <h2>MacWispr for Windows (preview)</h2>
+    <p>The Windows preview has <strong>no telemetry and no cloud transcription</strong>. Speech recognition runs on your CPU. On first launch it downloads the speech model once from Hugging Face into <code>%LOCALAPPDATA%\MacWispr\models</code>; no audio or text is sent. Transcript history (which you can turn off in the tray menu), settings and a log stay in <code>%LOCALAPPDATA%\MacWispr</code> on your PC. Pasting uses the clipboard and restores what was on it before.</p>
+
     <h2>Optional public leaderboard</h2>
     <p>A separate, <strong>off-by-default</strong> opt-in can place you on the <a href="/leaderboard">public leaderboard</a>. This is <strong>not</strong> reliability telemetry.</p>
     <table>
