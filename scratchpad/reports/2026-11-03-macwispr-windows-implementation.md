@@ -124,3 +124,108 @@ Suggested follow-ups (outside scope, not fixed):
 - `website-macwispr/` (macwispr.lintware.com) and `PRIVACY.md` still describe the product as Mac only.
 
 Timebox: started 13:30. The first pass finished about 14:10 SGT, and the website preparation pass finished about 14:15 SGT [M].
+
+
+---
+
+# Windows audio-capture verification (VERIFICATION-BRIEF.md)
+
+**Status: real capture verified end to end on Windows. CI run 41591734759 is red on one strict
+accuracy gate** (toggle WER 17.4% against a 15% limit; details below). I did not loosen the gate: that is a test-definition
+choice for the parent. No VM was started on lintlabs-1. Nothing was released, merged or deployed.
+Time: 14:13–14:52 SGT (45-minute timebox).
+
+Labels: **[M]** measured, **[I]** inferred, **[U]** unknown.
+
+## Endpoint and driver [M]
+- Disposable GitHub runner: image `windows-2022` 20261025.346.1, Windows Server 2022.
+- **VB-Audio Virtual Cable** 3.3.1.7 (`VBCABLE_Driver_Pack45.zip` from `download.vb-audio.com`, SHA-256 pinned
+  `b950e39f…16bfb`). The catalog signature is **Valid**: signer *Microsoft Windows Hardware Compatibility
+  Publisher*, issuer *Microsoft Windows Third Party Component CA 2014*. No signature bypass was used. The signer
+  certificate goes into TrustedPublisher only to skip the install prompt.
+- Install path: root device `VBAudioVACWDM` created with the SetupAPI calls `devcon install` uses
+  (`windows/tests/ci_root_device.py`). Result: "reboot required: False". The Audiosrv and AudioEndpointBuilder
+  services had to be enabled, because Server ships them disabled.
+- Endpoints created: **CABLE Output (VB-Audio Virtual Cable)** (recording) plus the "CABLE In 16 Ch" / "Speakers
+  (VB-Audio Virtual Cable)" render endpoints. Test audio is played to the default output and comes back on the default input.
+- Licensing: VB-CABLE is donationware under VB-Audio's own licence. It is used only on the throwaway CI runner and is not shipped [I].
+
+## Native format and how the app opens the stream [M]
+- The app's stream: PortAudio host API **MME**, device `CABLE Output (VB-Audio Virtual `, native rate **44100 Hz**,
+  **16** max input channels. The app opens it at **16000 Hz, 1 channel, latency 0.026 s**, and the Windows audio engine converts.
+- Per host API (`capture_probe.json`): MME and DirectSound open at 16 kHz mono, at the native rate mono, and at the native
+  format. WASAPI (native 48 kHz, 2 ch) **rejects 16 kHz** ("Invalid sample rate") but opens at native. WDM-KS fails in
+  blocking mode. The app uses the default MME device, so it is unaffected. WASAPI is a limitation if the device is ever made selectable.
+
+## Bugs found by real capture, and fixes
+1. **Microphone privacy switch off gave a cryptic error.** The runner's user setting is
+   `HKCU\...\CapabilityAccessManager\ConsentStore\microphone = Deny` (HKLM Allow, NonPackaged Allow). The stream open then
+   fails with `Unanticipated host error [PaErrorCode -9999] [MME error 1]` at 16 kHz **and** at the native rate.
+   - First I tried opening at the native rate and resampling (`b95cc5a`). The probe showed that failed the same way,
+     so I **reverted it** (`a94a169`).
+   - Fix: detect the Deny switches and raise *"Windows is blocking the microphone. Open Settings > Privacy > Microphone
+     and turn on microphone access and 'Let desktop apps access your microphone'."* (`a94a169`).
+   - Because the tray status falls back to Ready after an error, I also show the error as a tray notification (`5a45adf`).
+   - CI proves the blocked case before turning access on: the self-test reports this message, and the installed app
+     logs it on Alt+Space with nothing pasted (`e2e_microphone_denied.json`) [M]. I did not see the notification itself [U].
+2. **Empty transcript in hold mode.**
+   - Seen in run 41589580793: 11.2 s captured (peak 0.565, rms 0.118, status ok) gave "0 chars" and nothing was pasted.
+   - Reproduced offline with the captured WAV and with the clean source clip. Parakeet int8 ONNX returns `''` after 0.3, 0.6, 0.7
+     and 1.1 s of leading digital silence; the other 9 offsets work.
+   - Rejected: dither 1e-5 left it failing, and 1e-4 fixed the offset grid but still failed on the captured WAV and hallucinated "Yeah." on silence.
+   - **Fix (`ed96cad`):** decode only Silero-VAD speech segments (`onnx-asr` `with_vad`, `istupakov/silero-vad-onnx`,
+     2.3 MB, downloaded with the model). Max segment is 30 s, which replaces the fixed 60 s chunking.
+   - Offline result: all 26 offset cases and the captured WAV transcribe, 3 s of silence gives `''`, and the 68.8 s clip
+     keeps its phrase counts [M].
+   - Side effect [M]: VAD sometimes turns the clip's first word "But" into "May but" or "Maybe", and it changes proper nouns. On the clean
+     files the VAD path scores 3.2–9.7% (sample_10s) and 13.0% (speech_12s) WER against the old no-VAD transcripts.
+3. The probe's round-trip metric failed once on a 12 ms buffer discontinuity at about 6 s (lag 0.789 → 0.801 s, capture status
+   ok) [M]. The likely cause is the test's own playback underrunning [I]. The probe now plays with high latency, records
+   playback and capture status, and reports per-second alignment (`05cef33`).
+
+## Final CI proof: run 41591734759, commit `05cef33` [M]
+https://github.com/vasanthsreeram/macwispr/actions/runs/41591734759. Steps: cable install, then build with unit tests, then
+self-test with the mic **blocked** (clear error; clipboard, hook and model ok), then silent install, then the installed app with the mic
+blocked (clear error, nothing pasted), then turn on mic access (`Allow / desktop apps: Allow`), then a self-test where **all checks
+ok, including a 1 s capture**, then the probe, then end-to-end runs with the **installed app started normally** (no flags, default data folder, default mic):
+
+| Scenario | Speech | Captured | Pasted into Notepad | WER vs file transcript | Gate |
+|---|---|---|---|---|---|
+| Round trip (app `Recorder`) | 10.0 s | 11.05 s, lag 0.788 s, corr **0.962**, gain 0.988, every second aligned, capture/playback status clean | n/a | n/a | pass |
+| Hold | 10.0 s | 11.21 s, peak 0.566, status ok | "May but When a human drops in the world, … 21st century." | 3.2% | pass |
+| Toggle | 9.57 s | 10.92 s, peak 0.726, status ok | "Hello. This is a dictation latency benchmark for Mac Whisper. … Apple Silicon." | **17.4%** | **fail (≤15%)** |
+| Hold, 68.8 s | 68.7 s | 69.89 s, status ok; transcribed in 14.9 s | 1117 chars; springboard 4/4, benchmark 3/3 | 8.8% | pass |
+
+The toggle text differs only in proper nouns and punctuation ("Mac Whisper", "three", "Nemotron's"). The same VAD path scores 13.0% on
+the clean file, so capture adds about one word [M]. Options for the parent: (a) use reference transcripts from the shipped decode
+path, so the gate measures capture fidelity; (b) use human-written ground truth with a model-appropriate limit; or (c) accept
+as is. I did not apply any of them.
+
+Artifacts (run 41591734759, unsigned): `MacWispr-0.1.0-windows-x64-setup.exe` 41,089,177 B, SHA-256
+`61a8c7eaaccaa476f3d347b650f857cf9b2e5be0ac71c1a55a31794aa29fc573`; `MacWispr-0.1.0-windows-x64.zip` 60,736,764 B,
+`9e9b5eeea758d746cdec9effff5eaa7e03b1a281c0d805cdbdb5b673eedf80ce`; artifact `MacWispr-windows-05cef33…`
+digest `sha256:ed74f996c42b06b287263dbd657f9a43e145e0f8f4a19359779362580d5e3721` (14-day retention).
+I downloaded the files and hashed them locally; the hashes match the CI log.
+
+Evidence saved in `evidence/`:
+- `run-41591734759/`: self-tests (blocked and allowed), `capture_probe.json`, the 4 `e2e_*.json`, and `app.log`. The log only contains
+  Hugging Face warnings and no secrets.
+- `run-41589580793/`: the failing hold result before the fix, and the captured WAV that gave the empty transcript.
+
+## Commits this pass (branch `feat/windows-dictation`, pushed; draft PR #31 is the parent's)
+`20dd2d7` capture logging · `534071e` VB-CABLE CI and removal of `--fake-mic` · `b95cc5a` native-rate try · `a94a169` its revert, plus
+the clear privacy error · `5a45adf` error notification · `7003c09` blocked→allowed CI flow · `ed96cad` Silero VAD · `05cef33` probe
+diagnostics. History note: `a94a169` adds a unit test that only passes from `5a45adf` onward.
+
+## Windows client limitations (current)
+- Only the default recording device is used; there is no picker. WASAPI-only setups at 16 kHz would fail if a device choice is added.
+- The first run needs microphone access turned on in Windows privacy settings. The app explains this but does not open Settings itself.
+- Not code-signed (SmartScreen warning). The first launch downloads about 672 MB (Parakeet plus VAD).
+- VAD can drop or alter the first word, and proper nouns vary. No live partials, custom vocabulary, hotkey rebinding,
+  auto-update, meetings or CLI.
+- Not verified [U]: a physical microphone with a human voice, Windows 10/11 client editions (only Server 2022 was tested),
+  per-user privacy prompts on client Windows, elevated target windows, and the notification balloon itself.
+
+## Resume
+Pick a gate option (a/b/c) in `windows/tests/e2e_capture.py` (`REF` and the 0.15 limit), push, then run
+`gh run watch $(gh run list -R vasanthsreeram/macwispr --branch feat/windows-dictation --workflow Windows --limit 1 --json databaseId -q '.[0].databaseId') -R vasanthsreeram/macwispr`.
