@@ -15,6 +15,12 @@ and are prereleases, preserving macOS Latest and the Sparkle appcast. Ship from 
 after Windows verification. The website's `DOWNLOADS` binding serves installers from
 the existing `macwispr-downloads` R2 bucket.
 
+**Deploy this legacy Pages site from `website/`** so Wrangler compiles its `functions/`
+directory: `cd website && wrangler pages deploy . --project-name=fuckwisprflow --branch=main`.
+Running `wrangler pages deploy website` from the repo root omits the download function;
+download URLs then return HTML. Verify actual download bytes and MIME types after deploying.
+The `cf` CLI supports R2 uploads but requires Wrangler for this legacy Pages project.
+
 - **1.3.0+: one model, nothing to configure** — Moondream **Parakeet Redux** via the Photon
   runtime (Python sidecar, installed on first launch by the bundled `uv`). See
   [RELEASE_1.3.0.md](docs/context/RELEASE_1.3.0.md). Qwen / Parakeet v3 / cloud code paths
