@@ -27,6 +27,9 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 
+      - name: Add a real audio endpoint (VB-Audio Virtual Cable, signed driver)
+        run: ./tests/ci_install_vbcable.ps1
+
       - name: Build (unit tests, PyInstaller, zip, installer)
         run: ./build.ps1
 
@@ -36,15 +39,13 @@ jobs:
             '--self-test','--wav','..\bench\clips\sample_10s_16k.wav','--out',"$PWD\selftest.json"
           Get-Content selftest.json
           $r = Get-Content selftest.json | ConvertFrom-Json
-          foreach ($c in 'clipboard','hotkey_hook','model') { if (-not $r.checks.$c.ok) { throw "$c failed" } }
+          if (-not $r.ok) { throw "self-test failed" }
           if ($r.checks.model.detail.text -notmatch 'springboard') { throw "unexpected transcript" }
-          # Hosted runners have no audio input device; the mic check is reported, not required.
-          "microphone ok: $($r.checks.microphone.ok)"
+          New-Item -ItemType Directory -Force evidence | Out-Null
+          Copy-Item selftest.json evidence\
 
-      - name: End-to-end (hold Alt+Space in Notepad -> pasted transcript)
-        run: |
-          $env:MACWISPR_MODEL_SOURCE = "$env:LOCALAPPDATA\MacWispr\models\parakeet-tdt-0.6b-v3-int8"
-          .venv\Scripts\python.exe tests\e2e_windows.py dist\MacWispr\MacWispr.exe ..\bench\clips\sample_10s_16k.wav springboard
+      - name: Capture probe (devices, formats, known-audio round trip through the app's Recorder)
+        run: .venv\Scripts\python.exe tests\ci_capture_probe.py ..\bench\clips\sample_10s_16k.wav evidence
 
       - name: Installer installs and launches
         run: |
@@ -54,7 +55,16 @@ jobs:
           if (-not (Test-Path $exe)) { throw "installer did not install $exe" }
           Start-Process $exe -Wait -ArgumentList '--version','--out',"$PWD\version.json"
           Get-Content version.json
-          Get-FileHash out\* -Algorithm SHA256 | Format-Table -AutoSize
+          Get-FileHash out\* -Algorithm SHA256 | Format-Table -AutoSize | Out-String -Width 200
+
+      - name: End-to-end through the cable with the installed app (hold, toggle, 68.8 s)
+        run: |
+          try {
+            .venv\Scripts\python.exe tests\e2e_capture.py "$env:LOCALAPPDATA\Programs\MacWispr\MacWispr.exe" ..\bench\clips evidence
+            if ($LASTEXITCODE) { throw "end-to-end capture failed" }
+          } finally {
+            Copy-Item "$env:LOCALAPPDATA\MacWispr\macwispr.log" evidence\app.log -ErrorAction SilentlyContinue
+          }
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -62,5 +72,5 @@ jobs:
           name: MacWispr-windows-${{ github.sha }}
           path: |
             windows/out/*
-            windows/selftest.json
+            windows/evidence/*
           retention-days: 14

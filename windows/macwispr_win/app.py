@@ -335,7 +335,6 @@ def main(argv=None) -> int:
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--wav", help="speech sample for --self-test")
     parser.add_argument("--out", help="write JSON result to this file (the GUI build has no console)")
-    parser.add_argument("--fake-mic", metavar="WAV", help=argparse.SUPPRESS)  # testing in VMs without a mic
     args = parser.parse_args(argv)
 
     # The windowed (no console) build has sys.stdout/stderr = None; libraries that
@@ -360,8 +359,7 @@ def main(argv=None) -> int:
     from .asr import Transcriber
 
     settings = Settings.load()
-    recorder = FileRecorder(args.fake_mic) if args.fake_mic else None
-    controller = DictationController(settings, Transcriber(), recorder=recorder)
+    controller = DictationController(settings, Transcriber())
     log.info("%s for Windows %s starting (mode=%s)", APP_NAME, VERSION, settings.mode)
     controller.start()
     hook = install_hotkey(controller)
@@ -371,22 +369,3 @@ def main(argv=None) -> int:
         hook.stop()
     return 0
 
-
-class FileRecorder:
-    """Stands in for the microphone with a WAV file, trimmed to how long the hotkey was held."""
-
-    def __init__(self, path: str):
-        self.samples = audio_mod.read_wav(path)
-        self._started: float | None = None
-
-    @property
-    def recording(self) -> bool:
-        return self._started is not None
-
-    def start(self):
-        self._started = time.monotonic()
-
-    def stop(self):
-        held = time.monotonic() - (self._started or time.monotonic())
-        self._started = None
-        return self.samples[: int(held * SAMPLE_RATE)]

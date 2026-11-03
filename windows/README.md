@@ -57,7 +57,8 @@ powershell -ExecutionPolicy Bypass -File build.ps1   # unit tests, PyInstaller, 
 - `pytest tests` — hotkey state machine, settings, WAV I/O, controller (runs on any OS).
 - `MacWispr.exe --self-test --wav <speech.wav> --out report.json` — clipboard round-trip,
   keyboard hook install, 1 s microphone capture, model download + transcription.
-- `python tests\e2e_windows.py <MacWispr.exe> <speech.wav> <expected word>` — opens Notepad,
-  holds Alt+Space with SendInput, checks the transcript lands in Notepad. Uses the hidden
-  `--fake-mic <wav>` flag because CI machines have no microphone.
+- `tests\ci_capture_probe.py` and `tests\e2e_capture.py` — CI only. They install the signed VB-Audio
+  Virtual Cable (`tests\ci_install_vbcable.ps1`), play known speech into "CABLE Input", and let the
+  installed app capture it from the "CABLE Output" recording device. They check the round-trip
+  fidelity, then hold mode, toggle mode and a 68.8 s dictation pasted into Notepad.
 - `.github/workflows/windows.yml` runs all of the above on a GitHub `windows-2022` runner.
