@@ -109,3 +109,15 @@ def test_toggle_mode_ignores_release(monkeypatch, tmp_path):
     assert inserted == [] and c.recorder.recording
     c._handle("press")
     assert inserted == ["hello world"]
+
+
+def test_resample_keeps_speech_band_and_removes_aliases():
+    t = np.arange(48000) / 48000
+    low = audio.resample(np.sin(2 * np.pi * 1000 * t).astype(np.float32), 48000)
+    assert len(low) == SAMPLE_RATE
+    ref = np.sin(2 * np.pi * 1000 * np.arange(SAMPLE_RATE) / SAMPLE_RATE)
+    assert np.abs(low[200:-200] - ref[200:-200]).max() < 0.05
+    # 12 kHz cannot exist at 16 kHz; without filtering it would alias to 4 kHz at full level.
+    high = audio.resample(np.sin(2 * np.pi * 12000 * t).astype(np.float32), 48000)
+    assert np.abs(high[200:-200]).max() < 0.02
+    assert len(audio.resample(np.zeros(44100, dtype=np.float32), 44100)) == SAMPLE_RATE

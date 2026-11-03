@@ -23,6 +23,7 @@ class Recorder:
         self._lock = threading.Lock()
         self._stream = None
         self._statuses: set[str] = set()
+        self._rate = SAMPLE_RATE
 
     @property
     def recording(self) -> bool:
@@ -32,7 +33,7 @@ class Recorder:
         if status:
             self._statuses.add(str(status))
         with self._lock:
-            if self._frames < MAX_SECONDS * SAMPLE_RATE:
+            if self._frames < MAX_SECONDS * self._rate:
                 self._chunks.append(indata[:, 0].copy())
                 self._frames += frames
 
@@ -44,9 +45,12 @@ class Recorder:
         with self._lock:
             self._chunks, self._frames = [], 0
         self._statuses = set()
-        stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32",
+        # Open at the device's own rate: Windows MME refuses 16 kHz on some endpoints
+        # ("Unanticipated host error, MME error 1"), so resample to 16 kHz ourselves.
+        info = sd.query_devices(self.device, kind="input")
+        self._rate = int(info["default_samplerate"])
+        stream = sd.InputStream(samplerate=self._rate, channels=1, dtype="float32",
                                 device=self.device, callback=self._callback)
-        info = sd.query_devices(stream.device)
         log.info("capture open: device=%r hostapi=%s native_rate=%s max_in_channels=%s stream_rate=%s channels=%s latency=%.3f",
                  info["name"], sd.query_hostapis(info["hostapi"])["name"], info["default_samplerate"],
                  info["max_input_channels"], stream.samplerate, stream.channels, stream.latency)
@@ -61,11 +65,25 @@ class Recorder:
         with self._lock:
             audio = np.concatenate(self._chunks) if self._chunks else np.zeros(0, dtype=np.float32)
             self._chunks = []
+        audio = resample(audio, self._rate)
         peak = float(np.abs(audio).max()) if len(audio) else 0.0
         rms = float(np.sqrt(np.mean(audio ** 2))) if len(audio) else 0.0
         log.info("capture stop: %.2fs frames=%d peak=%.4f rms=%.4f status=%s",
                  len(audio) / SAMPLE_RATE, len(audio), peak, rms, sorted(self._statuses) or "ok")
         return audio
+
+
+def resample(audio: np.ndarray, rate: int) -> np.ndarray:
+    """Convert mono float32 audio at `rate` to SAMPLE_RATE (windowed-sinc low-pass, then interpolation)."""
+    if rate == SAMPLE_RATE or not len(audio):
+        return audio.astype(np.float32, copy=False)
+    if rate > SAMPLE_RATE:
+        cutoff = 0.45 * SAMPLE_RATE / rate  # cycles/sample, just under the new Nyquist
+        taps = np.arange(-64, 65)
+        kernel = 2 * cutoff * np.sinc(2 * cutoff * taps) * np.blackman(len(taps))
+        audio = np.convolve(audio, kernel / kernel.sum(), mode="same")
+    n = int(round(len(audio) * SAMPLE_RATE / rate))
+    return np.interp(np.arange(n) * (rate / SAMPLE_RATE), np.arange(len(audio)), audio).astype(np.float32)
 
 
 def input_devices() -> list[str]:
@@ -89,10 +107,7 @@ def read_wav(path: str | Path) -> np.ndarray:
         raise ValueError(f"unsupported WAV sample width {width}")
     if channels > 1:
         audio = audio.reshape(-1, channels).mean(axis=1)
-    if rate != SAMPLE_RATE and len(audio):
-        n = int(round(len(audio) * SAMPLE_RATE / rate))
-        audio = np.interp(np.linspace(0, len(audio) - 1, n), np.arange(len(audio)), audio).astype(np.float32)
-    return audio
+    return resample(audio, rate)
 
 
 def write_wav(path: str | Path, audio: np.ndarray) -> None:

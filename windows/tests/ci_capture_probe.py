@@ -46,6 +46,7 @@ def main():
                  "in": d["max_input_channels"], "out": d["max_output_channels"], "native_rate": d["default_samplerate"]}
         if d["max_input_channels"] > 0:
             entry["open_16k_mono"] = try_open(i, SAMPLE_RATE, 1)
+            entry["open_native_rate_mono"] = try_open(i, d["default_samplerate"], 1)
             entry["open_native"] = try_open(i, d["default_samplerate"], d["max_input_channels"])
         devices.append(entry)
     report["devices"] = devices

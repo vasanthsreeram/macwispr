@@ -45,7 +45,16 @@ jobs:
           Copy-Item selftest.json evidence\
 
       - name: Capture probe (devices, formats, known-audio round trip through the app's Recorder)
-        run: .venv\Scripts\python.exe tests\ci_capture_probe.py ..\bench\clips\sample_10s_16k.wav evidence
+        if: always()
+        run: |
+          New-Item -ItemType Directory -Force evidence | Out-Null
+          # Windows microphone privacy switches (machine / user) as found on the runner; not changed.
+          foreach ($k in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone',
+                         'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone',
+                         'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\NonPackaged') {
+            "$k = $((Get-ItemProperty $k -ErrorAction SilentlyContinue).Value)"
+          }
+          .venv\Scripts\python.exe tests\ci_capture_probe.py ..\bench\clips\sample_10s_16k.wav evidence
 
       - name: Installer installs and launches
         run: |
