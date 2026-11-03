@@ -97,7 +97,8 @@ def main() -> int:
         print("log:\n" + log.read_text(encoding="utf-8"))
         assert text, "transcript was not pasted into Notepad"
         assert not text.startswith(" "), "Space leaked through to the focused app"
-        assert (data / "MacWispr" / "history.jsonl").exists(), "history not written"
+        # History is appended after the clipboard is restored, so give it a moment.
+        assert wait_for((data / "MacWispr" / "history.jsonl").exists, 10), "history not written"
         print("E2E OK")
         return 0
     finally:
