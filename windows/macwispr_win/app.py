@@ -18,6 +18,7 @@ from .config import APP_NAME, MODEL_DOWNLOAD_LABEL, SAMPLE_RATE, VERSION, Settin
 from .hotkey import VK_MASK, ChordTracker
 
 log = logging.getLogger("macwispr")
+HAS_CONSOLE = sys.stdout is not None
 
 
 def setup_logging() -> Path:
@@ -250,7 +251,7 @@ def write_out(path: str | None, payload: dict) -> None:
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     if path:
         Path(path).write_text(text, encoding="utf-8")
-    if sys.stdout is not None:
+    if HAS_CONSOLE:
         print(text)
 
 
@@ -337,6 +338,13 @@ def main(argv=None) -> int:
     parser.add_argument("--fake-mic", metavar="WAV", help=argparse.SUPPRESS)  # testing in VMs without a mic
     args = parser.parse_args(argv)
 
+    # The windowed (no console) build has sys.stdout/stderr = None; libraries that
+    # print progress (huggingface_hub/tqdm) would crash on them.
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
     log_path = setup_logging()
     if args.version:
         write_out(args.out, {"version": VERSION})
