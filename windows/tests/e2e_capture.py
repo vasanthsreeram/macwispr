@@ -5,7 +5,11 @@ normal microphone = the default recording device). Speech is played into
 "CABLE Input" and reaches the app through the "CABLE Output" capture endpoint,
 so PortAudio/WASAPI/MME capture, the hotkey hook, the model and the paste are
 all the shipped code. Scenarios: hold mode, toggle mode, and a 68.8 s hold that
-crosses the 60 s chunk boundary.
+requires several speech segments.
+
+The capture gate compares against the installed app's own transcription of each
+clean source WAV. The old non-VAD transcripts remain diagnostics, since changing
+the decoder also changes number formatting and proper nouns before capture.
 
     python tests/e2e_capture.py <MacWispr.exe> <clips dir> <evidence dir> [--denied]
 
@@ -40,13 +44,33 @@ user32.SendMessageW.restype = ctypes.c_ssize_t
 WM_GETTEXT, WM_GETTEXTLENGTH = 0x000D, 0x000E
 VK_MENU, VK_SPACE = 0x12, 0x20
 
-# Transcripts of the bench clips (reference = what the model produced from the WAV file directly).
-REF = {
+# Historical non-VAD output, retained for comparison rather than used as ground truth.
+LEGACY_REFERENCE = {
     "sample_10s_16k.wav": "But when a human drops in the world, we learn everything that's happened before us, "
                           "and then we springboard off the top of that. So we living in the 21st century.",
     "speech_12s_16k.wav": "Hello, this is a dictation latency benchmark for MacWisper. We are comparing Quinn III ASR, "
                           "Parakeet, and Nemotron speech models on Apple Silicon.",
 }
+
+FIXTURE_PHRASES = {
+    "sample_10s_16k.wav": ("springboard", "century"),
+    "speech_12s_16k.wav": ("benchmark", "parakeet", "silicon"),
+}
+
+
+def file_references(exe: str, clips: Path, ev: Path) -> dict[str, str]:
+    """Establish an independent clean-file baseline with the exact installed build."""
+    refs = {}
+    for name, phrases in FIXTURE_PHRASES.items():
+        report = (ev / f"reference_{Path(name).stem}.json").resolve()
+        subprocess.run([exe, "--transcribe-file", str((clips / name).resolve()), "--out", str(report)],
+                       check=True, timeout=300)
+        result = json.loads(report.read_text(encoding="utf-8"))
+        text = result["text"]
+        assert all(phrase in text.lower() for phrase in phrases), f"invalid clean-file baseline for {name}: {text!r}"
+        refs[name] = text
+        print("clean-file reference:", name, json.dumps(result, ensure_ascii=False))
+    return refs
 
 
 def words(text: str) -> list[str]:
@@ -104,7 +128,8 @@ def play(samples: np.ndarray):
     sd.wait()
 
 
-def run_scenario(exe: str, log: Path, name: str, mode: str, clip_names: list[str], clips: Path, ev: Path) -> dict:
+def run_scenario(exe: str, log: Path, name: str, mode: str, clip_names: list[str], clips: Path, ev: Path,
+                 refs: dict[str, str]) -> dict:
     data = log.parent
     (data / "settings.json").write_text(json.dumps({"mode": mode}), encoding="utf-8")
     log_start = log.stat().st_size if log.exists() else 0
@@ -123,7 +148,8 @@ def run_scenario(exe: str, log: Path, name: str, mode: str, clip_names: list[str
         assert wait_for(lambda: "status: ready" in new_log(), 300, 1), f"{name}: never ready\n{new_log()}"
         assert focus(top), f"{name}: could not focus Notepad"
         speech = np.concatenate([audio.read_wav(clips / c) for c in clip_names])
-        ref = " ".join(REF[c] for c in clip_names)
+        ref = " ".join(refs[c] for c in clip_names)
+        legacy_ref = " ".join(LEGACY_REFERENCE[c] for c in clip_names)
 
         started = time.monotonic()
         chord(True)
@@ -146,6 +172,8 @@ def run_scenario(exe: str, log: Path, name: str, mode: str, clip_names: list[str
         result = {
             "scenario": name, "mode": mode, "clips": clip_names, "speech_seconds": round(len(speech) / SAMPLE_RATE, 2),
             "hotkey_seconds": round(held, 2), "pasted_text": text, "wer_vs_file_transcript": round(wer(ref, text or ""), 4),
+            "reference_text": ref, "reference_method": "installed app --transcribe-file (same VAD decoder)",
+            "wer_vs_legacy_non_vad_transcript": round(wer(legacy_ref, text or ""), 4),
             "log": [l for l in new_log().splitlines() if "capture" in l or "transcribed" in l or "status:" in l],
         }
         if len(clip_names) > 1:
@@ -201,10 +229,11 @@ def main() -> int:
         return run_denied(exe, log, ev)
     print("default input:", sd.query_devices(kind="input")["name"], "| default output:", sd.query_devices(kind="output")["name"])
     s10, s12 = "sample_10s_16k.wav", "speech_12s_16k.wav"
+    refs = file_references(exe, clips, ev)
     results = [
-        run_scenario(exe, log, "hold", "hold", [s10], clips, ev),
-        run_scenario(exe, log, "toggle", "toggle", [s12], clips, ev),
-        run_scenario(exe, log, "long_hold_68s", "hold", [s10, s12, s10, s12, s10, s12, s10], clips, ev),
+        run_scenario(exe, log, "hold", "hold", [s10], clips, ev, refs),
+        run_scenario(exe, log, "toggle", "toggle", [s12], clips, ev, refs),
+        run_scenario(exe, log, "long_hold_68s", "hold", [s10, s12, s10, s12, s10, s12, s10], clips, ev, refs),
     ]
     failures = []
     for r in results:

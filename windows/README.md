@@ -1,11 +1,12 @@
-# MacWispr for Windows (preview, not yet released)
+# MacWispr for Windows (preview)
 
 A tray app for Windows 10/11 x64. Hold **Alt+Space**, speak, let go, and the text is
 pasted into whatever app has focus. Speech recognition runs on your PC; no account,
 no telemetry, no cloud.
 
-> Status: built and tested only in CI (see "Testing"). It has not been tested with a real
-> microphone on a Windows PC yet, so the website does not offer it.
+> Validation uses a Windows Server 2022 VM with a signed virtual audio input, exercising
+> the installed app's capture, transcription and paste. Windows 10/11 client editions and
+> individual physical microphones have not been tested separately.
 
 ## Install
 
@@ -63,5 +64,8 @@ powershell -ExecutionPolicy Bypass -File build.ps1   # unit tests, PyInstaller, 
 - `tests\ci_capture_probe.py` and `tests\e2e_capture.py` — CI only. They install the signed VB-Audio
   Virtual Cable (`tests\ci_install_vbcable.ps1`), play known speech into "CABLE Input", and let the
   installed app capture it from the "CABLE Output" recording device. They check the round-trip
-  fidelity, then hold mode, toggle mode and a 68.8 s dictation pasted into Notepad.
+  fidelity, then hold mode, toggle mode and a 68.8 s dictation pasted into Notepad. Capture
+  transcripts are compared against the same installed build's clean-file transcripts at
+  the existing 15% word-difference limit, with nonempty fixture-phrase checks. This measures
+  capture fidelity, rather than comparing different decoder versions as an accuracy benchmark.
 - `.github/workflows/windows.yml` runs all of the above on a GitHub `windows-2022` runner.
