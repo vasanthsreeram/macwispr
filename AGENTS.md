@@ -6,6 +6,15 @@ Instructions for coding agents working in this repository.
 
 **MacWispr** is a macOS menu-bar voice dictation app (Apple Silicon, macOS 14+).
 
+The **Windows x64 preview** lives in `windows/`: a Python tray app with a per-user
+Inno Setup installer, CPU Parakeet v3 ONNX transcription and Silero speech segmentation.
+Its build and verification instructions are in `windows/README.md`; CI exercises the
+installed app through a signed virtual audio endpoint on a Windows VM. Keep the macOS
+Swift implementation and release line separate. Windows preview tags use `windows-v*`
+and are prereleases, preserving macOS Latest and the Sparkle appcast. Ship from `main`
+after Windows verification. The website's `DOWNLOADS` binding serves installers from
+the existing `macwispr-downloads` R2 bucket.
+
 - **1.3.0+: one model, nothing to configure** — Moondream **Parakeet Redux** via the Photon
   runtime (Python sidecar, installed on first launch by the bundled `uv`). See
   [RELEASE_1.3.0.md](docs/context/RELEASE_1.3.0.md). Qwen / Parakeet v3 / cloud code paths
