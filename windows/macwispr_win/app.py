@@ -43,6 +43,7 @@ class DictationController:
         self.transcriber = transcriber
         self.recorder = recorder or audio_mod.Recorder()
         self.status_cb = status_cb or (lambda s: None)
+        self.error_cb = lambda message: None
         self.events: queue.Queue[str] = queue.Queue()
         self.status = "loading"
         self.last_text = ""
@@ -88,6 +89,7 @@ class DictationController:
             except Exception as exc:
                 log.exception("dictation failed")
                 self.last_error = str(exc)
+                self.error_cb(self.last_error)
                 if self.recorder.recording:
                     self.recorder.stop()
                 self._set_status("error" if not self.transcriber.loaded else "ready")
@@ -181,7 +183,7 @@ def run_tray(controller: DictationController, settings: Settings, log_path: Path
         if s == "ready" and settings.mode == "toggle":
             return "Ready: tap Alt+Space to start/stop"
         if s == "error" and controller.last_error:
-            return f"Error: {controller.last_error[:80]}"
+            return f"Error: {controller.last_error[:160]}"
         return STATUS_TEXT.get(s, s)
 
     def set_mode(mode):
@@ -225,7 +227,14 @@ def run_tray(controller: DictationController, settings: Settings, log_path: Path
         icon.title = f"{APP_NAME}: {STATUS_TEXT.get(status, status)}"
         icon.update_menu()
 
+    def on_error(message):
+        try:
+            icon.notify(message, f"{APP_NAME} could not dictate")
+        except Exception:
+            log.exception("notification failed")
+
     controller.status_cb = on_status
+    controller.error_cb = on_error
     icon.run()
 
 
