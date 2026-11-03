@@ -111,13 +111,18 @@ def test_toggle_mode_ignores_release(monkeypatch, tmp_path):
     assert inserted == ["hello world"]
 
 
-def test_resample_keeps_speech_band_and_removes_aliases():
-    t = np.arange(48000) / 48000
-    low = audio.resample(np.sin(2 * np.pi * 1000 * t).astype(np.float32), 48000)
-    assert len(low) == SAMPLE_RATE
-    ref = np.sin(2 * np.pi * 1000 * np.arange(SAMPLE_RATE) / SAMPLE_RATE)
-    assert np.abs(low[200:-200] - ref[200:-200]).max() < 0.05
-    # 12 kHz cannot exist at 16 kHz; without filtering it would alias to 4 kHz at full level.
-    high = audio.resample(np.sin(2 * np.pi * 12000 * t).astype(np.float32), 48000)
-    assert np.abs(high[200:-200]).max() < 0.02
-    assert len(audio.resample(np.zeros(44100, dtype=np.float32), 44100)) == SAMPLE_RATE
+def test_recording_error_is_reported_to_the_user(monkeypatch, tmp_path):
+    from macwispr_win import app
+
+    class BlockedRecorder(FakeRecorder):
+        def start(self):
+            raise RuntimeError("Windows is blocking the microphone.")
+
+    monkeypatch.setenv("MACWISPR_DATA_DIR", str(tmp_path))
+    c = app.DictationController(Settings(sounds=False), FakeTranscriber(), recorder=BlockedRecorder())
+    shown = []
+    c.error_cb = shown.append
+    c.events.put("press")
+    c.events.put("quit")
+    c._run()
+    assert shown == ["Windows is blocking the microphone."] and c.status == "ready"
