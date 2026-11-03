@@ -33,10 +33,20 @@ jobs:
       - name: Build (unit tests, PyInstaller, zip, installer)
         run: ./build.ps1
 
-      - name: Self-test with the runner's microphone privacy switch off (as found)
+      - name: Self-test with microphone access explicitly denied
         run: |
           New-Item -ItemType Directory -Force evidence | Out-Null
+          # Fresh Windows images do not always have per-user consent keys. Establish
+          # both scenarios on this disposable VM instead of relying on image defaults.
+          foreach ($root in 'HKLM:', 'HKCU:') {
+            $base = "$root\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone"
+            foreach ($path in $base, "$base\NonPackaged") {
+              if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
+              New-ItemProperty -Path $path -Name Value -Value Allow -PropertyType String -Force | Out-Null
+            }
+          }
           $k = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
+          Set-ItemProperty $k -Name Value -Value Deny
           "user microphone access: $((Get-ItemProperty $k).Value)"
           Start-Process dist\MacWispr\MacWispr.exe -Wait -ArgumentList `
             '--self-test','--wav','..\bench\clips\sample_10s_16k.wav','--out',"$PWD\evidence\selftest_mic_denied.json"
