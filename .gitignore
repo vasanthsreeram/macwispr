@@ -38,3 +38,4 @@ windows/dist/
 windows/out/
 windows/*.spec
 windows/selftest.json
+__pycache__/
