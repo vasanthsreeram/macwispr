@@ -30,3 +30,11 @@ sparkle-private*
 /bench/results/asr_gate/
 !/bench/results/SUMMARY.md
 !/bench/results/.gitkeep
+
+# Windows app build output
+windows/.venv/
+windows/build/
+windows/dist/
+windows/out/
+windows/*.spec
+windows/selftest.json

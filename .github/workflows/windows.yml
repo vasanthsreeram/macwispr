@@ -1,0 +1,66 @@
+# Builds MacWispr for Windows and tests it on a real Windows desktop runner.
+# Artifacts only; publishing stays manual (see windows/README.md).
+name: Windows
+
+on:
+  push:
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows.yml"
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build (unit tests, PyInstaller, zip, installer)
+        run: ./build.ps1
+
+      - name: Self-test (clipboard, keyboard hook, mic, model download + transcription)
+        run: |
+          $p = Start-Process dist\MacWispr\MacWispr.exe -PassThru -Wait -ArgumentList `
+            '--self-test','--wav','..\bench\clips\sample_10s_16k.wav','--out',"$PWD\selftest.json"
+          Get-Content selftest.json
+          $r = Get-Content selftest.json | ConvertFrom-Json
+          foreach ($c in 'clipboard','hotkey_hook','model') { if (-not $r.checks.$c.ok) { throw "$c failed" } }
+          if ($r.checks.model.detail.text -notmatch 'springboard') { throw "unexpected transcript" }
+          # Hosted runners have no audio input device; the mic check is reported, not required.
+          "microphone ok: $($r.checks.microphone.ok)"
+
+      - name: End-to-end (hold Alt+Space in Notepad -> pasted transcript)
+        run: |
+          $env:MACWISPR_MODEL_SOURCE = "$env:LOCALAPPDATA\MacWispr\models\parakeet-tdt-0.6b-v3-int8"
+          .venv\Scripts\python.exe tests\e2e_windows.py dist\MacWispr\MacWispr.exe ..\bench\clips\sample_10s_16k.wav springboard
+
+      - name: Installer installs and launches
+        run: |
+          $setup = Get-ChildItem out\*-setup.exe | Select-Object -First 1
+          Start-Process $setup.FullName -Wait -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART'
+          $exe = "$env:LOCALAPPDATA\Programs\MacWispr\MacWispr.exe"
+          if (-not (Test-Path $exe)) { throw "installer did not install $exe" }
+          Start-Process $exe -Wait -ArgumentList '--version','--out',"$PWD\version.json"
+          Get-Content version.json
+          Get-FileHash out\* -Algorithm SHA256 | Format-Table -AutoSize
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MacWispr-windows-${{ github.sha }}
+          path: |
+            windows/out/*
+            windows/selftest.json
+          retention-days: 14
