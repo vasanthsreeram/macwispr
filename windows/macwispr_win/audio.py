@@ -1,6 +1,7 @@
 """Microphone capture (PortAudio via sounddevice) and WAV helpers."""
 from __future__ import annotations
 
+import logging
 import threading
 import wave
 from pathlib import Path
@@ -8,6 +9,8 @@ from pathlib import Path
 import numpy as np
 
 from .config import SAMPLE_RATE
+
+log = logging.getLogger(__name__)
 
 MAX_SECONDS = 10 * 60  # bound memory for a forgotten toggle-mode recording
 
@@ -19,12 +22,15 @@ class Recorder:
         self._frames = 0
         self._lock = threading.Lock()
         self._stream = None
+        self._statuses: set[str] = set()
 
     @property
     def recording(self) -> bool:
         return self._stream is not None
 
     def _callback(self, indata, frames, time_info, status):
+        if status:
+            self._statuses.add(str(status))
         with self._lock:
             if self._frames < MAX_SECONDS * SAMPLE_RATE:
                 self._chunks.append(indata[:, 0].copy())
@@ -37,9 +43,15 @@ class Recorder:
             return
         with self._lock:
             self._chunks, self._frames = [], 0
-        self._stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32",
-                                      device=self.device, callback=self._callback)
-        self._stream.start()
+        self._statuses = set()
+        stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32",
+                                device=self.device, callback=self._callback)
+        info = sd.query_devices(stream.device)
+        log.info("capture open: device=%r hostapi=%s native_rate=%s max_in_channels=%s stream_rate=%s channels=%s latency=%.3f",
+                 info["name"], sd.query_hostapis(info["hostapi"])["name"], info["default_samplerate"],
+                 info["max_input_channels"], stream.samplerate, stream.channels, stream.latency)
+        stream.start()
+        self._stream = stream
 
     def stop(self) -> np.ndarray:
         stream, self._stream = self._stream, None
@@ -49,6 +61,10 @@ class Recorder:
         with self._lock:
             audio = np.concatenate(self._chunks) if self._chunks else np.zeros(0, dtype=np.float32)
             self._chunks = []
+        peak = float(np.abs(audio).max()) if len(audio) else 0.0
+        rms = float(np.sqrt(np.mean(audio ** 2))) if len(audio) else 0.0
+        log.info("capture stop: %.2fs frames=%d peak=%.4f rms=%.4f status=%s",
+                 len(audio) / SAMPLE_RATE, len(audio), peak, rms, sorted(self._statuses) or "ok")
         return audio
 
 
