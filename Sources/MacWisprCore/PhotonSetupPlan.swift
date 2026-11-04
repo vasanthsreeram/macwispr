@@ -22,10 +22,12 @@ public struct PhotonSetupPlan: Equatable, Sendable {
     }
 
     /// Bump when the package pins or layout change; forces a clean reinstall.
-    public static let runtimeVersion = "photon-runtime-2"
+    public static let runtimeVersion = "photon-runtime-3"
     public static let pythonVersion = "3.12"
     /// Versions verified end to end with `moondream/parakeet-redux`.
-    public static let packages = ["moondream==2.6.1", "kestrel==0.9.1"]
+    /// Note: `kestrel-mps-torch-ext` 0.1.2 supports PyTorch minors 2.9–2.14.
+    /// Pin torch < 2.15 until a newer wheel with `libkestrel_mps_torch_ext_torch215.dylib` is published.
+    public static let packages = ["moondream==2.6.1", "kestrel==0.9.1", "torch<2.15"]
 
     public let method: Method
     public let root: URL

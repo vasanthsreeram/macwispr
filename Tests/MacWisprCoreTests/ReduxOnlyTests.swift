@@ -43,6 +43,7 @@ final class PhotonSetupPlanTests: XCTestCase {
         let install = plan.steps[1]
         XCTAssertEqual(Array(install.arguments.prefix(2)), ["pip", "install"])
         XCTAssertTrue(install.arguments.contains("moondream==2.6.1"))
+        XCTAssertTrue(install.arguments.contains("torch<2.15"))
         XCTAssertEqual(install.environment["UV_PYTHON_INSTALL_DIR"], "/tmp/mw-photon-root/python")
         XCTAssertEqual(install.environment["UV_CACHE_DIR"], "/tmp/mw-photon-root/uv-cache")
         XCTAssertEqual(plan.venvPython.path, "/tmp/mw-photon-root/venv/bin/python")
