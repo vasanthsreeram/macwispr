@@ -107,6 +107,29 @@ codesign -dv --verbose=4 /Applications/MacWispr.app 2>&1 | grep -E 'Authority|Te
 
 spctl -a -vv /Applications/MacWispr.app
 # Expect: accepted (notarized)
+
+# The DMG is checked separately by Gatekeeper when the user opens it.
+# build-dmg.sh signs, notarizes, and staples it when MACWISPR_SIGN_IDENTITY
+# and notary credentials are set; release.sh refuses to publish an unstapled DMG.
+spctl -a -vvv -t open --context context:primary-signature dist/MacWispr-macos-arm64.dmg
+# Expect: accepted, source=Notarized Developer ID
+xcrun stapler validate dist/MacWispr-macos-arm64.dmg
+```
+
+## Re-ship only the DMG for an existing release
+
+Use the already-notarized app from the release zip, so the app users get is
+byte-identical to the Sparkle zip and the appcast stays untouched:
+
+```bash
+source .env.signing            # MACWISPR_SIGN_IDENTITY + MACWISPR_NOTARY_PROFILE
+V=1.2.10
+OUT="$(mktemp -d)"
+gh release download "v$V" -p "MacWispr-$V-macos-arm64.zip" -D "$OUT"
+ditto -x -k "$OUT/MacWispr-$V-macos-arm64.zip" "$OUT"
+xcrun stapler validate "$OUT/MacWispr.app"
+MACWISPR_VERSION=$V DIST_DIR="$OUT" ./scripts/build-dmg.sh "$OUT/MacWispr.app"
+gh release upload "v$V" "$OUT/MacWispr-$V-macos-arm64.dmg" "$OUT/MacWispr-macos-arm64.dmg" --clobber
 ```
 
 ## Local / CI ad-hoc (default)
