@@ -188,6 +188,9 @@ final class AppState {
 
     @ObservationIgnored
     private var recordingSession = 0
+    /// Start requested while idle-unloaded weights reload; key-up / Esc cancels it.
+    @ObservationIgnored
+    private var pendingStart = PendingDictationStart()
     @ObservationIgnored
     private var hotkeyHealthTimer: Timer?
     @ObservationIgnored
@@ -476,6 +479,13 @@ final class AppState {
         }
         syncAudioInputDevice()
         refreshInputDevices()
+        AudioInputDevices.observeChanges { [weak self] in
+            Task { @MainActor in self?.refreshInputDevices() }
+        }
+        audioRecorder.onCaptureFailed = { [weak self] in
+            // Mic vanished mid-dictation and could not be reopened: keep what we have.
+            Task { @MainActor in await self?.stopRecordingAndTranscribe() }
+        }
         refreshKeyPresence()
         refreshGrokSession()
         syncIdlePhase()
@@ -1140,6 +1150,7 @@ final class AppState {
 
     /// Discard listening without STT / paste (cancel hotkey).
     func cancelActiveRecording() {
+        pendingStart.cancel()
         guard isRecording else { return }
         recordingSession += 1
         livePartialTask?.cancel()
@@ -1326,12 +1337,17 @@ final class AppState {
         }
         guard !isRecording else { return }
         // Idle-unloaded local weights: reload then start (disk cache is kept).
+        // Start only if no key-up / Esc / toggle-off arrived during the reload.
         if transcriptionProvider == .local, !isModelLoaded {
-            if isModelLoading { return }
+            if isModelLoading, !pendingStart.isReloading { return }
+            guard pendingStart.request() else { return }
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 await self.loadModel()
-                guard self.isModelLoaded, !self.isRecording else { return }
+                guard self.pendingStart.reloadFinished(
+                    modelLoaded: self.isModelLoaded,
+                    isRecording: self.isRecording
+                ) else { return }
                 self.startRecording()
             }
             return
@@ -1344,6 +1360,9 @@ final class AppState {
         lastLivePartialSampleCount = 0
         recordingSession += 1
         let session = recordingSession
+        // Fresh ring now (not after the chime delay) so a dictation still
+        // transcribing keeps its own audio.
+        audioRecorder.beginSession()
         setPhase(.listening, detail: dictationMode == .hold
                  ? "Listening… release to stop"
                  : "Listening… press again to stop")
@@ -1607,16 +1626,22 @@ final class AppState {
     }
 
     func stopRecordingAndTranscribe() async {
+        // Key-up before an idle reload finished: don't open the mic afterwards.
+        pendingStart.cancel()
         guard isRecording else { return }
         isRecording = false
         recordingSession += 1
+        let finishSession = recordingSession
+        // A new dictation may start while this one finalizes; leave its HUD,
+        // phase and live draft alone.
+        let superseded = { self.recordingSession != finishSession }
         stopElapsedTimer()
         stopLivePartialLoop()
         audioRecorder.stopEngine()
         let ring = audioRecorder.capture
         let sampleCount = ring.count
         defer {
-            audioRecorder.clearCapture()
+            audioRecorder.clearCapture(ring)
             scheduleIdleUnload()
         }
 
@@ -1645,10 +1670,13 @@ final class AppState {
         // the full utterance and avoids a second multi-second STT on the actor.
         if livePartialInFlight {
             await drainInFlightLivePartial()
-            draft = currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !draft.isEmpty {
-                phaseDetail = draft
-                ListeningHUDController.shared.sync(with: self)
+            // A dictation started during the drain owns `currentTranscription` now.
+            if !superseded() {
+                draft = currentTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !draft.isEmpty {
+                    phaseDetail = draft
+                    ListeningHUDController.shared.sync(with: self)
+                }
             }
         }
 
@@ -1669,7 +1697,7 @@ final class AppState {
                     NSLog("MacWispr: Grok release using live draft")
                 } else {
                     // Connect failed mid-hold — one-shot batch fallback.
-                    if !draft.isEmpty {
+                    if !draft.isEmpty, !superseded() {
                         setPhase(.transcribing, detail: draft)
                         ListeningHUDController.shared.sync(with: self)
                     }
@@ -1687,7 +1715,7 @@ final class AppState {
                     )
                 } else {
                     // Buffer grew after last draft (or no draft) — chunked final pass.
-                    if !draft.isEmpty {
+                    if !draft.isEmpty, !superseded() {
                         setPhase(.transcribing, detail: draft)
                         ListeningHUDController.shared.sync(with: self)
                     }
@@ -1703,15 +1731,19 @@ final class AppState {
             // raw STT with polish only landing in history/clipboard afterward.
             // Live drafts stay raw STT only; polish runs after the final pass.
             if polishProvider != .off {
-                setPhase(.transcribing, detail: "Polishing…")
-                ListeningHUDController.shared.sync(with: self)
+                if !superseded() {
+                    setPhase(.transcribing, detail: "Polishing…")
+                    ListeningHUDController.shared.sync(with: self)
+                }
                 let polishStarted = Date()
                 processed = await applyPolish(processed)
                 polishLatency = Date().timeIntervalSince(polishStarted)
             }
 
             lastCleanTranscription = processed
-            currentTranscription = processed
+            if !superseded() {
+                currentTranscription = processed
+            }
 
             let duration = audioDuration
             let entry = TranscriptionEntry(
@@ -1749,24 +1781,26 @@ final class AppState {
             switch outcome {
             case .ok:
                 telemetryOutcome = .ok
-                let words = UsageStats.wordCount(in: processed)
-                setPhase(.success, detail: Self.formatSuccessDetail(words: words, sttLatency: sttLatency))
-                if soundFeedbackEnabled { FeedbackSounds.playSuccess() }
-                schedulePhaseResetToIdle(after: 2.8)
+                if !superseded() {
+                    let words = UsageStats.wordCount(in: processed)
+                    setPhase(.success, detail: Self.formatSuccessDetail(words: words, sttLatency: sttLatency))
+                    if soundFeedbackEnabled { FeedbackSounds.playSuccess() }
+                    schedulePhaseResetToIdle(after: 2.8)
+                }
 
             case .clipboardOnly(let reason):
                 telemetryOutcome = .clipboardOnly
                 let axMissing = !TextInserter.canPostEvents
                 accessibilityTrusted = !axMissing
                 hotkeyArmed = hotkeyManager.isArmed
-                presentFailure(reason, preferAccessibilityFix: axMissing)
+                presentFailure(reason, preferAccessibilityFix: axMissing, updatePhase: !superseded())
             case .failed(let reason):
                 telemetryOutcome = .failed
                 if !AXIsProcessTrusted() {
                     Telemetry.shared.reportDictationFailed(reason: .pasteNoAX)
-                    presentFailure(reason, preferAccessibilityFix: true)
+                    presentFailure(reason, preferAccessibilityFix: true, updatePhase: !superseded())
                 } else {
-                    presentFailure(reason)
+                    presentFailure(reason, updatePhase: !superseded())
                 }
             }
 
@@ -1806,33 +1840,40 @@ final class AppState {
                 )
             }
             Telemetry.shared.reportDictationFailed(reason: .sttError)
+            let updatePhase = !superseded()
             if let cloud = error as? CloudSTTError, case .quotaExhausted(let msg) = cloud {
-                presentFailure(msg)
+                presentFailure(msg, updatePhase: updatePhase)
             } else if MemoryPressurePolicy.looksLikeOOM(error.localizedDescription) {
-                presentFailure(MemoryPressurePolicy.oomUserMessage(triedLarge: false))
+                presentFailure(MemoryPressurePolicy.oomUserMessage(triedLarge: false), updatePhase: updatePhase)
             } else {
-                presentFailure("Transcription failed: \(error.localizedDescription)")
+                presentFailure("Transcription failed: \(error.localizedDescription)", updatePhase: updatePhase)
             }
         }
     }
 
     /// Surface a failure without burying it in history text; update phase + HUD.
+    /// `updatePhase: false` = banner only (a newer dictation is listening).
     func presentFailure(
         _ message: String,
         preferAccessibilityFix: Bool = false,
-        openSetup: Bool = false
+        openSetup: Bool = false,
+        updatePhase: Bool = true
     ) {
-        lastFailureMessage = message
-        setPhase(.failed, detail: message)
-        if soundFeedbackEnabled {
-            FeedbackSounds.playFailure()
+        if updatePhase {
+            lastFailureMessage = message
+            setPhase(.failed, detail: message)
+            if soundFeedbackEnabled {
+                FeedbackSounds.playFailure()
+            }
         }
         FailureBannerController.shared.show(
             message: message,
             showAccessibilityFix: preferAccessibilityFix || !AXIsProcessTrusted(),
             openSetup: openSetup
         )
-        schedulePhaseResetToIdle(after: 3.5)
+        if updatePhase {
+            schedulePhaseResetToIdle(after: 3.5)
+        }
     }
 
     func dismissFailureBanner() {
@@ -2192,6 +2233,9 @@ final class AppState {
     func toggleRecording() {
         if isRecording {
             Task { await stopRecordingAndTranscribe() }
+        } else if pendingStart.wantsStart {
+            // Second press while idle weights reload = stop before it started.
+            pendingStart.cancel()
         } else {
             startRecording()
         }

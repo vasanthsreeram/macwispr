@@ -34,6 +34,38 @@ enum AudioInputDevices {
         return nil
     }
 
+    /// Live input devices keyed by UID (for `InputDeviceResolver`).
+    static func inputDeviceIDsByUID() -> [String: AudioDeviceID] {
+        guard let deviceIDs = allDeviceIDs() else { return [:] }
+        var map: [String: AudioDeviceID] = [:]
+        for deviceID in deviceIDs {
+            if let info = deviceInfo(deviceID: deviceID) {
+                map[info.uid] = deviceID
+            }
+        }
+        return map
+    }
+
+    /// Calls `handler` on the main queue when devices are added/removed or the
+    /// default input changes. Listeners live for the process (AppState is a singleton).
+    static func observeChanges(_ handler: @escaping () -> Void) {
+        for selector in [kAudioHardwarePropertyDevices, kAudioHardwarePropertyDefaultInputDevice] {
+            var address = AudioObjectPropertyAddress(
+                mSelector: selector,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            let status = AudioObjectAddPropertyListenerBlock(
+                AudioObjectID(kAudioObjectSystemObject),
+                &address,
+                DispatchQueue.main
+            ) { _, _ in handler() }
+            if status != noErr {
+                NSLog("AudioInputDevices: listener for %u failed (OSStatus %d)", selector, status)
+            }
+        }
+    }
+
     /// Human-readable name for the system default input (for UI subtitles).
     static func defaultInputDeviceName() -> String {
         guard let defaultID = defaultInputDeviceID(),
@@ -73,7 +105,7 @@ enum AudioInputDevices {
         return ids
     }
 
-    private static func defaultInputDeviceID() -> AudioDeviceID? {
+    static func defaultInputDeviceID() -> AudioDeviceID? {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultInputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,

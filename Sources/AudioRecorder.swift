@@ -7,15 +7,24 @@ final class AudioRecorder: @unchecked Sendable {
     private let engine = AVAudioEngine()
     /// Core Audio device UID. `nil` / empty → system default input.
     var inputDeviceUID: String?
-    /// Long captures spill older PCM to disk; only a short tail stays in RAM.
-    let capture = SampleRing()
+    /// One ring per dictation; long captures spill older PCM to disk.
+    private let sessions = CaptureSessionRings()
+    /// Ring of the newest dictation. A previous dictation keeps its own ring.
+    var capture: SampleRing { sessions.current }
+    /// Ring the open engine is writing into (nil when the mic is closed).
+    private var activeRing: SampleRing?
+    /// Config-change restarts in the current dictation.
+    private var configRestarts = 0
+    /// Engine config changed mid-dictation and capture could not be reopened.
+    /// Called on the main queue.
+    var onCaptureFailed: (() -> Void)?
+    private var configObserver: NSObjectProtocol?
     private let targetSampleRate: Double = 16000
     private let lock = NSLock()
     private var isTapped = false
 
     /// Latest input RMS (~0…1) for the listening waveform HUD only.
     /// Written on the audio thread; read via `currentAudioLevel()`.
-    /// No mid-recording rebind / engine restart — metering only.
     private var meterLevel: Float = 0
 
     /// Reused on the audio thread so each 1024-frame tap does not allocate.
@@ -28,6 +37,24 @@ final class AudioRecorder: @unchecked Sendable {
     private var convertBuffer: AVAudioPCMBuffer?
     /// True when input is already 16 kHz mono — append channel data directly.
     private var usesPassthrough = false
+
+    init() {
+        // Device unplugged / default input switched / sample rate changed: the
+        // engine stops itself. Main queue serializes with start/stop from AppState.
+        configObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleConfigurationChange()
+        }
+    }
+
+    deinit {
+        if let configObserver {
+            NotificationCenter.default.removeObserver(configObserver)
+        }
+    }
 
     /// Prompt for mic access if needed. Safe to call at launch.
     static func requestPermissionIfNeeded() {
@@ -54,12 +81,53 @@ final class AudioRecorder: @unchecked Sendable {
         return meterLevel
     }
 
+    /// Swap in a fresh ring for a new dictation. Call before `startRecording()`;
+    /// the previous dictation's ring stays with its transcriber.
+    @discardableResult
+    func beginSession() -> SampleRing {
+        sessions.beginSession()
+    }
+
+    /// Open the mic into the current session ring (see `beginSession()`).
     func startRecording() {
-        capture.reset()
         lock.lock()
         meterLevel = 0
         lock.unlock()
+        configRestarts = 0
+        openCapture(into: capture)
+    }
 
+    /// Engine reported a configuration change (device unplugged, default input
+    /// switched). Mid-dictation: rebuild tap + converter for the new format and
+    /// keep appending to the same session ring.
+    private func handleConfigurationChange() {
+        switch CaptureConfigurationChange.action(
+            isCapturing: activeRing != nil,
+            restartsThisSession: configRestarts
+        ) {
+        case .ignore:
+            // Next startRecording() resets the engine and re-reads the format.
+            return
+        case .restartIntoSessionRing:
+            guard let ring = activeRing else { return }
+            configRestarts += 1
+            NSLog("AudioRecorder: engine configuration changed mid-dictation — restarting capture")
+            if !openCapture(into: ring) {
+                stopEngine()
+                onCaptureFailed?()
+            }
+        case .stop:
+            NSLog("AudioRecorder: too many configuration changes — stopping capture")
+            stopEngine()
+            onCaptureFailed?()
+        }
+    }
+
+    /// (Re)builds the input tap for the current device and starts the engine.
+    /// Returns false when capture could not be opened.
+    @discardableResult
+    private func openCapture(into ring: SampleRing) -> Bool {
+        activeRing = nil
         // Clean up a prior session that never stopped cleanly.
         if isTapped {
             engine.inputNode.removeTap(onBus: 0)
@@ -77,9 +145,12 @@ final class AudioRecorder: @unchecked Sendable {
 
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
-        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
+        guard CaptureConfigurationChange.canCapture(
+            sampleRate: inputFormat.sampleRate,
+            channelCount: Int(inputFormat.channelCount)
+        ) else {
             NSLog("AudioRecorder: invalid input format (mic permission / device?)")
-            return
+            return false
         }
 
         guard let targetFormat = AVAudioFormat(
@@ -89,7 +160,7 @@ final class AudioRecorder: @unchecked Sendable {
             interleaved: false
         ) else {
             NSLog("AudioRecorder: failed to create target format")
-            return
+            return false
         }
 
         let alreadyTarget =
@@ -123,7 +194,8 @@ final class AudioRecorder: @unchecked Sendable {
 
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
             guard let self else { return }
-            self.processTapBuffer(buffer, sourceSR: inputFormat.sampleRate)
+            // The tap owns its session ring, so a late buffer never lands in the next dictation.
+            self.processTapBuffer(buffer, sourceSR: inputFormat.sampleRate, into: ring)
         }
         isTapped = true
 
@@ -133,11 +205,15 @@ final class AudioRecorder: @unchecked Sendable {
             NSLog("AudioRecorder: Failed to start engine: \(error)")
             inputNode.removeTap(onBus: 0)
             isTapped = false
+            return false
         }
+        activeRing = ring
+        return true
     }
 
     /// Stop the mic but keep the capture ring for chunked STT.
     func stopEngine() {
+        activeRing = nil
         if isTapped {
             engine.inputNode.removeTap(onBus: 0)
             isTapped = false
@@ -157,8 +233,14 @@ final class AudioRecorder: @unchecked Sendable {
         return capture.takeAllAndClear()
     }
 
+    /// Clear the newest session (cancel paths while it is still recording).
     func clearCapture() {
-        capture.reset()
+        sessions.clear(capture)
+    }
+
+    /// Clear one finished session. Never touches a dictation started since.
+    func clearCapture(_ ring: SampleRing) {
+        sessions.clear(ring)
     }
 
     /// Copy of audio captured so far without stopping the mic (for live partials).
@@ -181,16 +263,33 @@ final class AudioRecorder: @unchecked Sendable {
         capture.duration
     }
 
-    /// Binds `AVAudioEngine` to a specific input device before capture starts.
+    /// Binds `AVAudioEngine` to the chosen input device before capture starts.
+    /// nil / empty / unplugged UIDs bind the current system default explicitly:
+    /// the engine lives for the whole app, so skipping the bind would leave it
+    /// on whatever device was chosen before.
     private func applyInputDeviceUID(_ uid: String?) {
-        let trimmed = uid?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !trimmed.isEmpty else { return }
-        guard let deviceID = AudioInputDevices.deviceID(forUID: trimmed) else {
-            NSLog("AudioRecorder: input device uid=%@ not found — using system default", trimmed)
+        guard let deviceID = InputDeviceResolver.deviceToBind(
+            requestedUID: uid,
+            available: AudioInputDevices.inputDeviceIDsByUID(),
+            defaultDeviceID: AudioInputDevices.defaultInputDeviceID()
+        ) else {
+            NSLog("AudioRecorder: no input device to bind")
             return
         }
         guard let audioUnit = engine.inputNode.audioUnit else {
             NSLog("AudioRecorder: input node has no audio unit")
+            return
+        }
+        var current = AudioDeviceID(0)
+        var currentSize = UInt32(MemoryLayout<AudioDeviceID>.size)
+        if AudioUnitGetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &current,
+            &currentSize
+        ) == noErr, current == deviceID {
             return
         }
         var device = deviceID
@@ -209,7 +308,7 @@ final class AudioRecorder: @unchecked Sendable {
 
     // MARK: - Audio thread
 
-    private func processTapBuffer(_ buffer: AVAudioPCMBuffer, sourceSR: Double) {
+    private func processTapBuffer(_ buffer: AVAudioPCMBuffer, sourceSR: Double, into ring: SampleRing) {
         let frameCount = Int(buffer.frameLength)
         guard frameCount > 0 else { return }
 
@@ -223,28 +322,29 @@ final class AudioRecorder: @unchecked Sendable {
         }
 
         if usesPassthrough {
-            appendPassthrough(buffer, frameCount: frameCount)
+            appendPassthrough(buffer, frameCount: frameCount, into: ring)
             return
         }
 
         if let converter, let convertBuffer {
-            convertAndAppend(buffer: buffer, converter: converter, convertBuffer: convertBuffer)
+            convertAndAppend(buffer: buffer, converter: converter, convertBuffer: convertBuffer, into: ring)
             return
         }
 
         // Fallback: vDSP mono mix + linear interpolation (no converter available).
-        fallbackResample(buffer: buffer, sourceSR: sourceSR, frameCount: frameCount)
+        fallbackResample(buffer: buffer, sourceSR: sourceSR, frameCount: frameCount, into: ring)
     }
 
-    private func appendPassthrough(_ buffer: AVAudioPCMBuffer, frameCount: Int) {
+    private func appendPassthrough(_ buffer: AVAudioPCMBuffer, frameCount: Int, into ring: SampleRing) {
         guard let channelData = buffer.floatChannelData else { return }
-        capture.append(UnsafeBufferPointer(start: channelData[0], count: frameCount))
+        ring.append(UnsafeBufferPointer(start: channelData[0], count: frameCount))
     }
 
     private func convertAndAppend(
         buffer: AVAudioPCMBuffer,
         converter: AVAudioConverter,
-        convertBuffer: AVAudioPCMBuffer
+        convertBuffer: AVAudioPCMBuffer,
+        into ring: SampleRing
     ) {
         convertBuffer.frameLength = 0
         var error: NSError?
@@ -268,11 +368,11 @@ final class AudioRecorder: @unchecked Sendable {
         let outFrames = Int(convertBuffer.frameLength)
         guard outFrames > 0, let channelData = convertBuffer.floatChannelData else { return }
 
-        capture.append(UnsafeBufferPointer(start: channelData[0], count: outFrames))
+        ring.append(UnsafeBufferPointer(start: channelData[0], count: outFrames))
     }
 
     /// vDSP mono-mix + linear resample when AVAudioConverter cannot be created.
-    private func fallbackResample(buffer: AVAudioPCMBuffer, sourceSR: Double, frameCount: Int) {
+    private func fallbackResample(buffer: AVAudioPCMBuffer, sourceSR: Double, frameCount: Int, into ring: SampleRing) {
         guard let channelData = buffer.floatChannelData else { return }
         let channelCount = Int(buffer.format.channelCount)
 
@@ -288,7 +388,7 @@ final class AudioRecorder: @unchecked Sendable {
 
         if abs(sourceSR - targetSampleRate) < 1.0 {
             let prefix = Array(monoScratch.prefix(frameCount))
-            capture.append(prefix)
+            ring.append(prefix)
             return
         }
 
@@ -306,7 +406,7 @@ final class AudioRecorder: @unchecked Sendable {
             output[i] = monoScratch[lower] * (1 - frac) + monoScratch[upper] * frac
         }
 
-        capture.append(output)
+        ring.append(output)
     }
 
     /// Average channels into `monoScratch` using Accelerate.
