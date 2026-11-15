@@ -65,12 +65,12 @@ The following **never** leave your device as telemetry (and local history/settin
 
 ### Optional local developer capture (not telemetry)
 
-Settings → General → **Developer → Save audio + text locally** (off by default) writes **WAV audio** and **text stages** (raw STT, light post-process, polished) to  
+Settings → Configuration → **Developer → Save audio + text locally** (off by default) writes **WAV audio** and **text stages** (raw STT, light post-process, polished) to  
 `~/Library/Application Support/MacWispr/dev-captures/` on this Mac only.
 
 - Used for debugging dictation / polish quality.
 - **Never uploaded** by MacWispr telemetry (still subject to whatever *you* do with the folder).
-- Caps at the last 100 captures; you can clear from Settings.
+- Caps at the last 100 captures; **Developer → Clear…** in Settings deletes them all, and **Clear History** also deletes them.
 - Can also be forced for a process with env `MACWISPR_DEV_CAPTURE=1`.
 
 ### Meeting recordings (local only, not telemetry)
@@ -132,7 +132,7 @@ This is **not** product telemetry and is **off by default**.
 |---|---|
 | **Default** | Off |
 | **Enable** | Settings → Configuration → Privacy → **Appear on public leaderboard** |
-| **Disable** | Turn the same toggle **off** (removes your row from the board) |
+| **Disable** | Turn the same toggle **off** (one click; removes your row from the board) |
 
 ### What the board stores
 
@@ -158,7 +158,7 @@ When you opt in, the app posts **aggregate counts only**:
 - Choosing a public name is **extra opt-in on top of board opt-in** — leave the field blank to stay anonymous.
 - Still never: transcript text, audio, clipboard, vocabulary, API keys, hardware IDs, email, GitHub.
 
-Turning on reliability telemetry does **not** put you on the board. Leaving the board (toggle off) deletes your non-seed row and destroys the local token so a future opt-in starts a fresh identity.
+Turning on reliability telemetry does **not** put you on the board. Leaving the board (toggle off) deletes your non-seed row and destroys the local token so a future opt-in starts a fresh identity. If you are offline or the server errors, the app keeps the token only to retry the deletion (on next launch and when the network returns) and discards it once the server confirms.
 
 The board may include a few **seeded demo speakers** so the page is not empty; they are labeled as seed speakers and are not real people.
 

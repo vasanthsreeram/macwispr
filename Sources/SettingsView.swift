@@ -49,6 +49,8 @@ struct SettingsView: View {
     @State private var keySaveMessage: String?
     @State private var keySaveIsError = false
     @State private var confirmClearHistory = false
+    @State private var devCaptureCount = 0
+    @State private var confirmClearDevCaptures = false
 
     private let languages: [(String?, String)] = [
         (nil, "Auto-detect"),
@@ -167,6 +169,15 @@ struct SettingsView: View {
                     appState.showTelemetryDisclosure = true
                 }
                 .buttonStyle(.link)
+                Toggle(isOn: Binding(
+                    get: { appState.leaderboardOptIn },
+                    set: { appState.setLeaderboardOptIn($0) }
+                )) {
+                    Text("Appear on public leaderboard")
+                    Text(appState.leaderboardOptIn
+                        ? "Sharing word and dictation counts as \(appState.leaderboardDisplayName.isEmpty ? "an anonymous name" : appState.leaderboardDisplayName). Turn off to remove your row."
+                        : "Off. Shares counts only, never your words or audio")
+                }
             } header: {
                 Text("Privacy")
             }
@@ -191,6 +202,43 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("Advanced")
+            }
+
+            Section {
+                Toggle(isOn: Binding(
+                    get: { appState.devCaptureEnabled },
+                    set: {
+                        appState.setDevCaptureEnabled($0)
+                        devCaptureCount = DevCaptureStore.captureCount()
+                    }
+                )) {
+                    Text("Save audio + text locally")
+                    Text("Writes WAV audio and transcripts to this Mac for debugging. Never uploaded")
+                }
+                LabeledContent("Saved captures") {
+                    HStack(spacing: DS.Space.m) {
+                        Text("\(devCaptureCount)")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                        Button("Open Folder") { DevCaptureStore.openInFinder() }
+                        Button("Clear…", role: .destructive) { confirmClearDevCaptures = true }
+                            .disabled(devCaptureCount == 0)
+                    }
+                }
+            } header: {
+                Text("Developer")
+            }
+            .onAppear { devCaptureCount = DevCaptureStore.captureCount() }
+            .confirmationDialog(
+                "Delete all saved dictation captures?",
+                isPresented: $confirmClearDevCaptures
+            ) {
+                Button("Delete Captures", role: .destructive) {
+                    DevCaptureStore.clearAll()
+                    devCaptureCount = DevCaptureStore.captureCount()
+                }
+            } message: {
+                Text("This deletes \(devCaptureCount) saved audio and transcript captures from this Mac.")
             }
             .confirmationDialog(
                 "Clear all transcription history?",

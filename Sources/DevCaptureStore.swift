@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import MacWisprCore
 
 /// Opt-in **local** dictation capture for debugging (audio + text stages).
 ///
@@ -111,25 +112,11 @@ enum DevCaptureStore {
     }
 
     static func captureCount() -> Int {
-        let fm = FileManager.default
-        guard let kids = try? fm.contentsOfDirectory(
-            at: rootDirectory,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else { return 0 }
-        return kids.filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }.count
+        DevCaptureDirectory.count(in: rootDirectory)
     }
 
     static func clearAll() {
-        let fm = FileManager.default
-        guard let kids = try? fm.contentsOfDirectory(
-            at: rootDirectory,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) else { return }
-        for url in kids {
-            try? fm.removeItem(at: url)
-        }
+        DevCaptureDirectory.clearAll(in: rootDirectory)
     }
 
     // MARK: - Private
