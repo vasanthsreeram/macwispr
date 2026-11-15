@@ -1,4 +1,5 @@
 import Foundation
+import MacWisprCore
 
 /// Aggregates dictation history into word counts and estimated time saved.
 /// Typing baseline defaults to 40 WPM (common knowledge-worker average).
@@ -198,12 +199,18 @@ enum HistoryStore {
 
     static func load() -> [TranscriptionEntry] {
         let url = fileURL
-        guard let data = try? Data(contentsOf: url) else { return [] }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let entries = (try? decoder.decode([TranscriptionEntry].self, from: data)) ?? []
-        return Array(entries.prefix(maxEntries))
+        let result = LossyJSONArrayFile.load(TranscriptionEntry.self, from: url, decoder: decoder) { msg in
+            NSLog("MacWispr history: %@", msg)
+        }
+        // Never overwrite a file we could neither read nor preserve.
+        saveLock.lock(); saveBlocked = !result.safeToOverwrite; saveLock.unlock()
+        return Array(result.items.prefix(maxEntries))
     }
+
+    private static let saveLock = NSLock()
+    private static var saveBlocked = false
 
     static func save(_ entries: [TranscriptionEntry]) {
         let encoder = JSONEncoder()
@@ -212,6 +219,8 @@ enum HistoryStore {
         encoder.outputFormatting = [.sortedKeys]
         let trimmed = Array(entries.prefix(maxEntries))
         guard let data = try? encoder.encode(trimmed) else { return }
+        saveLock.lock(); let blocked = saveBlocked; saveLock.unlock()
+        guard !blocked else { return }
         try? data.write(to: fileURL, options: .atomic)
     }
 
