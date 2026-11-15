@@ -2,7 +2,7 @@
 
 MacWispr is built to keep your voice and text on your Mac whenever possible.
 
-By default, **local** transcription (Qwen3-ASR via MLX) runs entirely on-device. Optional cloud STT runs only if you choose it: **BYOK** (OpenAI / ElevenLabs API keys in Keychain) or **Grok** (after you consent, using your existing Grok CLI / SuperGrok session on this Mac).
+By default, **local** transcription (Moondream Parakeet Redux, run by the Photon Python sidecar) runs entirely on-device. MacWispr disables the Photon runtime's built-in vendor usage telemetry (hostname and usage counts to `api.moondream.ai`) and blocks that host. Optional cloud STT runs only if you choose it: **BYOK** (OpenAI / ElevenLabs API keys in Keychain) or **Grok** (after you consent, using your existing Grok CLI / SuperGrok session on this Mac).
 
 ## Optional product telemetry
 
@@ -112,7 +112,7 @@ If you need data removed for a specific install ID, open a GitHub issue or conta
 
 | Mode | Audio / text leave your Mac? |
 |------|------------------------------|
-| **Local** (default) | No — ASR runs on Apple Silicon via MLX |
+| **Local** (default) | No — ASR runs on Apple Silicon via the Photon sidecar (Parakeet Redux). Photon's vendor usage telemetry is disabled and `moondream.ai` is blocked in the sidecar. Model weights download once from Hugging Face. |
 | **Cloud BYOK** (OpenAI / ElevenLabs) | Yes — audio (and polish text, if enabled) go to the provider you chose, under **your** API key and their privacy policy |
 | **Grok (SuperGrok)** | Yes — only after **explicit consent**. Audio is streamed to xAI speech-to-text using your Grok CLI OAuth session (`~/.grok/auth.json`). Counted against your SuperGrok usage entitlement, not MacWispr servers. No API key is copied into MacWispr’s Keychain. |
 | **Transcript history / dashboard** | Stored locally under Application Support on your Mac |

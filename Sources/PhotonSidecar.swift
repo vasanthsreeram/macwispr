@@ -212,32 +212,7 @@ final class PhotonSidecar: @unchecked Sendable {
 
     /// Sidecar server. Reports download progress while fetching the weights,
     /// then `{"ready": true}`. Each request `{"wav": path}` → `{"text": ...}`.
-    static let serverSource = """
-    import sys, json, os, warnings
-    warnings.filterwarnings("ignore")
-    def emit(obj):
-        sys.stdout.write(json.dumps(obj) + "\\n"); sys.stdout.flush()
-    MODEL = "\(modelId)"
-    try:
-        from huggingface_hub import snapshot_download
-        if os.environ.get("HF_HUB_OFFLINE") != "1":
-            emit({"status": "Downloading Parakeet Redux (about 180 MB)…", "progress": 0.45})
-            snapshot_download(MODEL)
-        emit({"status": "Loading Parakeet Redux…", "progress": 0.85})
-        import moondream as md
-        speech = md.photon(MODEL, device="mps")
-    except Exception as e:
-        emit({"error": "load: " + str(e)}); sys.exit(1)
-    emit({"ready": True})
-    for line in sys.stdin:
-        try:
-            req = json.loads(line)
-            res = speech.transcribe(audio=req["wav"])
-            out = {"text": res.get("text", "")}
-        except Exception as e:
-            out = {"error": str(e)}
-        emit(out)
-    """
+    static let serverSource = PhotonServerScript.source(modelId: modelId)
 
     // MARK: - Lifecycle
 
@@ -252,9 +227,9 @@ final class PhotonSidecar: @unchecked Sendable {
         let p = Process()
         p.executableURL = Self.venvPython
         p.arguments = ["-u", Self.serverScript.path]
-        var env = ProcessInfo.processInfo.environment
-        for (k, v) in PhotonSetupPlan.serverEnvironment(weightsReady: weightsReady) { env[k] = v }
-        p.environment = env
+        p.environment = PhotonSetupPlan.sidecarEnvironment(
+            base: ProcessInfo.processInfo.environment, weightsReady: weightsReady
+        )
         let inPipe = Pipe()
         let outPipe = Pipe()
         p.standardInput = inPipe

@@ -116,4 +116,15 @@ public struct PhotonSetupPlan: Equatable, Sendable {
         }
         return env
     }
+
+    /// Vendor variables that could point Photon at moondream services.
+    public static let strippedEnvironmentKeys = ["MOONDREAM_API_KEY", "MOONDREAM_API_BASE_URL"]
+
+    /// Child-process environment: `base` minus vendor keys, plus `serverEnvironment`.
+    public static func sidecarEnvironment(base: [String: String], weightsReady: Bool) -> [String: String] {
+        var env = base
+        for k in strippedEnvironmentKeys { env.removeValue(forKey: k) }
+        for (k, v) in serverEnvironment(weightsReady: weightsReady) { env[k] = v }
+        return env
+    }
 }
