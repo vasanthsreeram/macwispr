@@ -21,7 +21,7 @@ final class TextInserter: @unchecked Sendable {
     /// then the text is left on the clipboard so it is never lost. A paste
     /// borrows the clipboard and restores the user's contents afterwards.
     @discardableResult
-    func insert(text: String, mode: InsertionMode) -> InsertOutcome {
+    func insert(text: String, mode: InsertionMode, restoreClipboard: Bool = true) -> InsertOutcome {
         guard !text.isEmpty else { return .failed(reason: "Empty transcription") }
 
         let secureInput = IsSecureEventInputEnabled()
@@ -30,7 +30,9 @@ final class TextInserter: @unchecked Sendable {
             canPostEvents: Self.canPostEvents,
             secureInputActive: secureInput
         )
-        if let plan = ClipboardPolicy.write(for: action, secureInputActive: secureInput) {
+        if let plan = ClipboardPolicy.write(
+            for: action, secureInputActive: secureInput, restoreAfterPaste: restoreClipboard
+        ) {
             let pasteboard = NSPasteboard.general
             let session = PasteboardTransfer.begin(text: text, plan: plan, on: pasteboard, pending: pendingRestore)
             pendingRestore = session

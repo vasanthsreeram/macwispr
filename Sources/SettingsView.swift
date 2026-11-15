@@ -121,6 +121,15 @@ struct SettingsView: View {
                         Text(mode.rawValue).tag(mode)
                     }
                 }
+                if appState.insertionMode == .both {
+                    Toggle(isOn: Binding(
+                        get: { appState.restoreClipboardAfterPaste },
+                        set: { appState.setRestoreClipboardAfterPaste($0) }
+                    )) {
+                        Text("Restore previous clipboard after paste")
+                        Text("Off keeps the transcript on the clipboard so you can paste it again.")
+                    }
+                }
                 Toggle("Capitalize first letter", isOn: Bindable(appState).autoCapitalize)
                 LabeledContent {
                     HStack(spacing: DS.Space.m) {

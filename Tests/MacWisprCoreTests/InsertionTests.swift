@@ -74,6 +74,25 @@ final class ClipboardPolicyTests: XCTestCase {
             ClipboardWrite(transient: true, concealed: false, restoreAfterPaste: true))
     }
 
+    /// Setting off: the pasted transcript stays on the clipboard for re-paste,
+    /// visible to clipboard history like a normal copy.
+    func testPasteWithRestoreOffKeepsTranscript() {
+        XCTAssertEqual(
+            ClipboardPolicy.write(for: .copyAndPaste, secureInputActive: false, restoreAfterPaste: false),
+            ClipboardWrite(transient: false, concealed: false, restoreAfterPaste: false))
+        XCTAssertEqual(
+            ClipboardPolicy.write(for: .copyAndPaste, secureInputActive: true, restoreAfterPaste: false),
+            ClipboardWrite(transient: false, concealed: true, restoreAfterPaste: false))
+    }
+
+    /// The setting only affects paste; other actions ignore it.
+    func testRestoreSettingIgnoredOutsidePaste() {
+        XCTAssertNil(ClipboardPolicy.write(for: .typeOut, secureInputActive: false, restoreAfterPaste: false))
+        XCTAssertEqual(
+            ClipboardPolicy.write(for: .copy, secureInputActive: false, restoreAfterPaste: true),
+            ClipboardWrite(transient: false, concealed: false, restoreAfterPaste: false))
+    }
+
     func testCopyOnlyLeavesTextAndNeverRestores() {
         let plan = ClipboardPolicy.write(for: .copy, secureInputActive: false)
         XCTAssertEqual(plan, ClipboardWrite(transient: false, concealed: false, restoreAfterPaste: false))

@@ -78,13 +78,17 @@ public enum ClipboardPolicy {
     /// Time for the target app to read the pasteboard after ⌘V.
     public static let restoreDelay: TimeInterval = 0.8
 
-    /// nil: leave the clipboard untouched.
-    public static func write(for action: InsertAction, secureInputActive: Bool) -> ClipboardWrite? {
+    /// nil: leave the clipboard untouched. `restoreAfterPaste` is the user
+    /// setting; off keeps the pasted transcript on the clipboard as a normal copy.
+    public static func write(
+        for action: InsertAction, secureInputActive: Bool, restoreAfterPaste: Bool = true
+    ) -> ClipboardWrite? {
         switch action {
         case .typeOut:
             return nil
         case .copyAndPaste:
-            return ClipboardWrite(transient: true, concealed: secureInputActive, restoreAfterPaste: true)
+            return ClipboardWrite(
+                transient: restoreAfterPaste, concealed: secureInputActive, restoreAfterPaste: restoreAfterPaste)
         case .copy, .copyOnly:
             return ClipboardWrite(transient: false, concealed: secureInputActive, restoreAfterPaste: false)
         }
