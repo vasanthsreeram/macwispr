@@ -2244,6 +2244,7 @@ final class AppState {
     func clearHistory() {
         transcriptionHistory = []
         scheduleHistorySave(immediate: true)
+        DevCaptureStore.clearAll()
     }
 
     // MARK: - Custom vocabulary (ASR context)

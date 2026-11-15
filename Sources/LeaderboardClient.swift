@@ -1,4 +1,6 @@
 import Foundation
+import MacWisprCore
+import Network
 
 // MARK: - Public opt-in leaderboard (anonymous)
 //
@@ -67,6 +69,8 @@ final class LeaderboardClient: @unchecked Sendable {
     private static let lastNameErrorKey = "leaderboardLastNameError"
     /// Random participant secret (local only). Not Keychain — avoids system prompts.
     private static let participantTokenKey = "leaderboardParticipantToken"
+    /// Tokens whose server rows still have to be deleted (opt-out not yet confirmed).
+    private static let pendingDeletionTokensKey = "leaderboardPendingDeletionTokens"
 
     /// Max length for a public competitive name (matches API).
     static let publicNameMaxLength = 24
@@ -75,6 +79,10 @@ final class LeaderboardClient: @unchecked Sendable {
     private var syncWorkItem: DispatchWorkItem?
     private let syncDebounceSeconds: TimeInterval = 12
     private let session: URLSession
+    /// In-flight PUT; cancelled on opt-out. Touched only on `queue`.
+    private var syncTask: URLSessionDataTask?
+    private var deletionInFlight = false
+    private let pathMonitor = NWPathMonitor()
 
     /// Fired on main after a successful sync / rank refresh.
     var onStandingChanged: ((LeaderboardStanding) -> Void)?
@@ -87,6 +95,14 @@ final class LeaderboardClient: @unchecked Sendable {
         config.httpCookieAcceptPolicy = .never
         config.httpShouldSetCookies = false
         session = URLSession(configuration: config)
+
+        // Retry an unconfirmed opt-out deletion on launch and when connectivity returns.
+        pathMonitor.pathUpdateHandler = { [weak self] path in
+            guard path.status == .satisfied else { return }
+            self?.retryPendingDeletion()
+        }
+        pathMonitor.start(queue: queue)
+        retryPendingDeletion()
     }
 
     // MARK: - Opt-in
@@ -134,16 +150,23 @@ final class LeaderboardClient: @unchecked Sendable {
         if enabled {
             UserDefaults.standard.set(true, forKey: Self.optInKey)
             _ = ensureToken()
+            retryPendingDeletion()
             scheduleSync(statsProvider: statsProvider, force: true)
         } else {
-            let token = loadToken()
+            var state = LeaderboardParticipation(optedIn: isOptedIn, token: loadToken(), pendingDeletionTokens: pendingDeletionTokens)
+            state.optOut()
             UserDefaults.standard.set(false, forKey: Self.optInKey)
+            // Keep the token until the server confirms deletion.
+            UserDefaults.standard.set(state.pendingDeletionTokens, forKey: Self.pendingDeletionTokensKey)
             clearStandingDefaults()
             deleteToken()
-            if let token {
-                queue.async { [weak self] in
-                    self?.deleteRemote(token: token)
-                }
+            queue.async { [weak self] in
+                // Stop pending/in-flight upserts so they cannot recreate the row.
+                self?.syncWorkItem?.cancel()
+                self?.syncWorkItem = nil
+                self?.syncTask?.cancel()
+                self?.syncTask = nil
+                self?.attemptPendingDeletion()
             }
             DispatchQueue.main.async { [weak self] in
                 self?.onStandingChanged?(.empty)
@@ -226,7 +249,9 @@ final class LeaderboardClient: @unchecked Sendable {
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
-        session.dataTask(with: request) { [weak self] data, response, error in
+        syncTask?.cancel()
+        let task = session.dataTask(with: request) { [weak self] data, response, error in
+            guard let self, self.shouldApplySyncResult(forToken: token) else { return }
             guard error == nil,
                   let http = response as? HTTPURLResponse,
                   let data
@@ -239,9 +264,7 @@ final class LeaderboardClient: @unchecked Sendable {
                 UserDefaults.standard.set(err, forKey: Self.lastNameErrorKey)
                 DispatchQueue.main.async {
                     // Keep prior standing; surface name error via standing callback with cached rank.
-                    if let standing = self?.standing {
-                        self?.onStandingChanged?(standing)
-                    }
+                    self.onStandingChanged?(self.standing)
                 }
                 return
             }
@@ -251,12 +274,20 @@ final class LeaderboardClient: @unchecked Sendable {
             else { return }
 
             UserDefaults.standard.removeObject(forKey: Self.lastNameErrorKey)
-            let standing = self?.applyStandingJSON(json, fallbackStats: stats) ?? .empty
+            let standing = self.applyStandingJSON(json, fallbackStats: stats)
             UserDefaults.standard.set(Date(), forKey: Self.lastSyncKey)
             DispatchQueue.main.async {
-                self?.onStandingChanged?(standing)
+                self.onStandingChanged?(standing)
             }
-        }.resume()
+        }
+        syncTask = task
+        task.resume()
+    }
+
+    /// Ignore network completions once opted out (or the token changed).
+    private func shouldApplySyncResult(forToken token: String) -> Bool {
+        LeaderboardParticipation(optedIn: isOptedIn, token: loadToken())
+            .shouldApplySyncResult(forToken: token)
     }
 
     private func fetchMe(token: String, completion: ((LeaderboardStanding) -> Void)?) {
@@ -266,6 +297,10 @@ final class LeaderboardClient: @unchecked Sendable {
         request.setValue("MacWispr-Leaderboard/1", forHTTPHeaderField: "User-Agent")
 
         session.dataTask(with: request) { [weak self] data, response, error in
+            if let self, !self.shouldApplySyncResult(forToken: token) {
+                DispatchQueue.main.async { completion?(.empty) }
+                return
+            }
             guard error == nil,
                   let http = response as? HTTPURLResponse,
                   (200...299).contains(http.statusCode),
@@ -353,12 +388,45 @@ final class LeaderboardClient: @unchecked Sendable {
         defaults.removeObject(forKey: Self.lastSyncKey)
     }
 
-    private func deleteRemote(token: String) {
+    private var pendingDeletionTokens: [String] {
+        UserDefaults.standard.stringArray(forKey: Self.pendingDeletionTokensKey) ?? []
+    }
+
+    /// Safe to call from any thread; work runs on `queue`.
+    func retryPendingDeletion() {
+        queue.async { [weak self] in self?.attemptPendingDeletion() }
+    }
+
+    /// Must run on `queue`. DELETE the pending row; clear the token only on 2xx/404.
+    private func attemptPendingDeletion() {
+        guard !deletionInFlight,
+              let token = LeaderboardParticipation(pendingDeletionTokens: pendingDeletionTokens).nextDeletionToken
+        else { return }
+        deletionInFlight = true
         var request = URLRequest(url: Self.apiBaseURL.appendingPathComponent("v1/me"))
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("MacWispr-Leaderboard/1", forHTTPHeaderField: "User-Agent")
-        session.dataTask(with: request) { _, _, _ in }.resume()
+        session.dataTask(with: request) { [weak self] _, response, error in
+            guard let self else { return }
+            let outcome: LeaderboardParticipation.DeletionOutcome
+            if error == nil, let http = response as? HTTPURLResponse {
+                outcome = .status(http.statusCode)
+            } else {
+                outcome = .transportError
+            }
+            self.queue.async {
+                self.deletionInFlight = false
+                // Re-read: opt-out may have appended tokens while the DELETE was in flight.
+                var state = LeaderboardParticipation(pendingDeletionTokens: self.pendingDeletionTokens)
+                state.deletionFinished(outcome, token: token)
+                UserDefaults.standard.set(state.pendingDeletionTokens, forKey: Self.pendingDeletionTokensKey)
+                // More tokens queued (e.g. earlier failed opt-out): continue after success.
+                if LeaderboardParticipation.isDeletionConfirmed(outcome) {
+                    self.attemptPendingDeletion()
+                }
+            }
+        }.resume()
     }
 
     // MARK: - Token (UserDefaults — no Keychain prompts)
