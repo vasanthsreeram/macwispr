@@ -68,19 +68,19 @@ final class PhotonSetupPlanTests: XCTestCase {
 
 final class InsertionDecisionTests: XCTestCase {
     func testPastesWhenAllowed() {
-        XCTAssertEqual(InsertionDecision.decide(typeOut: false, canPostEvents: true, secureInputActive: false), .copyAndPaste)
-        XCTAssertEqual(InsertionDecision.decide(typeOut: true, canPostEvents: true, secureInputActive: false), .typeOut)
+        XCTAssertEqual(InsertionDecision.decide(mode: .paste, canPostEvents: true, secureInputActive: false), .copyAndPaste)
+        XCTAssertEqual(InsertionDecision.decide(mode: .typeOut, canPostEvents: true, secureInputActive: false), .typeOut)
     }
 
     func testWithoutAccessibilityOnlyCopies() {
         XCTAssertEqual(
-            InsertionDecision.decide(typeOut: false, canPostEvents: false, secureInputActive: false),
+            InsertionDecision.decide(mode: .paste, canPostEvents: false, secureInputActive: false),
             .copyOnly(reason: InsertionDecision.needsAccessibility))
     }
 
     func testSecureInputBlocksSyntheticPaste() {
         XCTAssertEqual(
-            InsertionDecision.decide(typeOut: false, canPostEvents: true, secureInputActive: true),
+            InsertionDecision.decide(mode: .paste, canPostEvents: true, secureInputActive: true),
             .copyOnly(reason: InsertionDecision.secureInput))
     }
 
