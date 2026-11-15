@@ -1,12 +1,24 @@
 import Foundation
 
+/// The user's insertion setting, as far as the decision is concerned.
+public enum InsertionStyle: Sendable {
+    /// Paste with ⌘V ("Pasting (fastest)").
+    case paste
+    /// Type the text as synthetic key events.
+    case typeOut
+    /// Leave the text on the clipboard; never send keys.
+    case copyOnly
+}
+
 /// How a finished transcript reaches the frontmost app.
 public enum InsertAction: Equatable, Sendable {
     /// Put text on the pasteboard and send ⌘V.
     case copyAndPaste
     /// Type the text as synthetic key events.
     case typeOut
-    /// Only the pasteboard is updated; `reason` tells the user why.
+    /// The user chose Copy only: update the pasteboard, send no keys. A success.
+    case copy
+    /// Paste/type was blocked, so only the pasteboard is updated; `reason` tells the user why.
     case copyOnly(reason: String)
 }
 
@@ -19,10 +31,72 @@ public enum InsertionDecision {
     public static let needsAccessibility = "Copied — turn on Accessibility for MacWispr to paste automatically"
     public static let secureInput = "Copied — a password field is blocking automatic paste. Press ⌘V."
 
-    public static func decide(typeOut: Bool, canPostEvents: Bool, secureInputActive: Bool) -> InsertAction {
+    public static func decide(mode: InsertionStyle, canPostEvents: Bool, secureInputActive: Bool) -> InsertAction {
+        if mode == .copyOnly { return .copy }
         if !canPostEvents { return .copyOnly(reason: needsAccessibility) }
         if secureInputActive { return .copyOnly(reason: secureInput) }
-        return typeOut ? .typeOut : .copyAndPaste
+        return mode == .typeOut ? .typeOut : .copyAndPaste
+    }
+}
+
+/// Picks the virtual key for the ⌘V paste shortcut.
+///
+/// Key equivalents follow the active keyboard layout, so ANSI V (0x09) is
+/// ⌘K on Dvorak. Layouts such as "Dvorak - QWERTY ⌘" switch to QWERTY while
+/// ⌘ is held, so the lookup must be made with ⌘ down.
+public enum PasteKey {
+    public static let ansiV: UInt16 = 0x09
+
+    /// `translate(keyCode, commandHeld)` returns what the key types in the
+    /// current layout, or nil.
+    public static func keyCode(translate: (_ keyCode: UInt16, _ commandHeld: Bool) -> String?) -> UInt16 {
+        func typesV(_ code: UInt16) -> Bool { translate(code, true)?.lowercased() == "v" }
+        if typesV(ansiV) { return ansiV }
+        return (0..<128).first(where: typesV) ?? ansiV
+    }
+}
+
+/// What the transcript write does to the clipboard.
+public struct ClipboardWrite: Equatable, Sendable {
+    /// Mark `org.nspasteboard.TransientType`: clipboard managers skip it.
+    public var transient: Bool
+    /// Mark `org.nspasteboard.ConcealedType`: may be a password.
+    public var concealed: Bool
+    /// Put the user's previous clipboard back once the paste has landed.
+    public var restoreAfterPaste: Bool
+
+    public init(transient: Bool, concealed: Bool, restoreAfterPaste: Bool) {
+        self.transient = transient
+        self.concealed = concealed
+        self.restoreAfterPaste = restoreAfterPaste
+    }
+}
+
+/// The transcript borrows the clipboard only for ⌘V; elsewhere it stays
+/// because the user (or a blocked paste) needs it there.
+public enum ClipboardPolicy {
+    /// Time for the target app to read the pasteboard after ⌘V.
+    public static let restoreDelay: TimeInterval = 0.8
+
+    /// nil: leave the clipboard untouched. `restoreAfterPaste` is the user
+    /// setting; off keeps the pasted transcript on the clipboard as a normal copy.
+    public static func write(
+        for action: InsertAction, secureInputActive: Bool, restoreAfterPaste: Bool = true
+    ) -> ClipboardWrite? {
+        switch action {
+        case .typeOut:
+            return nil
+        case .copyAndPaste:
+            return ClipboardWrite(
+                transient: restoreAfterPaste, concealed: secureInputActive, restoreAfterPaste: restoreAfterPaste)
+        case .copy, .copyOnly:
+            return ClipboardWrite(transient: false, concealed: secureInputActive, restoreAfterPaste: false)
+        }
+    }
+
+    /// Restore only if nobody wrote the clipboard since our transcript.
+    public static func shouldRestore(changeCountAfterWrite: Int, currentChangeCount: Int) -> Bool {
+        changeCountAfterWrite == currentChangeCount
     }
 }
 

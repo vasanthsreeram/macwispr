@@ -86,6 +86,8 @@ final class AppState {
     private(set) var usageSummary: UsageStats.Summary = .empty
     var selectedLanguage: String? = nil
     var insertionMode: InsertionMode = .both
+    /// After a paste, put the user's previous clipboard back (off: transcript stays for re-paste).
+    var restoreClipboardAfterPaste = true
     /// Light first-letter capitalize only — no hardcoded filler/word lists (polish model owns cleanup).
     var autoCapitalize = true
     /// Legacy flag kept in sync with polishProvider == .local for older UI bindings.
@@ -404,6 +406,9 @@ final class AppState {
            let mode = InsertionMode(rawValue: raw)
         {
             insertionMode = mode
+        }
+        if UserDefaults.standard.object(forKey: "restoreClipboardAfterPaste") != nil {
+            restoreClipboardAfterPaste = UserDefaults.standard.bool(forKey: "restoreClipboardAfterPaste")
         }
         if let raw = UserDefaults.standard.string(forKey: "dictationMode"),
            let mode = DictationMode(rawValue: raw)
@@ -1776,7 +1781,7 @@ final class AppState {
             }
 
             // Carbon can detect ⌥Space without AX, but paste/type still needs it.
-            let outcome = textInserter.insert(text: processed, mode: insertionMode)
+            let outcome = textInserter.insert(text: processed, mode: insertionMode, restoreClipboard: restoreClipboardAfterPaste)
             let telemetryOutcome: TelemetryInsertionOutcome
             switch outcome {
             case .ok:
@@ -1895,7 +1900,7 @@ final class AppState {
     func repasteLastTranscription() {
         let text = lastCleanTranscription.isEmpty ? currentTranscription : lastCleanTranscription
         guard !text.isEmpty else { return }
-        let outcome = textInserter.insert(text: text, mode: insertionMode)
+        let outcome = textInserter.insert(text: text, mode: insertionMode, restoreClipboard: restoreClipboardAfterPaste)
         switch outcome {
         case .ok:
             setPhase(.success, detail: "Re-inserted")
@@ -1986,6 +1991,11 @@ final class AppState {
     func setInsertionMode(_ mode: InsertionMode) {
         insertionMode = mode
         UserDefaults.standard.set(mode.rawValue, forKey: "insertionMode")
+    }
+
+    func setRestoreClipboardAfterPaste(_ on: Bool) {
+        restoreClipboardAfterPaste = on
+        UserDefaults.standard.set(on, forKey: "restoreClipboardAfterPaste")
     }
 
     private func transcribeCapture(_ ring: SampleRing) async throws -> String {
