@@ -45,6 +45,7 @@ final class MeetingController {
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var pendingQueue: [String] = []
     @ObservationIgnored private var isDraining = false
+    @ObservationIgnored private var wakeObserver: NSObjectProtocol?
 
     private static let micKey = "meetingRecordMicrophone"
     private static let systemKey = "meetingRecordSystemAudio"
@@ -61,6 +62,11 @@ final class MeetingController {
         writeAgentsReadme()
         markInterruptedMeetings()
         reload()
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.handleWake() }
+        }
     }
 
     func reload() {
@@ -91,11 +97,25 @@ final class MeetingController {
         )
         let dir = paths.meetingDir(id: meta.id)
         var warnings: [String] = []
+        let trackCount = (recordMicrophone ? 1 : 0) + (recordSystemAudio ? 1 : 0)
+        switch MeetingDiskSpace.check(availableBytes: availableDiskBytes(), tracks: trackCount) {
+        case .insufficient(let minutes):
+            lastError = "Not enough free disk space to record a meeting (room for about \(minutes) min). Free up space and try again."
+            return
+        case .low(let minutes):
+            warnings.append("Low disk space: room for only about \(minutes) min of recording. Recording stops if the disk fills up.")
+        case .ok:
+            break
+        }
+        let startUptime = MeetingTimeline.awakeNow()
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             if recordMicrophone {
-                let sink = try MeetingTrackSink(url: dir.appendingPathComponent(MeetingFiles.micPCM), startedAt: now)
+                let sink = try MeetingTrackSink(url: dir.appendingPathComponent(MeetingFiles.micPCM), startUptime: startUptime)
                 let cap = MeetingMicCapture()
+                cap.onIssue = { [weak self] text in
+                    Task { @MainActor in self?.addWarning(text, show: true) }
+                }
                 do {
                     try cap.start(deviceUID: appState?.selectedInputDeviceUID, sink: sink)
                     micSink = sink
@@ -108,8 +128,11 @@ final class MeetingController {
                 }
             }
             if recordSystemAudio, #available(macOS 14.2, *) {
-                let sink = try MeetingTrackSink(url: dir.appendingPathComponent(MeetingFiles.systemPCM), startedAt: now)
+                let sink = try MeetingTrackSink(url: dir.appendingPathComponent(MeetingFiles.systemPCM), startUptime: startUptime)
                 let cap = SystemAudioCapture()
+                cap.onIssue = { [weak self] text in
+                    Task { @MainActor in self?.addWarning(text, show: true) }
+                }
                 do {
                     try cap.start(sink: sink)
                     systemSink = sink
@@ -148,12 +171,26 @@ final class MeetingController {
         stopTimer()
         let micPeak = micSink?.peakLevel ?? 0
         let systemPeak = systemSink?.peakLevel ?? 0
+        let stallWarnings = (micSink?.stallWarnings(track: "Microphone") ?? [])
+            + (systemSink?.stallWarnings(track: "Other apps' audio") ?? [])
+        let writers = [micSink?.writer, systemSink?.writer].compactMap { $0 }
         teardownCapture()
         if appState?.soundFeedbackEnabled == true { FeedbackSounds.playListeningStopped() }
         meta.endedAt = Date()
         meta.durationSeconds = meta.endedAt!.timeIntervalSince(meta.startedAt)
+        // Closing flushed the writers, so any disk error (e.g. disk full) is known now.
+        if let writeError = writers.lazy.compactMap(\.error).first {
+            meta.status = .failed
+            meta.error = "Recording stopped early because the audio could not be saved (\(writeError.localizedDescription)). Free up disk space, then choose Transcribe again."
+            save(meta)
+            current = nil
+            lastError = meta.error
+            phase = isDraining ? .processing("Waiting…") : .idle
+            reload()
+            return
+        }
         meta.status = .processing
-        var warnings = meta.warnings ?? []
+        var warnings = (meta.warnings ?? []) + stallWarnings
         if meta.recordSystemAudio, systemPeak == 0 {
             warnings.append("Other apps' audio was completely silent. If a call was playing, allow MacWispr in System Settings → Privacy & Security → Screen & System Audio Recording.")
         }
@@ -200,6 +237,33 @@ final class MeetingController {
         if label != elapsedLabel { elapsedLabel = label }
         micLevel = micSink?.currentLevel ?? 0
         systemLevel = systemSink?.currentLevel ?? 0
+        // A write failed (disk full): stop now and keep what was saved, rather than recording into nothing.
+        if micSink?.writer.error != nil || systemSink?.writer.error != nil { stop() }
+    }
+
+    /// Audio devices restart after sleep; rebuild capture so the meeting keeps recording.
+    private func handleWake() {
+        guard isRecording else { return }
+        micCapture?.restart(force: true)
+        if #available(macOS 14.2, *) { (systemCapture as? SystemAudioCapture)?.restart(force: true) }
+        addWarning("The Mac slept during the meeting. The recording skips the time it was asleep.", show: false)
+    }
+
+    /// Adds a warning to the meeting being recorded (once) and saves it.
+    private func addWarning(_ text: String, show: Bool) {
+        guard isRecording, var meta = current else { return }
+        var warnings = meta.warnings ?? []
+        guard !warnings.contains(text) else { return }
+        warnings.append(text)
+        meta.warnings = warnings
+        current = meta
+        save(meta)
+        if show { lastError = text }
+    }
+
+    private func availableDiskBytes() -> Int64? {
+        let values = try? paths.meetingsDir.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+        return values?.volumeAvailableCapacityForImportantUsage
     }
 
     // MARK: Processing
