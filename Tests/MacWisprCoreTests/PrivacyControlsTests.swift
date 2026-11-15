@@ -100,14 +100,65 @@ final class DevCaptureDirectoryTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: root.path), [])
     }
 
-    func testClearHistoryPathEmptiesCapturesEvenWhenPrefIsOn() throws {
+    func testHistoryClearingEmptiesCapturesAndClearsEntries() throws {
         let root = try makeRoot()
         try addCapture(root, "a")
-        let defaults = UserDefaults(suiteName: "devcap-test-\(UUID().uuidString)")!
-        defaults.set(true, forKey: "devCaptureEnabled")
-        DevCaptureDirectory.clearAll(in: root)
+        try addCapture(root, "b")
+        var cleared = false
+        HistoryClearing.clear(clearEntries: { cleared = true }, devCaptureRoot: root)
+        XCTAssertTrue(cleared)
         XCTAssertEqual(DevCaptureDirectory.count(in: root), 0)
-        // Clearing must not flip the preference.
-        XCTAssertTrue(defaults.bool(forKey: "devCaptureEnabled"))
+    }
+}
+
+final class LeaderboardDeletionCoordinatorTests: XCTestCase {
+    /// In-memory "UserDefaults" + scripted server; survives across coordinator instances (relaunch).
+    final class Env: @unchecked Sendable {
+        var pending: [String] = []
+        var outcomes: [LeaderboardParticipation.DeletionOutcome] = []
+        var sent: [String] = []
+        func make() -> LeaderboardDeletionCoordinator {
+            LeaderboardDeletionCoordinator(
+                load: { self.pending }, save: { self.pending = $0 },
+                send: { token, done in
+                    self.sent.append(token)
+                    done(self.outcomes.isEmpty ? .status(204) : self.outcomes.removeFirst())
+                })
+        }
+    }
+
+    func testOfflineOptOutPersistsTokenThenRetryOnLaunchDeletes() {
+        let env = Env()
+        env.outcomes = [.transportError]
+        env.make().optOut(token: "tok-A")
+        XCTAssertEqual(env.pending, ["tok-A"])      // kept, not dropped
+        XCTAssertEqual(env.sent, ["tok-A"])
+        env.make().attempt()                        // "relaunch"
+        XCTAssertEqual(env.sent, ["tok-A", "tok-A"])
+        XCTAssertEqual(env.pending, [])
+    }
+
+    func testServerErrorKeepsPendingAndNotFoundClears() {
+        let env = Env()
+        env.outcomes = [.status(503), .status(404)]
+        let c = env.make()
+        c.optOut(token: "tok-A")
+        XCTAssertEqual(env.pending, ["tok-A"])
+        c.attempt()
+        XCTAssertEqual(env.pending, [])
+    }
+
+    func testQueuedTokensDrainAfterSuccess() {
+        let env = Env()
+        env.pending = ["tok-A"]
+        env.make().optOut(token: "tok-B")
+        XCTAssertEqual(env.sent, ["tok-A", "tok-B"])
+        XCTAssertEqual(env.pending, [])
+    }
+
+    func testOptOutWithoutTokenSendsNothing() {
+        let env = Env()
+        env.make().optOut(token: nil)
+        XCTAssertEqual(env.sent, [])
     }
 }

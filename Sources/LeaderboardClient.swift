@@ -81,7 +81,7 @@ final class LeaderboardClient: @unchecked Sendable {
     private let session: URLSession
     /// In-flight PUT; cancelled on opt-out. Touched only on `queue`.
     private var syncTask: URLSessionDataTask?
-    private var deletionInFlight = false
+    private let deletion: LeaderboardDeletionCoordinator
     private let pathMonitor = NWPathMonitor()
 
     /// Fired on main after a successful sync / rank refresh.
@@ -94,7 +94,13 @@ final class LeaderboardClient: @unchecked Sendable {
         config.waitsForConnectivity = false
         config.httpCookieAcceptPolicy = .never
         config.httpShouldSetCookies = false
-        session = URLSession(configuration: config)
+        let session = URLSession(configuration: config)
+        self.session = session
+        deletion = LeaderboardDeletionCoordinator(
+            load: { UserDefaults.standard.stringArray(forKey: LeaderboardClient.pendingDeletionTokensKey) ?? [] },
+            save: { UserDefaults.standard.set($0, forKey: LeaderboardClient.pendingDeletionTokensKey) },
+            send: { token, done in LeaderboardClient.sendDelete(token: token, session: session, completion: done) }
+        )
 
         // Retry an unconfirmed opt-out deletion on launch and when connectivity returns.
         pathMonitor.pathUpdateHandler = { [weak self] path in
@@ -153,11 +159,10 @@ final class LeaderboardClient: @unchecked Sendable {
             retryPendingDeletion()
             scheduleSync(statsProvider: statsProvider, force: true)
         } else {
-            var state = LeaderboardParticipation(optedIn: isOptedIn, token: loadToken(), pendingDeletionTokens: pendingDeletionTokens)
-            state.optOut()
+            let token = loadToken()
             UserDefaults.standard.set(false, forKey: Self.optInKey)
-            // Keep the token until the server confirms deletion.
-            UserDefaults.standard.set(state.pendingDeletionTokens, forKey: Self.pendingDeletionTokensKey)
+            // Token stays queued (persisted) until the server confirms deletion.
+            deletion.optOut(token: token)
             clearStandingDefaults()
             deleteToken()
             queue.async { [weak self] in
@@ -166,7 +171,6 @@ final class LeaderboardClient: @unchecked Sendable {
                 self?.syncWorkItem = nil
                 self?.syncTask?.cancel()
                 self?.syncTask = nil
-                self?.attemptPendingDeletion()
             }
             DispatchQueue.main.async { [weak self] in
                 self?.onStandingChanged?(.empty)
@@ -223,7 +227,7 @@ final class LeaderboardClient: @unchecked Sendable {
 
     private func performSync(stats: LeaderboardStats, force: Bool) {
         guard isOptedIn else { return }
-        guard let token = ensureToken() else { return }
+        guard let token = loadToken() else { return }
 
         if !force,
            let last = UserDefaults.standard.object(forKey: Self.lastSyncKey) as? Date,
@@ -388,43 +392,21 @@ final class LeaderboardClient: @unchecked Sendable {
         defaults.removeObject(forKey: Self.lastSyncKey)
     }
 
-    private var pendingDeletionTokens: [String] {
-        UserDefaults.standard.stringArray(forKey: Self.pendingDeletionTokensKey) ?? []
-    }
-
-    /// Safe to call from any thread; work runs on `queue`.
+    /// Safe to call from any thread.
     func retryPendingDeletion() {
-        queue.async { [weak self] in self?.attemptPendingDeletion() }
+        deletion.attempt()
     }
 
-    /// Must run on `queue`. DELETE the pending row; clear the token only on 2xx/404.
-    private func attemptPendingDeletion() {
-        guard !deletionInFlight,
-              let token = LeaderboardParticipation(pendingDeletionTokens: pendingDeletionTokens).nextDeletionToken
-        else { return }
-        deletionInFlight = true
-        var request = URLRequest(url: Self.apiBaseURL.appendingPathComponent("v1/me"))
+    private static func sendDelete(token: String, session: URLSession, completion: @escaping @Sendable (LeaderboardParticipation.DeletionOutcome) -> Void) {
+        var request = URLRequest(url: LeaderboardClient.apiBaseURL.appendingPathComponent("v1/me"))
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("MacWispr-Leaderboard/1", forHTTPHeaderField: "User-Agent")
-        session.dataTask(with: request) { [weak self] _, response, error in
-            guard let self else { return }
-            let outcome: LeaderboardParticipation.DeletionOutcome
+        session.dataTask(with: request) { _, response, error in
             if error == nil, let http = response as? HTTPURLResponse {
-                outcome = .status(http.statusCode)
+                completion(.status(http.statusCode))
             } else {
-                outcome = .transportError
-            }
-            self.queue.async {
-                self.deletionInFlight = false
-                // Re-read: opt-out may have appended tokens while the DELETE was in flight.
-                var state = LeaderboardParticipation(pendingDeletionTokens: self.pendingDeletionTokens)
-                state.deletionFinished(outcome, token: token)
-                UserDefaults.standard.set(state.pendingDeletionTokens, forKey: Self.pendingDeletionTokensKey)
-                // More tokens queued (e.g. earlier failed opt-out): continue after success.
-                if LeaderboardParticipation.isDeletionConfirmed(outcome) {
-                    self.attemptPendingDeletion()
-                }
+                completion(.transportError)
             }
         }.resume()
     }

@@ -2242,9 +2242,10 @@ final class AppState {
     }
 
     func clearHistory() {
-        transcriptionHistory = []
-        scheduleHistorySave(immediate: true)
-        DevCaptureStore.clearAll()
+        HistoryClearing.clear(clearEntries: {
+            transcriptionHistory = []
+            scheduleHistorySave(immediate: true)
+        }, devCaptureRoot: DevCaptureStore.rootDirectory)
     }
 
     // MARK: - Custom vocabulary (ASR context)
