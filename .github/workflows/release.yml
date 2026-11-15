@@ -85,6 +85,15 @@ jobs:
           MACWISPR_SIGN_IDENTITY: ${{ secrets.MACWISPR_SIGN_IDENTITY }}
         run: ./scripts/ci-import-signing.sh
 
+      - name: Install dmgbuild
+        run: |
+          python3 -m venv "$RUNNER_TEMP/dmgbuild-venv"
+          "$RUNNER_TEMP/dmgbuild-venv/bin/pip" install dmgbuild
+          echo "MACWISPR_PYTHON=$RUNNER_TEMP/dmgbuild-venv/bin/python3" >> "$GITHUB_ENV"
+
+      # build-app.sh signs + notarizes + staples the app; build-dmg.sh then
+      # signs, notarizes, staples, and verifies the DMG (fails the job if any
+      # step fails).
       - name: Build, sign, and notarize
         env:
           MACWISPR_VERSION: ${{ steps.meta.outputs.version }}
@@ -95,6 +104,10 @@ jobs:
           ./scripts/build-app.sh
           ./scripts/build-dmg.sh
           codesign -dv --verbose=4 dist/MacWispr.app 2>&1 | grep -E 'Authority|TeamIdentifier|Signature'
+          for dmg in dist/MacWispr-*-macos-arm64.dmg dist/MacWispr-macos-arm64.dmg; do
+            xcrun stapler validate "$dmg"
+            spctl -a -vvv -t open --context context:primary-signature "$dmg"
+          done
 
       - name: Sparkle-sign zip
         id: sparkle
