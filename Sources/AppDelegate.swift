@@ -25,6 +25,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             self?.closeStrayMacWisprWindows(keeping: self?.dashboardWindow)
         }
 
+        // Cold launch (Spotlight / Dock / Finder): SwiftUI auto-shows its only scene
+        // (`Settings`) as an empty "MacWispr Settings" window, and the redirect inside
+        // it may never run while we're an accessory app. Hide it and show the real
+        // dashboard instead. Login-item launches stay silent in the menu bar.
+        let launchedAsLoginItem = NSAppleEventManager.shared().currentAppleEvent?
+            .paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?
+            .enumCodeValue == OSType(keyAELaunchedAsLogInItem)
+        let isAutomation = CommandLine.arguments.contains("--self-test")
+            || HeadlessTranscribe.requestedFiles != nil
+            || HeadlessMeeting.requestedSeconds != nil
+            || UISnapshot.outputDirectory != nil
+        if !launchedAsLoginItem, !isAutomation {
+            openDashboardWhenReady(attempts: 30)
+        }
+        for delay in [0.15, 0.5, 1.2] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.hideSettingsSceneWindows()
+            }
+        }
+
         // Sparkle: start background update checks when Info.plist has SUFeedURL
         // (packaged .app). Bare SPM binaries skip this — see SparkleUpdater.
         _ = SparkleUpdater.shared
@@ -382,6 +402,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         // Keep a stable look; don’t let a double-click flip display modes.
         toolbar.displayMode = .iconAndLabel
+    }
+
+    /// Hides the SwiftUI `Settings` scene anchor window ("MacWispr Settings").
+    /// `orderOut` (not close) so SwiftUI can still reuse the scene later.
+    @MainActor
+    private func hideSettingsSceneWindows() {
+        for window in NSApp.windows where window !== dashboardWindow {
+            guard window.styleMask.contains(.titled), window.isVisible else { continue }
+            if window.title.hasSuffix("Settings") || window.identifier?.rawValue.contains("Settings") == true {
+                window.orderOut(nil)
+            }
+        }
     }
 
     /// Closes extra titled MacWispr windows so only our retained dashboard remains.
